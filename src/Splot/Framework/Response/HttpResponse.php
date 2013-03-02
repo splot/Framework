@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2013, Michał Dudek
  * @license MIT
  */
-namespace Splot\Foundation\Response;
+namespace Splot\Framework\Response;
 
 use Splot\Foundation\Debug\Debugger;
 

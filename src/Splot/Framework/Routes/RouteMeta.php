@@ -12,10 +12,10 @@
 namespace Splot\Framework\Routes;
 
 use Splot\Foundation\Debug\Debugger;
-use Splot\Foundation\Request\HttpRequest;
 use Splot\Foundation\Exceptions\NotFoundException;
 use Splot\Foundation\Utils\ArrayUtils;
 
+use Splot\Framework\Request\HttpRequest;
 use Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException;
 
 class RouteMeta

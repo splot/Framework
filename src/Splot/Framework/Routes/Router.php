@@ -105,8 +105,8 @@ class Router
 	 */
 	public function addRoute($name, $class, $moduleName = null, $pattern = null, array $methods = array()) {
 		// must extend AbstractRoute
-		if (!is_subclass_of($class, 'Splot\Kit\Routes\AbstractRoute', true)) {
-			throw new InvalidRouteException('Route "'. $class .'" must extend "Splot\Kit\Routes\AbstractRoute".');
+		if (!is_subclass_of($class, 'Splot\Framework\Routes\AbstractRoute', true)) {
+			throw new InvalidRouteException('Route "'. $class .'" must extend "Splot\Framework\Routes\AbstractRoute".');
 		}
 
 		/**
