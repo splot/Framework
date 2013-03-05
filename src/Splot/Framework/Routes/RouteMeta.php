@@ -15,7 +15,8 @@ use Splot\Foundation\Debug\Debugger;
 use Splot\Foundation\Exceptions\NotFoundException;
 use Splot\Foundation\Utils\ArrayUtils;
 
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
+use Splot\Framework\Routes\Exceptions\InvalidRouteException;
 use Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException;
 
 class RouteMeta
@@ -108,10 +109,10 @@ class RouteMeta
 	 * 
 	 * @param string $url Request URL.
 	 * @param string $httpMethod HTTP method (GET/PUT/POST/DELETE).
-	 * @param HttpRequest $request The request for this route.
+	 * @param Request $request The request for this route.
 	 * @return array Array of arguments.
 	 */
-	public function getRouteMethodArgumentsForUrl($url, $httpMethod, HttpRequest $request) {
+	public function getRouteMethodArgumentsForUrl($url, $httpMethod, Request $request) {
 		$matched = preg_match('#^'. $this->getRegExp() .'$#is', $url, $matches);
 
 		if ($matched === 0) {
@@ -127,7 +128,7 @@ class RouteMeta
 
 		foreach($method['params'] as $i => $param) {
 			// inject request instead of a match
-			if ($param['class'] && Debugger::isExtending($param['class'], 'Splot\Framework\Request\HttpRequest', true)) {
+			if ($param['class'] && Debugger::isExtending($param['class'], 'Splot\Framework\HTTP\Request', true)) {
 				$arguments[$i] = $request;
 				continue;
 			}

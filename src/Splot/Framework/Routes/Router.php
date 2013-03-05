@@ -13,7 +13,7 @@ namespace Splot\Framework\Routes;
 
 use Splot\Foundation\Debug\LoggerCategory;
 
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\AbstractRoute;
 use Splot\Framework\Routes\RouteMeta;
@@ -135,11 +135,11 @@ class Router
 	/**
 	 * Tries to find a route for the given request.
 	 * 
-	 * @param HttpRequest $request
+	 * @param Request $request
 	 * @return array|bool Array of information about a found route or false if no route found.
 	 */
-	public function getRouteForRequest(HttpRequest $request) {
-		return $this->getRouteForUrl($request->getUrlPath(), $request->getMethod());
+	public function getRouteForRequest(Request $request) {
+		return $this->getRouteForUrl($request->getPathInfo(), $request->getMethod());
 	}
 
 	/**
@@ -147,7 +147,6 @@ class Router
 	 * 
 	 * @param string $url URL to look for in routes.
 	 * @param string $method [optional] HTTP method. One of the following: GET, POST, PUT, DELETE. Default: GET.
-	 * @param HttpRequest $request [optional] Request that could be used in route's method arguments. Default: null.
 	 * @return array|bool Array of information about a found route or false if no route found.
 	 */
 	public function getRouteForUrl($url, $method = 'GET') {

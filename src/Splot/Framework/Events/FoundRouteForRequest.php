@@ -12,7 +12,7 @@
 namespace Splot\Framework\Events;
 
 use Splot\Framework\EventManager\AbstractEvent;
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
 use Splot\Framework\Routes\RouteMeta;
 
 class FoundRouteForRequest extends AbstractEvent
@@ -28,16 +28,16 @@ class FoundRouteForRequest extends AbstractEvent
 	/**
 	 * The received request.
 	 * 
-	 * @var HttpRequest
+	 * @var Request
 	 */
 	private $_request;
 
 	/**
 	 * Constructor.
 	 * 
-	 * @param HttpRequest $request The received request.
+	 * @param Request $request The received request.
 	 */
-	public function __construct(RouteMeta $routeMeta, HttpRequest $request) {
+	public function __construct(RouteMeta $routeMeta, Request $request) {
 		$this->_routeMeta = $routeMeta;
 		$this->_request = $request;
 	}
@@ -54,7 +54,7 @@ class FoundRouteForRequest extends AbstractEvent
 	/**
 	 * Returns the received request.
 	 * 
-	 * @return HttpRequest
+	 * @return Request
 	 */
 	public function getRequest() {
 		return $this->_request;

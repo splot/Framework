@@ -12,8 +12,8 @@
 namespace Splot\Framework\Events;
 
 use Splot\Framework\EventManager\AbstractEvent;
-use Splot\Framework\Request\HttpRequest;
-use Splot\Framework\Response\HttpResponse;
+use Splot\Framework\HTTP\Request;
+use Splot\Framework\HTTP\Response;
 
 class WillSendResponse extends AbstractEvent
 {
@@ -28,17 +28,17 @@ class WillSendResponse extends AbstractEvent
 	/**
 	 * The HTTP response that will be sent.
 	 * 
-	 * @var HttpResponse
+	 * @var Response
 	 */
 	private $_response;
 
 	/**
 	 * Constructor.
 	 * 
-	 * @param HttpResponse $response The HTTP response that will be rendered.
-	 * @param HttpRequest $request The received HTTP request.
+	 * @param Response $response The HTTP response that will be rendered.
+	 * @param Request $request The received HTTP request.
 	 */
-	public function __construct(HttpResponse $response, HttpRequest $request) {
+	public function __construct(Response $response, Request $request) {
 		$this->_response = $response;
 		$this->_request = $request;
 	}
@@ -55,7 +55,7 @@ class WillSendResponse extends AbstractEvent
 	/**
 	 * Returns the response that will be rendered.
 	 * 
-	 * @return HttpResponse
+	 * @return Response
 	 */
 	public function getResponse() {
 		return $this->_response;

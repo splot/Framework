@@ -12,8 +12,8 @@
 namespace Splot\Framework\Events;
 
 use Splot\Framework\EventManager\AbstractEvent;
-use Splot\Foundation\Request\HttpRequest;
-use Splot\Foundation\Response\HttpResponse;
+use Splot\Foundation\HTTP\Request;
+use Splot\Foundation\HTTP\Response;
 
 class DidNotFoundRouteForRequest extends AbstractEvent
 {
@@ -21,14 +21,14 @@ class DidNotFoundRouteForRequest extends AbstractEvent
 	/**
 	 * The received HTTP Request.
 	 * 
-	 * @var HttpRequest
+	 * @var Request
 	 */
 	private $_request;
 
 	/**
 	 * HTTP response that should be returned.
 	 * 
-	 * @var HttpResponse
+	 * @var Response
 	 */
 	private $_response;
 
@@ -42,14 +42,16 @@ class DidNotFoundRouteForRequest extends AbstractEvent
 	/**
 	 * Constructor.
 	 * 
-	 * @param HttpRequest $request The received HTTP request.
+	 * @param Request $request The received HTTP request.
 	 */
-	public function __construct(HttpRequest $request) {
+	public function __construct(Request $request) {
 		$this->_request = $request;
 	}
 
 	/**
 	 * Returns the received HTTP Request.
+	 * 
+	 * @return Request
 	 */
 	public function getRequest() {
 		return $this->_request;
@@ -67,9 +69,9 @@ class DidNotFoundRouteForRequest extends AbstractEvent
 	/**
 	 * Sets the response to be rendered instead of application throwing NotFoundException.
 	 * 
-	 * @param HttpResponse $response The response to be rendered.
+	 * @param Response $response The response to be rendered.
 	 */
-	public function setResponse(HttpResponse $response) {
+	public function setResponse(Response $response) {
 		$this->_response = $response;
 		$this->_isHandled = true;
 	}

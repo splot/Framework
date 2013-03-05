@@ -13,7 +13,7 @@
  */
 namespace Splot\Framework\Routes;
 
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 abstract class AbstractRoute

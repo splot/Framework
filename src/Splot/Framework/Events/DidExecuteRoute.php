@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\Events;
 
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
 use Splot\Framework\EventManager\AbstractEvent;
 use Splot\Framework\Routes\RouteResponse;
 use Splot\Framework\Routes\RouteMeta;
@@ -36,7 +36,7 @@ class DidExecuteRoute extends AbstractEvent
 	/**
 	 * HTTP request that called the route.
 	 * 
-	 * @var HttpRequest
+	 * @var Request
 	 */
 	private $_request;
 
@@ -45,9 +45,9 @@ class DidExecuteRoute extends AbstractEvent
 	 * 
 	 * @param RouteResponse $routeResponse The received response from the route.
 	 * @param RouteMeta $routeMeta Meta information about the executed route.
-	 * @param HttpRequest $request HTTP request that called the route.
+	 * @param Request $request HTTP request that called the route.
 	 */
-	public function __construct(RouteResponse $routeResponse, RouteMeta $routeMeta, HttpRequest $request) {
+	public function __construct(RouteResponse $routeResponse, RouteMeta $routeMeta, Request $request) {
 		$this->_routeResponse = $routeResponse;
 		$this->_routeMeta = $routeMeta;
 		$this->_request = $request;
@@ -74,7 +74,7 @@ class DidExecuteRoute extends AbstractEvent
 	/**
 	 * Returns the HTTP request that called the route.
 	 * 
-	 * @return HttpRequest
+	 * @return Request
 	 */
 	public function getRequest() {
 		return $this->_request;

@@ -12,7 +12,7 @@
 namespace Splot\Framework\Events;
 
 use Splot\Framework\EventManager\AbstractEvent;
-use Splot\Framework\Request\HttpRequest;
+use Splot\Framework\HTTP\Request;
 
 class DidReceiveRequest extends AbstractEvent
 {
@@ -20,23 +20,23 @@ class DidReceiveRequest extends AbstractEvent
 	/**
 	 * The received request.
 	 * 
-	 * @var HttpRequest
+	 * @var Request
 	 */
 	private $_request;
 
 	/**
 	 * Constructor.
 	 * 
-	 * @param HttpRequest $request The received request.
+	 * @param Request $request The received request.
 	 */
-	public function __construct(HttpRequest $request) {
+	public function __construct(Request $request) {
 		$this->_request = $request;
 	}
 
 	/**
 	 * Returns the received request.
 	 * 
-	 * @return HttpRequest
+	 * @return Request
 	 */
 	public function getRequest() {
 		return $this->_request;

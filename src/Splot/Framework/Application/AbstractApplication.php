@@ -21,8 +21,8 @@ use Splot\Foundation\Exceptions\NotUniqueException;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config;
-use Splot\Framework\Request\HttpRequest;
-use Splot\Framework\Response\HttpResponse;
+use Splot\Framework\HTTP\Request;
+use Splot\Framework\HTTP\Response;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\RouteMeta;
@@ -105,7 +105,7 @@ abstract class AbstractApplication
 	/**
 	 * Current HTTP Request that is being handled by the application.
 	 * 
-	 * @var HttpRequest
+	 * @var Request
 	 */
 	private $_request;
 
@@ -164,12 +164,12 @@ abstract class AbstractApplication
 	/**
 	 * Handle the request that was sent to the application.
 	 * 
-	 * @param HttpRequest $request
-	 * @return HttpResponse
+	 * @param Request $request
+	 * @return Response
 	 * 
 	 * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFoundRouteForRequest event.
 	 */
-	public function handleRequest(HttpRequest $request) {
+	public function handleRequest(Request $request) {
 		$this->_request = $request;
 		$this->container->set('request', function($c) use ($request) {
 			return $request;
@@ -200,14 +200,14 @@ abstract class AbstractApplication
 
 		$routeClass = $routeMeta->getRouteClass();
 		$routeMethod = $routeMeta->getRouteMethodForHttpMethod($request->getMethod());
-		$routeArguments = $routeMeta->getRouteMethodArgumentsForUrl($request->getUrlPath(), $request->getMethod(), $request);
+		$routeArguments = $routeMeta->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
 
 		// if route has been found then log it
 		$this->_logger->log('Matched route: "'. $routeMeta->getName() .'" ("'. $routeMeta->getRouteClass() .'")', array(
 			'name' => $routeMeta->getName(),
 			'function' => $routeClass .'::'. $routeMethod,
 			'arguments' => $routeArguments,
-			'url' => $request->getUrlPath(),
+			'url' => $request->getPathInfo(),
 			'method' => $request->getMethod(),
 			'module' => $routeMeta->getModuleName(),
 		), 'routing, request');
@@ -224,11 +224,11 @@ abstract class AbstractApplication
 
 		// one exception, if the response is a string then automatically convert it to HttpResponse
 		if (is_string($response)) {
-			$response = new HttpResponse($response);
+			$response = new Response($response);
 		}
 
-		if (!is_object($response) || !($response instanceof HttpResponse)) {
-			throw new InvalidReturnValueException('Executed route method must return Splot\\Framework\\Response\\HttpResponse instance, "'. Debugger::getType($response) .'" given.');
+		if (!is_object($response) || !($response instanceof Response)) {
+			throw new InvalidReturnValueException('Executed route method must return Splot\\Framework\\HTTP\\Response instance, "'. Debugger::getType($response) .'" given.');
 		}
 
 		return $response;
@@ -237,10 +237,10 @@ abstract class AbstractApplication
 	/**
 	 * Renders the final response and sends it back to the client.
 	 * 
-	 * @param HttpResponse $response HTTP Response to be sent.
-	 * @param HttpRequest $request The original HTTP request for context.
+	 * @param Response $response HTTP Response to be sent.
+	 * @param Request $request The original HTTP request for context.
 	 */
-	public function sendResponse(HttpResponse $response, HttpRequest $request) {
+	public function sendResponse(Response $response, Request $request) {
 		Debugger::logMemory('Will send response');
 
 		// trigger WillSendResponse event for any last minute changes
@@ -425,7 +425,7 @@ abstract class AbstractApplication
 	/**
 	 * Returns the current HTTP Request that is being handled by the application.
 	 * 
-	 * @return HttpRequest
+	 * @return Request
 	 */
 	public function getRequest() {
 		return $this->_request;
