@@ -21,7 +21,7 @@ use Splot\Log\LogContainer;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
-use Splot\Framework\Config;
+use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Symfony\Component\Filesystem\Filesystem;

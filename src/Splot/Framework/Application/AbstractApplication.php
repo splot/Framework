@@ -25,7 +25,7 @@ use Splot\Log\LogContainer;
 use Splot\EventManager\EventManager;
 
 use Splot\Framework\Framework;
-use Splot\Framework\Config;
+use Splot\Framework\Config\Config;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 use Splot\Framework\DependencyInjection\ServiceContainer;

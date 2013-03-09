@@ -3,12 +3,13 @@
  * Holds config information about Splot Framework and its application or modules.
  * 
  * @package SplotFramework
+ * @subpackage Config
  * @author Michał Dudek <michal@michaldudek.pl>
  * 
  * @copyright Copyright (c) 2013, Michał Dudek
  * @license MIT
  */
-namespace Splot\Framework;
+namespace Splot\Framework\Config;
 
 use Splot\Foundation\Exceptions\NotFoundException;
 use Splot\Foundation\Exceptions\InvalidFileException;

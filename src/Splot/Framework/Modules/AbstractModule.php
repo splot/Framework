@@ -13,7 +13,7 @@ namespace Splot\Framework\Modules;
 
 use Splot\Foundation\Debug\Debugger;
 
-use Splot\Framework\Config;
+use Splot\Framework\Config\Config;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
