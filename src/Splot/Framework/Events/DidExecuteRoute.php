@@ -11,8 +11,9 @@
  */
 namespace Splot\Framework\Events;
 
+use Splot\EventManager\AbstractEvent;
+
 use Splot\Framework\HTTP\Request;
-use Splot\Framework\EventManager\AbstractEvent;
 use Splot\Framework\Routes\RouteResponse;
 use Splot\Framework\Routes\RouteMeta;
 

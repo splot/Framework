@@ -11,7 +11,8 @@
  */
 namespace Splot\Framework\Events;
 
-use Splot\Framework\EventManager\AbstractEvent;
+use Splot\EventManager\AbstractEvent;
+
 use Splot\Foundation\HTTP\Request;
 use Splot\Foundation\HTTP\Response;
 

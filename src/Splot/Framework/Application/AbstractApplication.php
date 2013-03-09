@@ -22,6 +22,8 @@ use Splot\Foundation\Exceptions\NotUniqueException;
 use Splot\Log\Logger;
 use Splot\Log\LogContainer;
 
+use Splot\EventManager\EventManager;
+
 use Splot\Framework\Framework;
 use Splot\Framework\Config;
 use Splot\Framework\HTTP\Request;
@@ -36,7 +38,6 @@ use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFoundRouteForRequest;
 use Splot\Framework\Events\FoundRouteForRequest;
 use Splot\Framework\Events\WillSendResponse;
-use Splot\Framework\EventManager\EventManager;
 use Splot\Framework\Resources\Finder;
 
 abstract class AbstractApplication
@@ -136,7 +137,7 @@ abstract class AbstractApplication
         $this->_env = $env;
 
         $this->_router = $router = new Router();
-        $this->_eventManager = $eventManager = new EventManager();
+        $this->_eventManager = $eventManager = new EventManager('Application Events');
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
