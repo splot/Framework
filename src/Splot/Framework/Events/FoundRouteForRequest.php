@@ -18,46 +18,46 @@ use Splot\Framework\Routes\RouteMeta;
 class FoundRouteForRequest extends AbstractEvent
 {
 
-	/**
-	 * The found route meta info.
-	 * 
-	 * @var RouteMeta
-	 */
-	private $_routeMeta;
+    /**
+     * The found route meta info.
+     * 
+     * @var RouteMeta
+     */
+    private $_routeMeta;
 
-	/**
-	 * The received request.
-	 * 
-	 * @var Request
-	 */
-	private $_request;
+    /**
+     * The received request.
+     * 
+     * @var Request
+     */
+    private $_request;
 
-	/**
-	 * Constructor.
-	 * 
-	 * @param Request $request The received request.
-	 */
-	public function __construct(RouteMeta $routeMeta, Request $request) {
-		$this->_routeMeta = $routeMeta;
-		$this->_request = $request;
-	}
+    /**
+     * Constructor.
+     * 
+     * @param Request $request The received request.
+     */
+    public function __construct(RouteMeta $routeMeta, Request $request) {
+        $this->_routeMeta = $routeMeta;
+        $this->_request = $request;
+    }
 
-	/**
-	 * Returns the found route meta info.
-	 * 
-	 * @return RouteMeta
-	 */
-	public function getRouteMeta() {
-		return $this->_routeMeta;
-	}
+    /**
+     * Returns the found route meta info.
+     * 
+     * @return RouteMeta
+     */
+    public function getRouteMeta() {
+        return $this->_routeMeta;
+    }
 
-	/**
-	 * Returns the received request.
-	 * 
-	 * @return Request
-	 */
-	public function getRequest() {
-		return $this->_request;
-	}
+    /**
+     * Returns the received request.
+     * 
+     * @return Request
+     */
+    public function getRequest() {
+        return $this->_request;
+    }
 
 }

@@ -17,29 +17,29 @@ use Splot\Framework\HTTP\Request;
 class DidReceiveRequest extends AbstractEvent
 {
 
-	/**
-	 * The received request.
-	 * 
-	 * @var Request
-	 */
-	private $_request;
+    /**
+     * The received request.
+     * 
+     * @var Request
+     */
+    private $_request;
 
-	/**
-	 * Constructor.
-	 * 
-	 * @param Request $request The received request.
-	 */
-	public function __construct(Request $request) {
-		$this->_request = $request;
-	}
+    /**
+     * Constructor.
+     * 
+     * @param Request $request The received request.
+     */
+    public function __construct(Request $request) {
+        $this->_request = $request;
+    }
 
-	/**
-	 * Returns the received request.
-	 * 
-	 * @return Request
-	 */
-	public function getRequest() {
-		return $this->_request;
-	}
+    /**
+     * Returns the received request.
+     * 
+     * @return Request
+     */
+    public function getRequest() {
+        return $this->_request;
+    }
 
 }

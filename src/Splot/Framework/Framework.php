@@ -14,325 +14,348 @@
  */
 namespace Splot\Framework;
 
-use Splot\Foundation\Debug\Logger;
-use Splot\Foundation\Debug\LoggerCategory;
+use Splot\Foundation\Debug\Timer;
 use Splot\Foundation\Debug\Debugger;
+
+use Splot\Log\LogContainer;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
 use Splot\Framework\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
+use Symfony\Component\Filesystem\Filesystem;
+
 class Framework
 {
 
-	private static $_framework;
+    const ENV_PRODUCTION    = 'PRODUCTION';
+    const ENV_STAGING       = 'STAGING';
+    const ENV_DEV           = 'DEV';
 
-	private $_rootDir;
-	private $_cacheDir;
-	private $_frameworkDir;
-	private $_vendorDir;
-	private $_rootApplicationDir;
-	private $_applicationDir;
-	private $_env = 'production';
-	private $_shell = false;
 
-	private $_logger;
-	private $_timer;
+    private static $_framework;
 
-	private $_application;
+    private $_rootDir;
+    private $_cacheDir;
+    private $_frameworkDir;
+    private $_vendorDir;
+    private $_rootApplicationDir;
+    private $_applicationDir;
 
-	/**
-	 * Initialize the framework as a singleton.
-	 * 
-	 * @param array $options [optional] Array of options.
-	 * @return Framework
-	 */
-	final public static function init(array $options = array()) {
-		if (self::$_framework) {
-			return self::$_framework;
-		}
+    private $_env = 'PRODUCTION';
+    private $_cli = false;
 
-		$shell = isset($_ENV['SPLOT_SHELL']) ? $_ENV['SPLOT_SHELL'] : false;
 
-		self::$_framework = new self($options, $shell);
-		return self::$_framework;
-	}
+    private $_logger;
+    private $_timer;
 
-	/**
-	 * Constructor.
-	 * 
-	 * @param array $options [optional] Array of options.
-	 * @param bool $shell [optional] Is it shell environment? Default: false.
-	 */ 
-	final private function __construct(array $options = array(), $shell = false) {
-		$this->_shell = $shell;
-		define('SPLOT_SHELL', $shell);
+    private $_application;
 
-		ini_set('default_charset', 'utf8');
+    /**
+     * Initialize the framework as a singleton.
+     * 
+     * @param array $options [optional] Array of options.
+     * @return Framework
+     */
+    final public static function init(array $options = array()) {
+        if (self::$_framework) {
+            return self::$_framework;
+        }
 
-		// register error handlers
-		set_error_handler(array('Splot\Foundation\Debug\Debugger', 'handleError'));
-		register_shutdown_function(array('Splot\Foundation\Debug\Debugger', 'handleFatalError'));
+        $cli = isset($_ENV['SPLOT_CLI']) ? $_ENV['SPLOT_CLI'] : false;
 
-		$this->_timer = Debugger::startTimer('global');
+        self::$_framework = new self($options, $cli);
+        return self::$_framework;
+    }
 
-		$this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
-		$this->_cacheDir = @$options['cacheDir'] ?: $this->_rootDir .'cache/';
-		$this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
-		$this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
-		$this->_rootApplicationDir = @$options['rootApplicationDir'] ?: $this->_rootDir .'application/';
+    /**
+     * Constructor.
+     * 
+     * @param array $options [optional] Array of options.
+     * @param bool $cli [optional] Is it command line interface? Default: false.
+     */ 
+    final private function __construct(array $options = array(), $cli = false) {
+        LogContainer::setStartTime(Timer::getMicroTime());
 
-		// initialize the logger for the framework
-		$this->_logger = new LoggerCategory('Splot Framework');
+        $this->_timer = new Timer();
+        $this->_logger = LogContainer::create('Splot Framework');
 
-		// log memory usage for initialization
-		Debugger::logMemory('Splot Framework Initialization');
-	}
+        $this->_cli = $cli;
+        define('SPLOT_CLI', $cli);
 
-	/**
-	 * Boots the passed application.
-	 * 
-	 * @param string $applicationClass Application class to boot.
-	 * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
-	 * @return ApplicationInterface The booted application.
-	 */
-	public function bootApplication($applicationClass, array $options = array()) {
-		// must subclass AbstractApplication
-		if (!is_subclass_of($applicationClass, 'Splot\Framework\Application\AbstractApplication', true)) {
-			throw new \InvalidArgumentException('Application Class must extend "Splot\Framework\Application\AbstractApplication".');
-		}
+        ini_set('default_charset', 'utf8');
 
-		// figure out the application directory exactly
-		$this->_applicationDir = $this->getRootApplicationDir() . Debugger::getNamespace($applicationClass) .'/';
+        // register error handlers
+        set_error_handler(array('Splot\Foundation\Debug\Debugger', 'handleError'));
+        register_shutdown_function(array('Splot\Foundation\Debug\Debugger', 'handleFatalError'));
 
-		/*
-		 * Decide on environment
-		 */
-		$this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config/');
-		define('SPLOT_ENV', $this->getEnv());
+        $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
+        $this->_cacheDir = @$options['cacheDir'] ?: $this->_rootDir .'cache/';
+        $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
+        $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
+        $this->_rootApplicationDir = @$options['rootApplicationDir'] ?: $this->_rootDir .'application/';
 
-		// set debugger on or off based on environment
-		Logger::setEnabled($this->getEnv() !== SplotEnv_Production);
+        $this->_logger->info('Splot Framework successfully initialized.', array(
+            'rootDir' => $this->_rootDir,
+            'cacheDir' => $this->_cacheDir,
+            'frameworkDir' => $this->_frameworkDir,
+            'vendorDir' => $this->_vendorDir,
+            'rootApplicationDir' => $this->_rootApplicationDir,
+            '_timer' => $this->_timer->step('Initialization')
+        ));
+    }
 
-		// read the appropriate application's config (based on env)
-		$config = Config::read($this->_applicationDir .'config/', $this->getEnv());
-		$this->_logger->log('Loaded config files', $config->getReadFiles(), 'application, boot');
+    /**
+     * Boots the passed application.
+     * 
+     * @param string $applicationClass Application class to boot.
+     * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
+     * @return ApplicationInterface The booted application.
+     */
+    public function bootApplication($applicationClass, array $options = array()) {
+        // must subclass AbstractApplication
+        if (!is_subclass_of($applicationClass, 'Splot\Framework\Application\AbstractApplication', true)) {
+            throw new \InvalidArgumentException('Application Class must extend "Splot\Framework\Application\AbstractApplication".');
+        }
 
-		// set the timezone based on config
-		date_default_timezone_set($config->get('timezone'));
+        // figure out the application directory exactly
+        $this->_applicationDir = $this->getRootApplicationDir() . Debugger::getNamespace($applicationClass) . DS;
 
-		// update the logger settings based on config
-		// set debugger on or off based on environment
-		Logger::setEnabled($config->get('debugger.enabled'));
+        /*
+         * Decide on environment
+         */
+        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config/');
+        define('SPLOT_ENV', $this->getEnv());
 
-		// create dependency injection container and reference itself as a service
-		$serviceContainer = new ServiceContainer();
-		$serviceContainer->set('container', function($container) use ($serviceContainer) {
-			return $serviceContainer;
-		}, true);
+        // set logger on or off based on environment
+        $this->_logger->setEnabled($this->getEnv() !== static::ENV_PRODUCTION);
+        LogContainer::setEnabled($this->getEnv() !== static::ENV_PRODUCTION);
 
-		// set some parameters
-		$serviceContainer->setParameter('root_dir', $this->_rootDir);
-		$serviceContainer->setParameter('cache_dir', $this->_cacheDir);
-		$serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
-		$serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
-		$serviceContainer->setParameter('root_application_dir', $this->_rootApplicationDir);
-		$serviceContainer->setParameter('application_dir', $this->_applicationDir);
+        // read the appropriate application's config (based on env)
+        $config = Config::read($this->_applicationDir .'config/', $this->getEnv());
 
-		// define filesystem service
-		$serviceContainer->set('filesystem', function($c) {
-			return new \Symfony\Component\Filesystem\Filesystem();
-		}, true, true);
+        // set the timezone based on config
+        date_default_timezone_set($config->get('timezone'));
 
-		// instantiate the class and inject the config, dependency injection container and environment to it
-		$application = new $applicationClass($config, $serviceContainer, $this->getEnv());
-		// also define the application as a read-only service
-		$serviceContainer->set('application', function($container) use ($application) {
-			return $application;
-		}, true);
+        // update the logger settings based on config
+        $this->_logger->setEnabled($config->get('debugger.enabled'));
+        LogContainer::setEnabled($config->get('debugger.enabled'));
 
-		$this->_logger->log('Started application "'. $applicationClass .'".', array(
-			'env' => $this->getEnv(),
-			'configFiles' => $config->getReadFiles()
-		));
+        // create dependency injection container and reference itself as a service
+        $serviceContainer = new ServiceContainer();
+        $serviceContainer->set('container', function($container) use ($serviceContainer) {
+            return $serviceContainer;
+        }, true);
 
-		// boot the application
-		$application->boot($options);
-		Debugger::logMemory('Application Boot');
+        // set some parameters
+        $serviceContainer->setParameter('root_dir', $this->_rootDir);
+        $serviceContainer->setParameter('cache_dir', $this->_cacheDir);
+        $serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
+        $serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
+        $serviceContainer->setParameter('root_application_dir', $this->_rootApplicationDir);
+        $serviceContainer->setParameter('application_dir', $this->_applicationDir);
 
-		// load all modules for this application
-		$modules = $application->loadModules();
-		foreach($modules as $module) {
-			$application->bootModule($module);
-			$this->_logger->log('Module "'. $module->getName() .'" loaded.', array(
-				'name' => $module->getName(),
-				'class' => $module->getClass(),
-				'dir' => $module->getModuleDir()
-			), 'module, boot');
-		}
+        // define filesystem service
+        $serviceContainer->set('filesystem', function($c) {
+            return new Filesystem();
+        }, true, true);
 
-		$routes = $application->getRouter()->getRoutes();
-		$routesLog = array();
-		foreach($routes as $route) {
-			$routesLog[$route->getName()] = $route->getPattern();
-		}
-		$this->_logger->log('Registered '. count($routes) .' routes.', $routesLog, 'routing, boot');
-		
-		Debugger::logMemory('Modules and Routes Loaded');
+        // instantiate the class and inject the config, dependency injection container and environment to it
+        $application = new $applicationClass($config, $serviceContainer, $this->getEnv());
+        // also define the application as a read-only service
+        $serviceContainer->set('application', function($container) use ($application) {
+            return $application;
+        }, true);
 
-		$this->_application = $application;
-		return $this->_application;
-	}
+        $this->_logger->info('Started application "'. $applicationClass .'".', array(
+            'env' => $this->getEnv(),
+            'configFiles' => $config->getReadFiles(),
+            '_timer' => $this->_timer->step('Application Start')
+        ));
 
-	/*
-	 * HELPERS
-	 */
-	/**
-	 * Tries to determine in what environement the application should run based on available configs in /app/config/ dir.
-	 * 
-	 * If no specific configs available it will return Production environment.
-	 * The order of checking is: development, staging, production.
-	 * 
-	 * @param string $configDir Path to directory with application configs.
-	 * @return string The guessed environment. A string from one of the SplotEnv_ constants.
-	 */
-	public static function envFromConfigs($configDir) {
-		// check for development
-		if (file_exists($configDir .'config.dev.php')) {
-			return SplotEnv_Dev;
-		}
+        // boot the application
+        $application->boot($options);
+        $this->_logger->info('Booted application "'. $applicationClass .'".', array(
+            'options' => $options,
+            '_timer' => $this->_timer->step('Application Boot')
+        ));
 
-		// check for staging
-		if (file_exists($configDir .'config.staging.php')) {
-			return SplotEnv_Staging;
-		}
+        // load all modules for this application
+        $modules = $application->loadModules();
+        foreach($modules as $module) {
+            $application->bootModule($module);
 
-		// check for production
-		if (file_exists($configDir .'config.production.php')) {
-			return SplotEnv_Production;
-		}
+            $this->_logger->info('Module "'. $module->getName() .'" loaded.', array(
+                'name' => $module->getName(),
+                'class' => $module->getClass(),
+                'dir' => $module->getModuleDir(),
+                '_timer' => $this->_timer->step('Module "'. $module->getName() .'" loaded'),
+                '_tags' => 'module, boot'
+            ));
+        }
 
-		// return production environment by default to prevent accidental display of various debug stuff (debug should be turned off for production)
-		return SplotEnv_Production;
-	}
+        $routes = $application->getRouter()->getRoutes();
+        $routesLog = array();
+        foreach($routes as $route) {
+            $routesLog[$route->getName()] = $route->getPattern();
+        }
+        $this->_logger->info('Registered '. count($routes) .' routes.', array(
+            'routes' => $routesLog,
+            '_timer' => $this->_timer->step('Routes loaded.'),
+            '_tags' => 'routing, boot'
+        ));
 
-	/**
-	 * Adds the given path to the PHP include path.
-	 * 
-	 * @param string $path Path to be added to the PHP include path.
-	 */
-	public static function addToIncludePath($path) {
-		set_include_path(get_include_path() . PATH_SEPARATOR . $path);
-	}
+        $this->_application = $application;
+        return $this->_application;
+    }
 
-	/*
-	 * SETTERS AND GETTERS
-	 */
-	/**
-	 * Returns the root directory of the application.
-	 * 
-	 * @return string
-	 */
-	public function getRootDir() {
-		return $this->_rootDir;
-	}
+    /*
+     * HELPERS
+     */
+    /**
+     * Tries to determine in what environement the application should run based on available configs in application's /config/ dir.
+     * 
+     * If no specific configs available it will return Production environment.
+     * The order of checking is: dev, staging, production.
+     * 
+     * @param string $configDir Path to directory with application configs.
+     * @return string The guessed environment.
+     */
+    public static function envFromConfigs($configDir) {
+        // check for development
+        if (file_exists($configDir .'config.dev.php')) {
+            return self::ENV_DEV;
+        }
 
-	/**
-	 * Returns the cache directory of the application.
-	 * 
-	 * @return string
-	 */
-	public function getCacheDir() {
-		return $this->_cacheDir;
-	}
+        // check for staging
+        if (file_exists($configDir .'config.staging.php')) {
+            return self::ENV_STAGING;
+        }
 
-	/**
-	 * Returns the root application directory.
-	 * 
-	 * @return string
-	 */
-	public function getRootApplicationDir() {
-		return $this->_rootApplicationDir;
-	}
+        // check for production
+        if (file_exists($configDir .'config.production.php')) {
+            return self::ENV_PRODUCTION;
+        }
 
-	/**
-	 * Returns the application directory.
-	 * 
-	 * @return string
-	 */
-	public function getApplicationDir() {
-		return $this->_applicationDir;
-	}
+        // return production environment by default to prevent accidental display of various debug stuff (debug should be turned off for production)
+        return self::ENV_PRODUCTION;
+    }
 
-	/**
-	 * Returns the Splot Framework installation directory.
-	 * 
-	 * @return string
-	 */
-	public function getFrameworkDir() {
-		return $this->_frameworkDir;
-	}
+    /**
+     * Adds the given path to the PHP include path.
+     * 
+     * @param string $path Path to be added to the PHP include path.
+     */
+    public static function addToIncludePath($path) {
+        set_include_path(get_include_path() . PATH_SEPARATOR . $path);
+    }
 
-	/**
-	 * Returns the vendor directory.
-	 * 
-	 * @return string
-	 */
-	public function getVendorDir() {
-		return $this->_vendorDir;
-	}
+    /*
+     * SETTERS AND GETTERS
+     */
+    /**
+     * Returns the root directory of the application.
+     * 
+     * @return string
+     */
+    public function getRootDir() {
+        return $this->_rootDir;
+    }
 
-	/**
-	 * Returns the current environement.
-	 * 
-	 * It should be one of SplotEnv_* constants (SplotEnv_Dev, SplotEnv_Staging, SplotEnv_Production).
-	 * 
-	 * @return string
-	 */
-	public function getEnv() {
-		return $this->_env;
-	}
+    /**
+     * Returns the cache directory of the application.
+     * 
+     * @return string
+     */
+    public function getCacheDir() {
+        return $this->_cacheDir;
+    }
 
-	/**
-	 * Returns the application instance.
-	 * 
-	 * @return ApplicationInterface
-	 */
-	public function getApplication() {
-		return $this->_application;
-	}
+    /**
+     * Returns the root application directory.
+     * 
+     * @return string
+     */
+    public function getRootApplicationDir() {
+        return $this->_rootApplicationDir;
+    }
 
-	/**
-	 * Returns information if the framework has been initialized for Web Requests and therefore should handle http requests.
-	 * 
-	 * @return bool
-	 */
-	final public function isWeb() {
-		return !$this->_shell;
-	}
+    /**
+     * Returns the application directory.
+     * 
+     * @return string
+     */
+    public function getApplicationDir() {
+        return $this->_applicationDir;
+    }
 
-	/**
-	 * Returns information if the framework has been initialized from shell.
-	 * 
-	 * @return bool
-	 */
-	final public function isShell() {
-		return $this->_shell;
-	}
+    /**
+     * Returns the Splot Framework installation directory.
+     * 
+     * @return string
+     */
+    public function getFrameworkDir() {
+        return $this->_frameworkDir;
+    }
 
-	/**
-	 * Returns the current instance of Framework.
-	 * 
-	 * @return Framework
-	 */
-	final public static function getFramework() {
-		return self::$_framework;
-	}
-	
-	/**
-	 * Prevent from creating instances of this class from the outside.
-	 */
-	final private function __clone() {}
+    /**
+     * Returns the vendor directory.
+     * 
+     * @return string
+     */
+    public function getVendorDir() {
+        return $this->_vendorDir;
+    }
+
+    /**
+     * Returns the current environement.
+     * 
+     * @return string
+     */
+    public function getEnv() {
+        return $this->_env;
+    }
+
+    /**
+     * Returns the application instance.
+     * 
+     * @return ApplicationInterface
+     */
+    public function getApplication() {
+        return $this->_application;
+    }
+
+    /**
+     * Returns information if the framework has been initialized for Web Requests and therefore should handle HTTP requests.
+     * 
+     * @return bool
+     */
+    final public function isWeb() {
+        return !$this->_cli;
+    }
+
+    /**
+     * Returns information if the framework has been initialized from shell.
+     * 
+     * @return bool
+     */
+    final public function isCli() {
+        return $this->_cli;
+    }
+
+    /**
+     * Returns the current instance of Framework.
+     * 
+     * @return Framework
+     */
+    final public static function getFramework() {
+        return self::$_framework;
+    }
+    
+    /**
+     * Prevent from creating instances of this class from the outside.
+     */
+    final private function __clone() {}
 
 }

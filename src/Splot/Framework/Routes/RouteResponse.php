@@ -14,38 +14,38 @@ namespace Splot\Framework\Routes;
 class RouteResponse
 {
 
-	/**
-	 * Whatever the route has returned.
-	 * 
-	 * @var mixed
-	 */
-	private $_response;
+    /**
+     * Whatever the route has returned.
+     * 
+     * @var mixed
+     */
+    private $_response;
 
-	/**
-	 * Constructor.
-	 * 
-	 * @param mixed $response Whatever the route has returned.
-	 */
-	public function __construct($response) {
-		$this->_response = $response;
-	}
+    /**
+     * Constructor.
+     * 
+     * @param mixed $response Whatever the route has returned.
+     */
+    public function __construct($response) {
+        $this->_response = $response;
+    }
 
-	/**
-	 * Returns whatever the route has returned.
-	 * 
-	 * @return mixed
-	 */
-	public function getResponse() {
-		return $this->_response;
-	}
+    /**
+     * Returns whatever the route has returned.
+     * 
+     * @return mixed
+     */
+    public function getResponse() {
+        return $this->_response;
+    }
 
-	/**
-	 * Sets a new route response.
-	 * 
-	 * @param mixed $response
-	 */
-	public function setResponse($response) {
-		$this->_response = $response;
-	}
+    /**
+     * Sets a new route response.
+     * 
+     * @param mixed $response
+     */
+    public function setResponse($response) {
+        $this->_response = $response;
+    }
 
 }

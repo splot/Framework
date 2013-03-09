@@ -14,10 +14,13 @@
 namespace Splot\Framework\Application;
 
 use Splot\Foundation\Debug\Debugger;
-use Splot\Foundation\Debug\LoggerCategory;
+use Splot\Foundation\Debug\Timer;
 use Splot\Foundation\Exceptions\InvalidReturnValueException;
 use Splot\Foundation\Exceptions\NotFoundException;
 use Splot\Foundation\Exceptions\NotUniqueException;
+
+use Splot\Log\Logger;
+use Splot\Log\LogContainer;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config;
@@ -39,396 +42,414 @@ use Splot\Framework\Resources\Finder;
 abstract class AbstractApplication
 {
 
-	/**
-	 * Application config.
-	 * 
-	 * @var Config
-	 */
-	private $_config;
+    /**
+     * Application config.
+     * 
+     * @var Config
+     */
+    private $_config;
 
-	/**
-	 * Application's dependency injection service container.
-	 * 
-	 * @var ServiceContainer
-	 */
-	protected $container;
+    /**
+     * Application's dependency injection service container.
+     * 
+     * @var ServiceContainer
+     */
+    protected $container;
 
-	/**
-	 * Environment.
-	 * 
-	 * @var string
-	 */
-	private $_env;
+    /**
+     * Environment.
+     * 
+     * @var string
+     */
+    protected $_env;
 
-	/**
-	 * Application logger.
-	 * 
-	 * @var LoggerCategory
-	 */
-	private $_logger;
+    /**
+     * Application logger.
+     * 
+     * @var Logger
+     */
+    protected $_logger;
 
-	/**
-	 * Router.
-	 * 
-	 * @var Router
-	 */
-	private $_router;
+    /**
+     * Application timer.
+     * 
+     * @var Timer
+     */
+    protected $_timer;
 
-	/**
-	 * Event manager.
-	 * 
-	 * @var EventManager
-	 */
-	private $_eventManager;
+    /**
+     * Router.
+     * 
+     * @var Router
+     */
+    private $_router;
 
-	/**
-	 * Resource finder.
-	 * 
-	 * @var Finder
-	 */
-	private $_resourceFinder;
+    /**
+     * Event manager.
+     * 
+     * @var EventManager
+     */
+    private $_eventManager;
 
-	/**
-	 * Container for all application modules.
-	 * 
-	 * @var array
-	 */
-	private $_modules = array();
+    /**
+     * Resource finder.
+     * 
+     * @var Finder
+     */
+    private $_resourceFinder;
 
-	/**
-	 * Container for all application modules meta data.
-	 * 
-	 * @var array
-	 */
-	private $_modulesMetaData = array();
+    /**
+     * Container for all application modules.
+     * 
+     * @var array
+     */
+    private $_modules = array();
 
-	/**
-	 * Current HTTP Request that is being handled by the application.
-	 * 
-	 * @var Request
-	 */
-	private $_request;
+    /**
+     * Container for all application modules meta data.
+     * 
+     * @var array
+     */
+    private $_modulesMetaData = array();
 
-	/**
-	 * Constructor.
-	 * 
-	 * Should not ever be overwritten.
-	 * 
-	 * @param Config $config Application config.
-	 * @param string $env Current environment name.
-	 */
-	final public function __construct(Config $config, ServiceContainer $container, $env) {
-		$this->_config = $config;
-		$this->container = $container;
-		$this->_env = $env;
+    /**
+     * Current HTTP Request that is being handled by the application.
+     * 
+     * @var Request
+     */
+    private $_request;
 
-		$this->_logger = new LoggerCategory('Application');
+    /**
+     * Constructor.
+     * 
+     * Should not ever be overwritten.
+     * 
+     * @param Config $config Application config.
+     * @param string $env Current environment name.
+     */
+    final public function __construct(Config $config, ServiceContainer $container, $env) {
+        $this->_timer = new Timer();
+        $this->_logger = LogContainer::create('Application');
 
-		$this->_router = $router = new Router();
-		$this->_eventManager = $eventManager = new EventManager();
-		$this->_resourceFinder = $resourceFinder = new Finder($this);
+        $this->_config = $config;
+        $this->container = $container;
+        $this->_env = $env;
 
-		// define all of the above as services as well
-		// config
-		$container->set('config', function($c) use ($config) {
-			return $config;
-		}, true);
-		// env
-		$container->setParameter('env', $env);
-		// router
-		$container->set('router', function($c) use ($router) {
-			return $router;
-		}, true);
-		// event manager
-		$container->set('event_manager', function($c) use ($eventManager) {
-			return $eventManager;
-		}, true);
-		// resource finder
-		$container->set('resource_finder', function($c) use ($resourceFinder) {
-			return $resourceFinder;
-		}, true);
-	}
+        $this->_router = $router = new Router();
+        $this->_eventManager = $eventManager = new EventManager();
+        $this->_resourceFinder = $resourceFinder = new Finder($this);
 
-	/**
-	 * Boots an application - ie. performs any initialization, etc.
-	 * 
-	 * @param array $options [optional] Options that can be passed to the boot function via Splot Framework.
-	 */
-	abstract public function boot(array $options = array());
+        // define all of the above as services as well
+        // config
+        $container->set('config', function($c) use ($config) {
+            return $config;
+        }, true);
+        // env
+        $container->setParameter('env', $env);
+        // router
+        $container->set('router', function($c) use ($router) {
+            return $router;
+        }, true);
+        // event manager
+        $container->set('event_manager', function($c) use ($eventManager) {
+            return $eventManager;
+        }, true);
+        // resource finder
+        $container->set('resource_finder', function($c) use ($resourceFinder) {
+            return $resourceFinder;
+        }, true);
+    }
 
-	/**
-	 * Loads modules for the application.
-	 */
-	abstract public function loadModules();
+    /**
+     * Boots an application - ie. performs any initialization, etc.
+     * 
+     * @param array $options [optional] Options that can be passed to the boot function via Splot Framework.
+     */
+    abstract public function boot(array $options = array());
 
-	/**
-	 * Handle the request that was sent to the application.
-	 * 
-	 * @param Request $request
-	 * @return Response
-	 * 
-	 * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFoundRouteForRequest event.
-	 */
-	public function handleRequest(Request $request) {
-		$this->_request = $request;
-		$this->container->set('request', function($c) use ($request) {
-			return $request;
-		}, true);
-		Debugger::logMemory('Received request');
+    /**
+     * Loads modules for the application.
+     */
+    abstract public function loadModules();
 
-		// trigger DidReceiveRequest event
-		$this->_eventManager->trigger(new DidReceiveRequest($request));
-		Debugger::logMemory('Route execution events');
+    /**
+     * Handle the request that was sent to the application.
+     * 
+     * @param Request $request
+     * @return Response
+     * 
+     * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFoundRouteForRequest event.
+     */
+    public function handleRequest(Request $request) {
+        $this->_request = $request;
+        $this->container->set('request', function($c) use ($request) {
+            return $request;
+        }, true);
 
-		/**
-		 * @var RouteMeta Meta information about the found route.
-		 */
-		$routeMeta = $this->getRouter()->getRouteForRequest($request);
-		if (!$routeMeta) {
-			$notFoundEvent = new DidNotFoundRouteForRequest($request);
-			$this->_eventManager->trigger($notFoundEvent);
+        $this->_logger->info('Received request', array(
+            'request' => $request,
+            '_timer' => $this->_timer->step('Received request'),
+            '_tags' => 'request'
+        ));
 
-			if ($notFoundEvent->isHandled()) {
-				return $notFoundEvent->getResponse();
-			} else {
-				throw new NotFoundException();
-			}
-		}
+        // trigger DidReceiveRequest event
+        $this->_eventManager->trigger(new DidReceiveRequest($request));
 
-		// trigger FoundRouteForRequest event
-		$this->_eventManager->trigger(new FoundRouteForRequest($routeMeta, $request));
+        /**
+         * @var RouteMeta Meta information about the found route.
+         */
+        $routeMeta = $this->getRouter()->getRouteForRequest($request);
+        if (!$routeMeta) {
+            $notFoundEvent = new DidNotFoundRouteForRequest($request);
+            $this->_eventManager->trigger($notFoundEvent);
 
-		$routeClass = $routeMeta->getRouteClass();
-		$routeMethod = $routeMeta->getRouteMethodForHttpMethod($request->getMethod());
-		$routeArguments = $routeMeta->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
+            if ($notFoundEvent->isHandled()) {
+                return $notFoundEvent->getResponse();
+            } else {
+                throw new NotFoundException();
+            }
+        }
 
-		// if route has been found then log it
-		$this->_logger->log('Matched route: "'. $routeMeta->getName() .'" ("'. $routeMeta->getRouteClass() .'")', array(
-			'name' => $routeMeta->getName(),
-			'function' => $routeClass .'::'. $routeMethod,
-			'arguments' => $routeArguments,
-			'url' => $request->getPathInfo(),
-			'method' => $request->getMethod(),
-			'module' => $routeMeta->getModuleName(),
-		), 'routing, request');
+        // trigger FoundRouteForRequest event
+        $this->_eventManager->trigger(new FoundRouteForRequest($routeMeta, $request));
 
-		// and finally execute the route
-		$routeResponse = new RouteResponse(call_user_func_array(array(new $routeClass($this->container), $routeMethod), $routeArguments));
-		Debugger::logMemory('Route execution');
+        $routeClass = $routeMeta->getRouteClass();
+        $routeMethod = $routeMeta->getRouteMethodForHttpMethod($request->getMethod());
+        $routeArguments = $routeMeta->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
 
-		// trigger DidExecuteRoute event
-		$this->_eventManager->trigger(new DidExecuteRoute($routeResponse, $routeMeta, $request));
-		Debugger::logMemory('Route execution events');
+        // if route has been found then log it
+        $this->_logger->info('Matched route: "'. $routeMeta->getName() .'" ("'. $routeMeta->getRouteClass() .'")', array(
+            'name' => $routeMeta->getName(),
+            'function' => $routeClass .'::'. $routeMethod,
+            'arguments' => $routeArguments,
+            'url' => $request->getPathInfo(),
+            'method' => $request->getMethod(),
+            'module' => $routeMeta->getModuleName(),
+            '_timer' => $this->_timer->step('Matched route'),
+            '_tags' => 'routing, request'
+        ));
 
-		$response = $routeResponse->getResponse();
+        // and finally execute the route
+        $routeResponse = new RouteResponse(call_user_func_array(array(new $routeClass($this->container), $routeMethod), $routeArguments));
+        $this->_logger->info('Route executed', array(
+            '_timer' => $this->_timer->step('Route executed'),
+            '_tags' => 'routing'
+        ));
 
-		// one exception, if the response is a string then automatically convert it to HttpResponse
-		if (is_string($response)) {
-			$response = new Response($response);
-		}
+        // trigger DidExecuteRoute event
+        $this->_eventManager->trigger(new DidExecuteRoute($routeResponse, $routeMeta, $request));
 
-		if (!is_object($response) || !($response instanceof Response)) {
-			throw new InvalidReturnValueException('Executed route method must return Splot\\Framework\\HTTP\\Response instance, "'. Debugger::getType($response) .'" given.');
-		}
+        $response = $routeResponse->getResponse();
 
-		return $response;
-	}
+        // one exception, if the response is a string then automatically convert it to HttpResponse
+        if (is_string($response)) {
+            $response = new Response($response);
+        }
 
-	/**
-	 * Renders the final response and sends it back to the client.
-	 * 
-	 * @param Response $response HTTP Response to be sent.
-	 * @param Request $request The original HTTP request for context.
-	 */
-	public function sendResponse(Response $response, Request $request) {
-		Debugger::logMemory('Will send response');
+        if (!is_object($response) || !($response instanceof Response)) {
+            throw new InvalidReturnValueException('Executed route method must return Splot\\Framework\\HTTP\\Response instance, "'. Debugger::getType($response) .'" given.');
+        }
 
-		// trigger WillSendResponse event for any last minute changes
-		$this->_eventManager->trigger(new WillSendResponse($response, $request));
+        return $response;
+    }
 
-		// and finally send out the response
-		$response->send();
-	}
+    /**
+     * Renders the final response and sends it back to the client.
+     * 
+     * @param Response $response HTTP Response to be sent.
+     * @param Request $request The original HTTP request for context.
+     */
+    public function sendResponse(Response $response, Request $request) {
+        $this->_logger->info('Will send response', array(
+            '_timer' => $this->_timer->step('Will send response')
+        ));
 
-	/*
-	 * MODULES MANAGEMENT
-	 */
-	/**
-	 * Boots the given module.
-	 * 
-	 * @param AbstractModule $module
-	 * @return AbstractModule The given module.
-	 * 
-	 * @throws NotUniqueException When the module name created from it's class name is a duplicate of previously registered module.
-	 */
-	public function bootModule(AbstractModule $module) {
-		$name = $module->getName();
-		$class = $module->getClass();
-		$namespace = $module->getNamespace();
+        // trigger WillSendResponse event for any last minute changes
+        $this->_eventManager->trigger(new WillSendResponse($response, $request));
 
-		// but the name has to be unique
-		if (isset($this->_modules[$name])) {
-			throw new NotUniqueException('Module name "'. $name .'" for module "'. $class .'" is not unique in the application scope.');
-		}
+        // and finally send out the response
+        $response->send();
+    }
 
-		// read config for this module
-		// also apply settings from the global config, if it contains any related to this module
-		$config = Config::read($module->getModuleDir() .'config/', $this->getEnv());
-		$config->apply($this->getConfig()->getNamespace($name));
-		$module->setConfig($config);
+    /*
+     * MODULES MANAGEMENT
+     */
+    /**
+     * Boots the given module.
+     * 
+     * @param AbstractModule $module
+     * @return AbstractModule The given module.
+     * 
+     * @throws NotUniqueException When the module name created from it's class name is a duplicate of previously registered module.
+     */
+    public function bootModule(AbstractModule $module) {
+        $name = $module->getName();
+        $class = $module->getClass();
+        $namespace = $module->getNamespace();
 
-		// inject application and the service container
-		$module->setApplication($this);
-		$module->setContainer($this->container);
-		
-		// finally add the module to the module registry
-		$this->_modules[$name] = $module;
+        // but the name has to be unique
+        if (isset($this->_modules[$name])) {
+            throw new NotUniqueException('Module name "'. $name .'" for module "'. $class .'" is not unique in the application scope.');
+        }
 
-		// let the module boot itself as well
-		$module->boot();
+        // read config for this module
+        // also apply settings from the global config, if it contains any related to this module
+        $config = Config::read($module->getModuleDir() .'config/', $this->getEnv());
+        $config->apply($this->getConfig()->getNamespace($name));
+        $module->setConfig($config);
 
-		// also read routes from this module
-		$this->getRouter()->readModuleRoutes($module);
+        // inject application and the service container
+        $module->setApplication($this);
+        $module->setContainer($this->container);
+        
+        // finally add the module to the module registry
+        $this->_modules[$name] = $module;
 
-		return $module;
-	}
+        // let the module boot itself as well
+        $module->boot();
 
-	/*
-	 * SETTERS AND GETTERS
-	 */
-	/**
-	 * Returns class name of the application.
-	 * 
-	 * @return string
-	 */
-	final public static function getClass() {
-		return get_called_class();
-	}
+        // also read routes from this module
+        $this->getRouter()->readModuleRoutes($module);
 
-	/**
-	 * Returns the application config.
-	 * 
-	 * @return Config
-	 */
-	final public function getConfig() {
-		return $this->_config;
-	}
+        return $module;
+    }
 
-	/**
-	 * Returns the dependency injection service container.
-	 * 
-	 * @return ServiceContainer
-	 */
-	final public function getContainer() {
-		return $this->container;
-	}
+    /*
+     * SETTERS AND GETTERS
+     */
+    /**
+     * Returns class name of the application.
+     * 
+     * @return string
+     */
+    final public static function getClass() {
+        return get_called_class();
+    }
 
-	/**
-	 * Returns the application directory.
-	 * 
-	 * @return string
-	 */
-	final public function getApplicationDir() {
-		return Framework::getFramework()->getApplicationDir();
-	}
+    /**
+     * Returns the application config.
+     * 
+     * @return Config
+     */
+    final public function getConfig() {
+        return $this->_config;
+    }
 
-	/**
-	 * Returns the application environment.
-	 * 
-	 * @return string
-	 */
-	final public function getEnv() {
-		return $this->_env;
-	}
+    /**
+     * Returns the dependency injection service container.
+     * 
+     * @return ServiceContainer
+     */
+    final public function getContainer() {
+        return $this->container;
+    }
 
-	/**
-	 * Checks if the current environment is Dev.
-	 * 
-	 * @return bool
-	 */
-	final public function isDevEnv() {
-		return $this->getEnv() === SplotEnv_Dev;
-	}
+    /**
+     * Returns the application directory.
+     * 
+     * @return string
+     */
+    final public function getApplicationDir() {
+        return Framework::getFramework()->getApplicationDir();
+    }
 
-	/**
-	 * Returns registered modules.
-	 * 
-	 * @return array
-	 */
-	final public function getModules() {
-		return $this->_modules;
-	}
+    /**
+     * Returns the application environment.
+     * 
+     * @return string
+     */
+    final public function getEnv() {
+        return $this->_env;
+    }
 
-	/**
-	 * Returns names of registered modules.
-	 * 
-	 * @return array
-	 */
-	final public function listModules() {
-		return array_keys($this->_modules);
-	}
+    /**
+     * Checks if the current environment is Dev.
+     * 
+     * @return bool
+     */
+    final public function isDevEnv() {
+        return $this->getEnv() === Framework::ENV_DEV;
+    }
 
-	/**
-	 * Checks if a given module is registered.
-	 * 
-	 * @return bool
-	 */
-	final public function hasModule($name) {
-		return isset($this->_modules[$name]);
-	}
+    /**
+     * Returns registered modules.
+     * 
+     * @return array
+     */
+    final public function getModules() {
+        return $this->_modules;
+    }
 
-	/**
-	 * Returns the given module.
-	 * 
-	 * @return AbstractModule
-	 */
-	final public function getModule($name) {
-		return $this->_modules[$name];
-	}
+    /**
+     * Returns names of registered modules.
+     * 
+     * @return array
+     */
+    final public function listModules() {
+        return array_keys($this->_modules);
+    }
 
-	/**
-	 * Returns the router.
-	 * 
-	 * @return Router
-	 */
-	final public function getRouter() {
-		return $this->_router;
-	}
+    /**
+     * Checks if a given module is registered.
+     * 
+     * @return bool
+     */
+    final public function hasModule($name) {
+        return isset($this->_modules[$name]);
+    }
 
-	/**
-	 * Returns the event manager.
-	 * 
-	 * @return EventManager
-	 */
-	final public function getEventManager() {
-		return $this->_eventManager;
-	}
+    /**
+     * Returns the given module.
+     * 
+     * @return AbstractModule
+     */
+    final public function getModule($name) {
+        return $this->_modules[$name];
+    }
 
-	/**
-	 * Returns the resources finder.
-	 * 
-	 * @return Finder
-	 */
-	final public function getResourceFinder() {
-		return $this->_resourceFinder;
-	}
+    /**
+     * Returns the router.
+     * 
+     * @return Router
+     */
+    final public function getRouter() {
+        return $this->_router;
+    }
 
-	/**
-	 * Returns the application logger.
-	 *
-	 * @return LoggerCategory
-	 */
-	final public function getLogger() {
-		return $this->_logger;
-	}
+    /**
+     * Returns the event manager.
+     * 
+     * @return EventManager
+     */
+    final public function getEventManager() {
+        return $this->_eventManager;
+    }
 
-	/**
-	 * Returns the current HTTP Request that is being handled by the application.
-	 * 
-	 * @return Request
-	 */
-	public function getRequest() {
-		return $this->_request;
-	}
+    /**
+     * Returns the resources finder.
+     * 
+     * @return Finder
+     */
+    final public function getResourceFinder() {
+        return $this->_resourceFinder;
+    }
+
+    /**
+     * Returns the application logger.
+     *
+     * @return Logger
+     */
+    final public function getLogger() {
+        return $this->_logger;
+    }
+
+    /**
+     * Returns the current HTTP Request that is being handled by the application.
+     * 
+     * @return Request
+     */
+    public function getRequest() {
+        return $this->_request;
+    }
 
 }
