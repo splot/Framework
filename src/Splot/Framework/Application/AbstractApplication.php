@@ -295,7 +295,7 @@ abstract class AbstractApplication
 
         // read config for this module
         // also apply settings from the global config, if it contains any related to this module
-        $config = Config::read($module->getModuleDir() .'config/', $this->getEnv());
+        $config = Config::read($module->getModuleDir() .'Resources/config/', $this->getEnv());
         $config->apply($this->getConfig()->getNamespace($name));
         $module->setConfig($config);
 

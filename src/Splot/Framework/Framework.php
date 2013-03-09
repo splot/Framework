@@ -125,7 +125,7 @@ class Framework
         /*
          * Decide on environment
          */
-        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config/');
+        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'Resources/config/');
         define('SPLOT_ENV', $this->getEnv());
 
         // set logger on or off based on environment
@@ -133,7 +133,7 @@ class Framework
         LogContainer::setEnabled($this->getEnv() !== static::ENV_PRODUCTION);
 
         // read the appropriate application's config (based on env)
-        $config = Config::read($this->_applicationDir .'config/', $this->getEnv());
+        $config = Config::read($this->_applicationDir .'Resources/config/', $this->getEnv());
 
         // set the timezone based on config
         date_default_timezone_set($config->get('timezone'));
