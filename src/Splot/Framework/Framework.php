@@ -272,9 +272,9 @@ class Framework
             if ($self->getApplication()) {
                 $error = error_get_last();
 
-                if ($error) {
+                if ($error !== null) {
                     $eventManager = $self->getApplication()->getEventManager();
-                    $fatalErrorEvent = new FatalErrorDidOccur($error['code'], $error['message'], $error['file'], $error['line']);
+                    $fatalErrorEvent = new FatalErrorDidOccur($error['type'], $error['message'], $error['file'], $error['line']);
                     $eventManager->trigger($fatalErrorEvent);
 
                     if ($fatalErrorEvent->isDefaultPrevented() || $fatalErrorEvent->isHandled()) {
