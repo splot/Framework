@@ -13,10 +13,10 @@ namespace Splot\Framework\Events;
 
 use Splot\EventManager\AbstractEvent;
 
-use Splot\Foundation\HTTP\Request;
-use Splot\Foundation\HTTP\Response;
+use Splot\Framework\HTTP\Request;
+use Splot\Framework\HTTP\Response;
 
-class DidNotFoundRouteForRequest extends AbstractEvent
+class DidNotFindRouteForRequest extends AbstractEvent
 {
 
     /**

@@ -16,7 +16,7 @@ use Splot\EventManager\AbstractEvent;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Routes\RouteMeta;
 
-class FoundRouteForRequest extends AbstractEvent
+class DidFindRouteForRequest extends AbstractEvent
 {
 
     /**

@@ -35,8 +35,8 @@ use Splot\Framework\Routes\Router;
 use Splot\Framework\Routes\RouteResponse;
 use Splot\Framework\Events\DidExecuteRoute;
 use Splot\Framework\Events\DidReceiveRequest;
-use Splot\Framework\Events\DidNotFoundRouteForRequest;
-use Splot\Framework\Events\FoundRouteForRequest;
+use Splot\Framework\Events\DidNotFindRouteForRequest;
+use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\WillSendResponse;
 use Splot\Framework\Resources\Finder;
 
@@ -179,7 +179,7 @@ abstract class AbstractApplication
      * @param Request $request
      * @return Response
      * 
-     * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFoundRouteForRequest event.
+     * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFindRouteForRequest event.
      */
     public function handleRequest(Request $request) {
         $this->_request = $request;
@@ -201,18 +201,18 @@ abstract class AbstractApplication
          */
         $routeMeta = $this->getRouter()->getRouteForRequest($request);
         if (!$routeMeta) {
-            $notFoundEvent = new DidNotFoundRouteForRequest($request);
+            $notFoundEvent = new DidNotFindRouteForRequest($request);
             $this->_eventManager->trigger($notFoundEvent);
 
             if ($notFoundEvent->isHandled()) {
                 return $notFoundEvent->getResponse();
             } else {
-                throw new NotFoundException();
+                throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
             }
         }
 
-        // trigger FoundRouteForRequest event
-        $this->_eventManager->trigger(new FoundRouteForRequest($routeMeta, $request));
+        // trigger DidFindRouteForRequest event
+        $this->_eventManager->trigger(new DidFindRouteForRequest($routeMeta, $request));
 
         $routeClass = $routeMeta->getRouteClass();
         $routeMethod = $routeMeta->getRouteMethodForHttpMethod($request->getMethod());
