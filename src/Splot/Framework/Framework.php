@@ -23,6 +23,8 @@ use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
 use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\Framework\Events\ErrorDidOccur;
+use Splot\Framework\Events\FatalErrorDidOccur;
 
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -86,9 +88,7 @@ class Framework
 
         ini_set('default_charset', 'utf8');
 
-        // register error handlers
-        set_error_handler(array('Splot\Foundation\Debug\Debugger', 'handleError'));
-        register_shutdown_function(array('Splot\Foundation\Debug\Debugger', 'handleFatalError'));
+        $this->_registerErrorHandlers();
 
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
         $this->_cacheDir = @$options['cacheDir'] ?: $this->_rootDir .'cache/';
@@ -210,9 +210,9 @@ class Framework
         return $this->_application;
     }
 
-    /*
+    /*****************************************************
      * HELPERS
-     */
+     *****************************************************/
     /**
      * Tries to determine in what environement the application should run based on available configs in application's /config/ dir.
      * 
@@ -243,6 +243,53 @@ class Framework
     }
 
     /**
+     * Registers error handles that trigger ErrorDidOccur and FatalErrorDidOccur events if application has been already booted.
+     */
+    protected function _registerErrorHandlers() {
+        $self = $this;
+
+        // register standard error handler
+        set_error_handler(function($code, $message, $file, $line, $context) use ($self) {
+            // if application is already booted then handle error using event manager
+            if ($self->getApplication()) {
+                $eventManager = $self->getApplication()->getEventManager();
+                $errorEvent = new ErrorDidOccur($code, $message, $file, $line, $context);
+                $eventManager->trigger($errorEvent);
+
+                if ($errorEvent->isDefaultPrevented() || $errorEvent->isHandled()) {
+                    return true;
+                }
+            }
+
+            // if there was no error event or if the error wasn't properly handled by it,
+            // then do standard error handling by Foundation framework
+            return Debugger::handleError($code, $message, $file, $line, $context);
+        });
+
+        // register fatal error handler
+        register_shutdown_function(function() use ($self) {
+            // if application is already booted then handle error using event manager
+            if ($self->getApplication()) {
+                $error = error_get_last();
+
+                if ($error) {
+                    $eventManager = $self->getApplication()->getEventManager();
+                    $fatalErrorEvent = new FatalErrorDidOccur($error['code'], $error['message'], $error['file'], $error['line']);
+                    $eventManager->trigger($fatalErrorEvent);
+
+                    if ($fatalErrorEvent->isDefaultPrevented() || $fatalErrorEvent->isHandled()) {
+                        return true;
+                    }
+                }
+            }
+
+            // if there was no error event or if the error wasn't properly handled by it,
+            // then do standard error handling by Foundation framework
+            return Debugger::handleFatalError();
+        });
+    }
+
+    /**
      * Adds the given path to the PHP include path.
      * 
      * @param string $path Path to be added to the PHP include path.
@@ -251,9 +298,9 @@ class Framework
         set_include_path(get_include_path() . PATH_SEPARATOR . $path);
     }
 
-    /*
+    /*****************************************************
      * SETTERS AND GETTERS
-     */
+     *****************************************************/
     /**
      * Returns the root directory of the application.
      * 
