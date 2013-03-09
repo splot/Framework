@@ -16,7 +16,6 @@
         "splot/foundation": "dev-master"
     },
     "autoload": {
-    	"psr-0": { "Splot\\Framework": "src/" },
-        "files": ["src/constants.php"]
+    	"psr-0": { "Splot\\Framework": "src/" }
     }
 }
