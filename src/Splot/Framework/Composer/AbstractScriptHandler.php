@@ -41,8 +41,7 @@ abstract class AbstractScriptHandler
             return self::$_application;
         }
 
-        $_ENV['SPLOT_CLI'] = true;
-        include realpath(dirname(__FILE__) .'/../../../../../../../web/index.php');
+        require_once realpath(dirname(__FILE__) .'/../../../../../../../console');
 
         // cache the application instance
         self::$_application = $application;

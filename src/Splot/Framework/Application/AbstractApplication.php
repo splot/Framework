@@ -121,14 +121,28 @@ abstract class AbstractApplication
     private $_request;
 
     /**
-     * Constructor.
+     * Private flag for checking if application has been initialized.
+     * 
+     * @var bool
+     */
+    private $_initialized = false;
+
+    /**
+     * Initializator.
      * 
      * Should not ever be overwritten.
      * 
      * @param Config $config Application config.
+     * @param ServiceContainer $container Dependency Injection Service Container.
      * @param string $env Current environment name.
+     * 
+     * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function __construct(Config $config, ServiceContainer $container, $env) {
+    final public function init(Config $config, ServiceContainer $container, $env) {
+        if ($this->_initialized) {
+            throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
+        }
+
         $this->_timer = new Timer();
         $this->_logger = LogContainer::create('Application');
 
@@ -159,6 +173,8 @@ abstract class AbstractApplication
         $container->set('resource_finder', function($c) use ($resourceFinder) {
             return $resourceFinder;
         }, true);
+
+        $this->_initialized = true;
     }
 
     /**

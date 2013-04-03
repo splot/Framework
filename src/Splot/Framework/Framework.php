@@ -35,19 +35,16 @@ class Framework
     const ENV_STAGING       = 'STAGING';
     const ENV_DEV           = 'DEV';
 
-
     private static $_framework;
 
     private $_rootDir;
-    private $_cacheDir;
     private $_frameworkDir;
     private $_vendorDir;
-    private $_rootApplicationDir;
+    private $_cacheDir;
     private $_applicationDir;
 
     private $_env = 'PRODUCTION';
-    private $_cli = false;
-
+    private $_console = false;
 
     private $_logger;
     private $_timer;
@@ -65,9 +62,9 @@ class Framework
             return self::$_framework;
         }
 
-        $cli = isset($_ENV['SPLOT_CLI']) ? $_ENV['SPLOT_CLI'] : false;
+        $console = isset($options['console']) ? $options['console'] : false;
 
-        self::$_framework = new self($options, $cli);
+        self::$_framework = new self($options, $console);
         return self::$_framework;
     }
 
@@ -75,33 +72,29 @@ class Framework
      * Constructor.
      * 
      * @param array $options [optional] Array of options.
-     * @param bool $cli [optional] Is it command line interface? Default: false.
+     * @param bool $console [optional] Is it command line interface? Default: false.
      */ 
-    final private function __construct(array $options = array(), $cli = false) {
+    final private function __construct(array $options = array(), $console = false) {
         LogContainer::setStartTime(Timer::getMicroTime());
 
         $this->_timer = new Timer();
         $this->_logger = LogContainer::create('Splot Framework');
 
-        $this->_cli = $cli;
-        define('SPLOT_CLI', $cli);
+        $this->_console = $console;
+        define('SPLOT_CONSOLE', $console);
 
         ini_set('default_charset', 'utf8');
 
         $this->_registerErrorHandlers();
 
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
-        $this->_cacheDir = @$options['cacheDir'] ?: $this->_rootDir .'cache/';
         $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
-        $this->_rootApplicationDir = @$options['rootApplicationDir'] ?: $this->_rootDir .'application/';
 
         $this->_logger->info('Splot Framework successfully initialized.', array(
             'rootDir' => $this->_rootDir,
-            'cacheDir' => $this->_cacheDir,
             'frameworkDir' => $this->_frameworkDir,
             'vendorDir' => $this->_vendorDir,
-            'rootApplicationDir' => $this->_rootApplicationDir,
             '_timer' => $this->_timer->step('Initialization')
         ));
     }
@@ -109,31 +102,33 @@ class Framework
     /**
      * Boots the passed application.
      * 
-     * @param string $applicationClass Application class to boot.
+     * @param AbstractApplication $application Application to boot into the framework.
      * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
-     * @return ApplicationInterface The booted application.
+     * @return AbstractApplication The booted application.
      */
-    public function bootApplication($applicationClass, array $options = array()) {
-        // must subclass AbstractApplication
-        if (!is_subclass_of($applicationClass, 'Splot\Framework\Application\AbstractApplication', true)) {
-            throw new \InvalidArgumentException('Application Class must extend "Splot\Framework\Application\AbstractApplication".');
-        }
+    public function bootApplication(AbstractApplication $application, array $options = array()) {
+        // get application's class name for some debugging and logging
+        $applicationClass = Debugger::getClass($application);
 
         // figure out the application directory exactly
-        $this->_applicationDir = $this->getRootApplicationDir() . Debugger::getNamespace($applicationClass) . DS;
+        $this->_applicationDir = realpath(dirname(Debugger::getClassFile($application))) . DS;
+        $this->_cacheDir = $this->_applicationDir .'cache'. DS;
 
-        /*
-         * Decide on environment
-         */
-        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'Resources/config/');
-        define('SPLOT_ENV', $this->getEnv());
+        /*****************************************
+         * DECIDE ON ENVIRONMENT
+         *****************************************/
+        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config'. DS);
+        define('SPLOT_ENV', $this->_env);
 
         // set logger on or off based on environment
-        $this->_logger->setEnabled($this->getEnv() !== static::ENV_PRODUCTION);
-        LogContainer::setEnabled($this->getEnv() !== static::ENV_PRODUCTION);
+        $this->_logger->setEnabled($this->_env !== static::ENV_PRODUCTION);
+        LogContainer::setEnabled($this->_env !== static::ENV_PRODUCTION);
 
-        // read the appropriate application's config (based on env)
-        $config = Config::read($this->_applicationDir .'Resources/config/', $this->getEnv());
+        /*****************************************
+         * READ CONFIG FOR THE APPLICATON
+         *****************************************/
+        // based on env
+        $config = Config::read($this->_applicationDir .'config'. DS, $this->getEnv());
 
         // set the timezone based on config
         date_default_timezone_set($config->get('timezone'));
@@ -142,6 +137,9 @@ class Framework
         $this->_logger->setEnabled($config->get('debugger.enabled'));
         LogContainer::setEnabled($config->get('debugger.enabled'));
 
+        /*****************************************
+         * INITIALIZE DIC
+         *****************************************/
         // create dependency injection container and reference itself as a service
         $serviceContainer = new ServiceContainer();
         $serviceContainer->set('container', function($container) use ($serviceContainer) {
@@ -150,43 +148,52 @@ class Framework
 
         // set some parameters
         $serviceContainer->setParameter('root_dir', $this->_rootDir);
-        $serviceContainer->setParameter('cache_dir', $this->_cacheDir);
         $serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
         $serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
-        $serviceContainer->setParameter('root_application_dir', $this->_rootApplicationDir);
         $serviceContainer->setParameter('application_dir', $this->_applicationDir);
+        $serviceContainer->setParameter('cache_dir', $this->_cacheDir);
 
         // define filesystem service
         $serviceContainer->set('filesystem', function($c) {
             return new Filesystem();
         }, true, true);
 
-        // instantiate the class and inject the config, dependency injection container and environment to it
-        $application = new $applicationClass($config, $serviceContainer, $this->getEnv());
+        /*****************************************
+         * INITIALIZE & BOOT APPLICATION
+         *****************************************/
+        // inject the config, dependency injection container and environment to it
+        $application->init($config, $serviceContainer, $this->_env);
+
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {
             return $application;
-        }, true);
+        }, true, true);
 
-        $this->_logger->info('Started application "'. $applicationClass .'".', array(
+        $this->_logger->info('Started application "{applicationClass}".', array(
+            'applicationClass' => $applicationClass,
             'env' => $this->getEnv(),
             'configFiles' => $config->getReadFiles(),
+            'applicationDir' => $this->_applicationDir,
+            'cacheDir' => $this->_cacheDir,
             '_timer' => $this->_timer->step('Application Start')
         ));
 
         // boot the application
         $application->boot($options);
-        $this->_logger->info('Booted application "'. $applicationClass .'".', array(
+        $this->_logger->info('Booted application "{applicationClass}".', array(
+            'applicationClass' => $applicationClass,
             'options' => $options,
             '_timer' => $this->_timer->step('Application Boot')
         ));
 
-        // load all modules for this application
+        /*****************************************
+         * LOAD APPLICATION MODULES
+         *****************************************/
         $modules = $application->loadModules();
         foreach($modules as $module) {
             $application->bootModule($module);
 
-            $this->_logger->info('Module "'. $module->getName() .'" loaded.', array(
+            $this->_logger->info('Module "{name}" loaded.', array(
                 'name' => $module->getName(),
                 'class' => $module->getClass(),
                 'dir' => $module->getModuleDir(),
@@ -195,12 +202,16 @@ class Framework
             ));
         }
 
+        /*****************************************
+         * LOAD APPLICATION ROUTES
+         *****************************************/
         $routes = $application->getRouter()->getRoutes();
         $routesLog = array();
         foreach($routes as $route) {
             $routesLog[$route->getName()] = $route->getPattern();
         }
-        $this->_logger->info('Registered '. count($routes) .' routes.', array(
+        $this->_logger->info('Registered {count} routes.', array(
+            'count' => count($routes),
             'routes' => $routesLog,
             '_timer' => $this->_timer->step('Routes loaded.'),
             '_tags' => 'routing, boot'
@@ -320,15 +331,6 @@ class Framework
     }
 
     /**
-     * Returns the root application directory.
-     * 
-     * @return string
-     */
-    public function getRootApplicationDir() {
-        return $this->_rootApplicationDir;
-    }
-
-    /**
      * Returns the application directory.
      * 
      * @return string
@@ -379,7 +381,7 @@ class Framework
      * @return bool
      */
     final public function isWeb() {
-        return !$this->_cli;
+        return !$this->_console;
     }
 
     /**
@@ -387,8 +389,8 @@ class Framework
      * 
      * @return bool
      */
-    final public function isCli() {
-        return $this->_cli;
+    final public function isConsole() {
+        return $this->_console;
     }
 
     /**
