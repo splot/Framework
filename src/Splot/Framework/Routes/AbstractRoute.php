@@ -131,4 +131,16 @@ abstract class AbstractRoute
         return $this->container;
     }
 
+    /**
+     * Returns a service with the given name.
+     * 
+     * Shortcut to container.
+     * 
+     * @param string $name Name of the service to return.
+     * @return object
+     */
+    final public function get($name) {
+        return $this->getContainer()->get($name);
+    }
+
 }
