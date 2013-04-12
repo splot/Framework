@@ -37,23 +37,35 @@ class ServiceContainer
      * Sets a service definition by passing an anonymous function that is a factory of this service.
      * 
      * @param string $name Service unique name.
-     * @param \Closure $factory Service factory function.
+     * @param \Closure|object $factory Either service factory function or an instance of the service for direct return.
      * @param bool $readOnly [optional] Should this service be read only, ie. cannot be overwritten (but still can be extended). Default: false.
      * @param bool $singleton [optional] Should this service be a singleton, ie. once created it should always return the created instance? Default: false.
      * 
      * @throws NotUniqueException When service with the same name is already defined.
      */
-    public function set($name, \Closure $serviceFactory, $readOnly = false, $singleton = false) {
+    public function set($name, $serviceFactory, $readOnly = false, $singleton = false) {
         if (isset($this->_services[$name])) {
             throw new NotUniqueException('Service with name "'. $name .'" is already defined.');
         }
 
+        // differentiate between callable and instance of the service
+        if (is_callable($serviceFactory)) {
+            $instance = null;
+            $factory = $serviceFactory;
+        } else {
+            $instance = $serviceFactory;
+            $singleton = true;
+            $factory = function() use ($instance) {
+                return $instance;
+            };
+        }
+
         // store the service data
         $this->_services[$name] = array(
-            'factory' => $serviceFactory,
+            'factory' => $factory,
             'readOnly' => $readOnly,
             'singleton' => $singleton,
-            'instance' => null,
+            'instance' => $instance,
             'callbacks' => array()
         );
     }

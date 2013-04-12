@@ -11,9 +11,9 @@
  */
 namespace Splot\Framework\DependencyInjection\Exceptions;
 
-use Splot\Foundation\Exceptions\Exception;
+use Splot\Foundation\Exceptions\ReadOnlyException;
 
-class ReadOnlyDefinitionException extends Exception
+class ReadOnlyDefinitionException extends ReadOnlyException
 {
 
 
