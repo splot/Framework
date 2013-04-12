@@ -13,6 +13,7 @@ namespace Splot\Framework\Config;
 
 use Splot\Foundation\Exceptions\NotFoundException;
 use Splot\Foundation\Exceptions\InvalidFileException;
+use Splot\Foundation\Utils\ArrayUtils;
 
 class Config
 {
@@ -94,7 +95,7 @@ class Config
      * @param array $options Array of config options.
      */
     public function apply(array $options) {
-        $this->_config = array_merge_recursive($this->_config, $options);
+        $this->_config = ArrayUtils::merge($this->_config, $options);
     }
 
     /**
