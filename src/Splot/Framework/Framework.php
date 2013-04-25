@@ -14,8 +14,8 @@
  */
 namespace Splot\Framework;
 
-use Splot\Foundation\Debug\Timer;
-use Splot\Foundation\Debug\Debugger;
+use MD\Foundation\Debug\Timer;
+use MD\Foundation\Debug\Debugger;
 
 use Splot\Log\LogContainer;
 

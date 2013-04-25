@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\Modules;
 
-use Splot\Foundation\Debug\Debugger;
+use MD\Foundation\Debug\Debugger;
 
 use Splot\Framework\Config\Config;
 use Splot\Framework\Application\AbstractApplication;

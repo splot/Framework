@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\Resources\Exceptions;
 
-use Splot\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\NotFoundException;
 
 class ResourceNotFoundException extends NotFoundException
 {

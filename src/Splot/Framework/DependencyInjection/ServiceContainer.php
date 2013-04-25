@@ -11,8 +11,8 @@
  */
 namespace Splot\Framework\DependencyInjection;
 
-use Splot\Foundation\Exceptions\NotUniqueException;
-use Splot\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\NotUniqueException;
+use MD\Foundation\Exceptions\NotFoundException;
 
 use Splot\Framework\DependencyInjection\Exceptions\ReadOnlyDefinitionException;
 

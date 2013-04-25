@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\Routes\Exceptions;
 
-use Splot\Foundation\Exceptions\Exception;
+use MD\Foundation\Exceptions\Exception;
 
 class InvalidRouteException extends Exception
 {

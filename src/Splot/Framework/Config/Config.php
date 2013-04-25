@@ -11,9 +11,9 @@
  */
 namespace Splot\Framework\Config;
 
-use Splot\Foundation\Exceptions\NotFoundException;
-use Splot\Foundation\Exceptions\InvalidFileException;
-use Splot\Foundation\Utils\ArrayUtils;
+use MD\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\InvalidFileException;
+use MD\Foundation\Utils\ArrayUtils;
 
 class Config
 {

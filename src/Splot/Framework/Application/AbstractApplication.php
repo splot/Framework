@@ -13,11 +13,11 @@
  */
 namespace Splot\Framework\Application;
 
-use Splot\Foundation\Debug\Debugger;
-use Splot\Foundation\Debug\Timer;
-use Splot\Foundation\Exceptions\InvalidReturnValueException;
-use Splot\Foundation\Exceptions\NotFoundException;
-use Splot\Foundation\Exceptions\NotUniqueException;
+use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Debug\Timer;
+use MD\Foundation\Exceptions\InvalidReturnValueException;
+use MD\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\NotUniqueException;
 
 use Splot\Log\Logger;
 use Splot\Log\LogContainer;

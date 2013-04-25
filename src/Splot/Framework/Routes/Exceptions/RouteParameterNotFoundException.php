@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\Routes\Exceptions;
 
-use Splot\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\NotFoundException;
 
 class RouteParameterNotFoundException extends NotFoundException
 {
