@@ -106,7 +106,7 @@ class Framework
      * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
      * @return AbstractApplication The booted application.
      */
-    public function bootApplication(AbstractApplication $application, array $options = array()) {
+    public function bootApplication(AbstractApplication $application, array $options = array()) {    
         // get application's class name for some debugging and logging
         $applicationClass = Debugger::getClass($application);
 
