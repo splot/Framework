@@ -75,9 +75,10 @@ class Framework
      * @param bool $console [optional] Is it command line interface? Default: false.
      */ 
     final private function __construct(array $options = array(), $console = false) {
+        $this->_timer = new Timer();
+        
         LogContainer::setStartTime(Timer::getMicroTime());
 
-        $this->_timer = new Timer();
         $this->_logger = LogContainer::create('Splot Framework');
 
         $this->_console = $console;
@@ -138,7 +139,7 @@ class Framework
         LogContainer::setEnabled($config->get('debugger.enabled'));
 
         /*****************************************
-         * INITIALIZE DIC
+         * INITIALIZE DEPENDENCY INJECTION CONTAINER
          *****************************************/
         // create dependency injection container and reference itself as a service
         $serviceContainer = new ServiceContainer();
@@ -162,7 +163,7 @@ class Framework
          * INITIALIZE & BOOT APPLICATION
          *****************************************/
         // inject the config, dependency injection container and environment to it
-        $application->init($config, $serviceContainer, $this->_env);
+        $application->init($config, $serviceContainer, $this->_env, $this->_timer);
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {

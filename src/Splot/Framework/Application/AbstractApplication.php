@@ -135,15 +135,16 @@ abstract class AbstractApplication
      * @param Config $config Application config.
      * @param ServiceContainer $container Dependency Injection Service Container.
      * @param string $env Current environment name.
+     * @param Timer $timer Global timer from the framework, for profiling.
      * 
      * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function init(Config $config, ServiceContainer $container, $env) {
+    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer) {
         if ($this->_initialized) {
             throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
         }
 
-        $this->_timer = new Timer();
+        $this->_timer = $timer;
         $this->_logger = LogContainer::create('Application');
 
         $this->_config = $config;
@@ -278,7 +279,12 @@ abstract class AbstractApplication
      */
     public function sendResponse(Response $response, Request $request) {
         $this->_logger->info('Will send response', array(
-            '_timer' => $this->_timer->step('Will send response')
+            'time' => $this->_timer->getDuration(),
+            'memory' => $this->_timer->getCurrentMemoryPeak(),
+            '_timer' => $this->_timer->step('Will send response'),
+            '_tags' => array(
+                'profiling', 'execution time', 'memory usage'
+            )
         ));
 
         // trigger WillSendResponse event for any last minute changes
