@@ -151,7 +151,7 @@ abstract class AbstractApplication
         $this->_env = $env;
 
         $this->_router = $router = new Router();
-        $this->_eventManager = $eventManager = new EventManager('Application Events');
+        $this->_eventManager = $eventManager = new EventManager('Application Events', LogContainer::create('Application Events'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
