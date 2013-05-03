@@ -13,14 +13,16 @@
  */
 namespace Splot\Framework\Application;
 
+use Psr\Log\LoggerInterface;
+
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
-use Splot\Log\Logger;
 use Splot\Log\LogContainer;
+use Splot\Log\Logger as Splot_Logger;
 
 use Splot\EventManager\EventManager;
 
@@ -67,7 +69,7 @@ abstract class AbstractApplication
     /**
      * Application logger.
      * 
-     * @var Logger
+     * @var LoggerInterface
      */
     protected $_logger;
 
@@ -139,20 +141,20 @@ abstract class AbstractApplication
      * 
      * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer) {
+    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer, LoggerInterface $logger) {
         if ($this->_initialized) {
             throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
         }
 
         $this->_timer = $timer;
-        $this->_logger = LogContainer::create('Application');
+        $this->_logger = $logger;
 
         $this->_config = $config;
         $this->container = $container;
         $this->_env = $env;
 
         $this->_router = $router = new Router();
-        $this->_eventManager = $eventManager = new EventManager(LogContainer::create('Application Events'));
+        $this->_eventManager = $eventManager = new EventManager($container->get('logger_factory')->create('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
@@ -460,7 +462,7 @@ abstract class AbstractApplication
     /**
      * Returns the application logger.
      *
-     * @return Logger
+     * @return LoggerInterface
      */
     final public function getLogger() {
         return $this->_logger;

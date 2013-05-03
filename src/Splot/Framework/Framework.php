@@ -14,10 +14,15 @@
  */
 namespace Splot\Framework;
 
+use Psr\Log\LoggerInterface;
+
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Utils\ArrayUtils;
 
+use Splot\Log\Factory as Splot_LoggerFactory;
 use Splot\Log\LogContainer;
+use Splot\Log\Logger as Splot_Logger;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
@@ -43,6 +48,8 @@ class Framework
     private $_cacheDir;
     private $_applicationDir;
 
+    private $_options = array();
+
     private $_env = 'PRODUCTION';
     private $_console = false;
 
@@ -62,9 +69,30 @@ class Framework
             return self::$_framework;
         }
 
-        $console = isset($options['console']) ? $options['console'] : false;
+        // for debug, set as early as possible
+        LogContainer::setStartTime(Timer::getMicroTime());
 
-        self::$_framework = new self($options, $console);
+        // create logger factory for default "logger_factory" service.
+        $loggerFactory = new Splot_LoggerFactory();
+
+        $options = ArrayUtils::merge(array(
+            'console' => false,
+            'logger' => null,
+            'services' => array(
+                'logger_factory' => function($c) use ($loggerFactory) {
+                    return $loggerFactory;
+                }
+            )
+        ), $options);
+
+        // but now just get reference to the real logger factory, in case it was overwritten in options
+        $realLoggerFactory = call_user_func_array($options['services']['logger_factory'], array(null));
+
+        self::$_framework = new self(
+            $options,
+            ($options['logger']) ? $options['logger'] : $realLoggerFactory->create('Splot Framework'),
+            $options['console']
+        );
         return self::$_framework;
     }
 
@@ -74,12 +102,9 @@ class Framework
      * @param array $options [optional] Array of options.
      * @param bool $console [optional] Is it command line interface? Default: false.
      */ 
-    final private function __construct(array $options = array(), $console = false) {
+    final private function __construct(array $options = array(), LoggerInterface $logger = null, $console = false) {
         $this->_timer = new Timer();
-        
-        LogContainer::setStartTime(Timer::getMicroTime());
-
-        $this->_logger = LogContainer::create('Splot Framework');
+        $this->_logger = $logger;
 
         $this->_console = $console;
         define('SPLOT_CONSOLE', $console);
@@ -91,6 +116,8 @@ class Framework
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
         $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
+
+        $this->_options = $options;
 
         $this->_logger->info('Splot Framework successfully initialized.', array(
             'rootDir' => $this->_rootDir,
@@ -121,10 +148,6 @@ class Framework
         $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config'. DS);
         define('SPLOT_ENV', $this->_env);
 
-        // set logger on or off based on environment
-        $this->_logger->setEnabled($this->_env !== static::ENV_PRODUCTION);
-        LogContainer::setEnabled($this->_env !== static::ENV_PRODUCTION);
-
         /*****************************************
          * READ CONFIG FOR THE APPLICATON
          *****************************************/
@@ -135,7 +158,9 @@ class Framework
         date_default_timezone_set($config->get('timezone'));
 
         // update the logger settings based on config
-        $this->_logger->setEnabled($config->get('debugger.enabled'));
+        if ($this->_logger instanceof Splot_Logger) {
+            $this->_logger->setEnabled($config->get('debugger.enabled'));
+        }
         LogContainer::setEnabled($config->get('debugger.enabled'));
 
         /*****************************************
@@ -159,11 +184,17 @@ class Framework
             return new Filesystem();
         }, true, true);
 
+        // now register all custom services that may have been sent in framework options
+        foreach($this->_options['services'] as $name => $service) {
+            $serviceContainer->set($name, $service);
+        }
+
         /*****************************************
          * INITIALIZE & BOOT APPLICATION
          *****************************************/
         // inject the config, dependency injection container and environment to it
-        $application->init($config, $serviceContainer, $this->_env, $this->_timer);
+        $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('logger_factory')->create('Application');
+        $application->init($config, $serviceContainer, $this->_env, $this->_timer, $applicationLogger);
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {
