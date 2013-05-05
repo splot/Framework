@@ -113,18 +113,16 @@ class Config
         $exPath = explode('.', $exPath);
 
         // navigate to the requested parameter
-        $pointer = &$this->_config;
+        $pointer = $this->_config;
         foreach($exPath as $name) {
-            if (isset($pointer[$name])) {
-                $pointer = &$pointer[$name];
-            } else if (is_null($pointer[$name])) {
-                $pointer = null;
-            } else {
-                throw new NotFoundException('The requested config variable "'. $path .'" does not exist');
+            if (!isset($pointer[$name])) {
+                throw new NotFoundException('The requested config variable "'. $path .'" does not exist.');
             }
+
+            $pointer = $pointer[$name];
         }
 
-        return $pointer;
+        return $pointer ? $pointer : null;
     }
 
     /**
