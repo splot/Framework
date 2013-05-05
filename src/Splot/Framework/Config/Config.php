@@ -117,6 +117,8 @@ class Config
         foreach($exPath as $name) {
             if (isset($pointer[$name])) {
                 $pointer = &$pointer[$name];
+            } else if (is_null($pointer[$name])) {
+                $pointer = null;
             } else {
                 throw new NotFoundException('The requested config variable "'. $path .'" does not exist');
             }
