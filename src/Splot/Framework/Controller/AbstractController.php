@@ -1,39 +1,39 @@
 <?php
 /**
- * Abstract route class. All Splot Framework routes should extend it.
+ * Abstract controller class. All Splot Framework controllers should extend it.
  * 
- * Mostly contains some static meta data about a route.
+ * Mostly contains some static meta data about a controller and its route.
  * 
  * @package SplotFramework
- * @subpackage Routes
+ * @subpackage Controller
  * @author Michał Dudek <michal@michaldudek.pl>
  * 
  * @copyright Copyright (c) 2013, Michał Dudek
  * @license MIT
  */
-namespace Splot\Framework\Routes;
+namespace Splot\Framework\Controller;
 
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
-abstract class AbstractRoute
+abstract class AbstractController
 {
 
     /**
-     * URL pattern under which the route is reachable.
+     * URL pattern under which the controller is reachable.
      * 
      * Can specify parameters in the form of {name} and add constraints in the form of:
      *  - {id:d} - only digits (this is the only possible constraint at the moment)
      * 
      * @var string
      */
-    protected static $_pattern = '/';
+    protected static $_url = '/';
 
     /**
-     * Methods available for this URL as well as function names that should be executed for them.
+     * HTTP request methods available for this URL as well as function names that should be executed for them.
      * 
      * Keys are prefered to be lowercase. Accepted keys: get/post/put/delete.
-     * The route has to implement the specified functions for specified methods.
+     * The controller has to implement the specified functions for specified methods.
      * 
      * Default value for all methods is "execute".
      * 
@@ -64,13 +64,31 @@ abstract class AbstractRoute
         $this->container = $container;
     }
 
+    /*****************************************
+     * HELPERS
+     *****************************************/
+    /**
+     * Returns a service with the given name.
+     * 
+     * Shortcut to container.
+     * 
+     * @param string $name Name of the service to return.
+     * @return object
+     */
+    final public function get($name) {
+        return $this->getContainer()->get($name);
+    }
+
+    /*****************************************
+     * SETTERS AND GETTERS
+     *****************************************/
     /**
      * Gets the route's URL pattern.
      * 
      * @return string
      */
-    final public static function _getPattern() {
-        return static::$_pattern;
+    final public static function _getUrl() {
+        return static::$_url;
     }
 
     /**
@@ -101,9 +119,9 @@ abstract class AbstractRoute
     }
 
     /**
-     * Returns function name (implemented by the route) to be executed for the given method.
+     * Returns function name (implemented by the controller) to be executed for the given HTTP request method.
      * 
-     * @param string $method Name of the method.
+     * @param string $method Name of the HTTP method.
      * @return string
      */
     final public static function _getMethodFunction($method) {
@@ -111,15 +129,6 @@ abstract class AbstractRoute
         $methods = static::_getMethods();
 
         return $methods[$method];
-    }
-
-    /**
-     * Sets the dependency injection service container.
-     * 
-     * @param ServiceContainer $serviceContainer
-     */
-    final public function setContainer(ServiceContainer $serviceContainer) {
-        $this->container = $serviceContainer;
     }
 
     /**
@@ -132,15 +141,12 @@ abstract class AbstractRoute
     }
 
     /**
-     * Returns a service with the given name.
+     * Returns class name of the controller.
      * 
-     * Shortcut to container.
-     * 
-     * @param string $name Name of the service to return.
-     * @return object
+     * @return string
      */
-    final public function get($name) {
-        return $this->getContainer()->get($name);
+    final public static function __class() {
+        return get_called_class();
     }
 
 }

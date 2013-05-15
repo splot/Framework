@@ -1,6 +1,6 @@
 <?php
 /**
- * Exception thrown when a found route is invalid or when trying to register an invalid route.
+ * Exception thrown when a found controller is invalid or when trying to register an invalid controller's route.
  * 
  * @package SplotFramework
  * @subpackage Routes
@@ -13,7 +13,7 @@ namespace Splot\Framework\Routes\Exceptions;
 
 use MD\Foundation\Exceptions\Exception;
 
-class InvalidRouteException extends Exception
+class InvalidControllerException extends Exception
 {
 
 

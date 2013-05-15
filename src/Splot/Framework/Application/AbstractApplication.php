@@ -21,21 +21,18 @@ use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
-use Splot\Log\LogContainer;
-use Splot\Log\Logger as Splot_Logger;
-
 use Splot\EventManager\EventManager;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
+use Splot\Framework\Controller\ControllerResponse;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Modules\AbstractModule;
-use Splot\Framework\Routes\RouteMeta;
+use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Router;
-use Splot\Framework\Routes\RouteResponse;
-use Splot\Framework\Events\DidExecuteRoute;
+use Splot\Framework\Events\DidExecuteController;
 use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
@@ -153,7 +150,7 @@ abstract class AbstractApplication
         $this->container = $container;
         $this->_env = $env;
 
-        $this->_router = $router = new Router();
+        $this->_router = $router = new Router($container->get('logger_factory')->create('Router'));
         $this->_eventManager = $eventManager = new EventManager($container->get('logger_factory')->create('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
@@ -215,11 +212,9 @@ abstract class AbstractApplication
         // trigger DidReceiveRequest event
         $this->_eventManager->trigger(new DidReceiveRequest($request));
 
-        /**
-         * @var RouteMeta Meta information about the found route.
-         */
-        $routeMeta = $this->getRouter()->getRouteForRequest($request);
-        if (!$routeMeta) {
+        /** @var Route Meta information about the found route. */
+        $route = $this->getRouter()->getRouteForRequest($request);
+        if (!$route) {
             $notFoundEvent = new DidNotFindRouteForRequest($request);
             $this->_eventManager->trigger($notFoundEvent);
 
@@ -231,43 +226,43 @@ abstract class AbstractApplication
         }
 
         // trigger DidFindRouteForRequest event
-        $this->_eventManager->trigger(new DidFindRouteForRequest($routeMeta, $request));
+        $this->_eventManager->trigger(new DidFindRouteForRequest($route, $request));
 
-        $routeClass = $routeMeta->getRouteClass();
-        $routeMethod = $routeMeta->getRouteMethodForHttpMethod($request->getMethod());
-        $routeArguments = $routeMeta->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
+        $controllerClass = $route->getControllerClass();
+        $controllerMethod = $route->getControllerMethodForHttpMethod($request->getMethod());
+        $methodArguments = $route->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
 
         // if route has been found then log it
-        $this->_logger->info('Matched route: "'. $routeMeta->getName() .'" ("'. $routeMeta->getRouteClass() .'")', array(
-            'name' => $routeMeta->getName(),
-            'function' => $routeClass .'::'. $routeMethod,
-            'arguments' => $routeArguments,
+        $this->_logger->info('Matched route: "'. $route->getName() .'" ("'. $controllerClass .'")', array(
+            'name' => $route->getName(),
+            'function' => $controllerClass .'::'. $controllerMethod,
+            'arguments' => $methodArguments,
             'url' => $request->getPathInfo(),
             'method' => $request->getMethod(),
-            'module' => $routeMeta->getModuleName(),
+            'module' => $route->getModuleName(),
             '_timer' => $this->_timer->step('Matched route'),
             '_tags' => 'routing, request'
         ));
 
-        // and finally execute the route
-        $routeResponse = new RouteResponse(call_user_func_array(array(new $routeClass($this->container), $routeMethod), $routeArguments));
-        $this->_logger->info('Route executed', array(
-            '_timer' => $this->_timer->step('Route executed'),
+        // and finally execute the controller
+        $controllerResponse = new ControllerResponse(call_user_func_array(array(new $controllerClass($this->container), $controllerMethod), $methodArguments));
+        $this->_logger->info('Controller executed', array(
+            '_timer' => $this->_timer->step('Controller executed'),
             '_tags' => 'routing'
         ));
 
-        // trigger DidExecuteRoute event
-        $this->_eventManager->trigger(new DidExecuteRoute($routeResponse, $routeMeta, $request));
+        // trigger DidExecuteController event
+        $this->_eventManager->trigger(new DidExecuteController($controllerResponse, $route, $request));
 
-        $response = $routeResponse->getResponse();
+        $response = $controllerResponse->getResponse();
 
-        // one exception, if the response is a string then automatically convert it to HttpResponse
+        // special case, if the response is a string then automatically convert it to HttpResponse
         if (is_string($response)) {
             $response = new Response($response);
         }
 
         if (!is_object($response) || !($response instanceof Response)) {
-            throw new InvalidReturnValueException('Executed route method must return Splot\\Framework\\HTTP\\Response instance, "'. Debugger::getType($response) .'" given.');
+            throw new InvalidReturnValueException('Executed route method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
         }
 
         return $response;
@@ -296,9 +291,9 @@ abstract class AbstractApplication
         $response->send();
     }
 
-    /*
+    /*****************************************************
      * MODULES MANAGEMENT
-     */
+     *****************************************************/
     /**
      * Boots the given module.
      * 
@@ -339,9 +334,9 @@ abstract class AbstractApplication
         return $module;
     }
 
-    /*
+    /*****************************************************
      * SETTERS AND GETTERS
-     */
+     *****************************************************/
     /**
      * Returns class name of the application.
      * 

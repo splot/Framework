@@ -70,20 +70,20 @@ abstract class AbstractModule
     protected $_name;
 
     /**
-     * Prefix that will be added to all routes from this module.
+     * Prefix that will be added to all URL's from this module.
      * 
      * @var string|null
      */
-    protected $_routesPrefix;
+    protected $_urlPrefix;
 
     /**
      * Boots the module.
      */
     abstract public function boot();
 
-    /*
+    /*****************************************
      * SETTERS AND GETTERS
-     */
+     *****************************************/
     /**
      * Returns the module name.
      * 
@@ -157,8 +157,8 @@ abstract class AbstractModule
      * 
      * @return string|null
      */
-    public function getRoutesPrefix() {
-        return $this->_routesPrefix;
+    public function getUrlPrefix() {
+        return $this->_urlPrefix;
     }
 
     /**

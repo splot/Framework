@@ -235,14 +235,15 @@ class Framework
         }
 
         /*****************************************
-         * LOAD APPLICATION ROUTES
+         * LOAD APPLICATION CONTROLLERS
          *****************************************/
+        // read application routes
         $routes = $application->getRouter()->getRoutes();
         $routesLog = array();
         foreach($routes as $route) {
-            $routesLog[$route->getName()] = $route->getPattern();
+            $routesLog[$route->getName()] = $route->getUrlPattern();
         }
-        $this->_logger->info('Registered {count} routes.', array(
+        $this->_logger->info('Registered {count} routes to controllers.', array(
             'count' => count($routes),
             'routes' => $routesLog,
             '_timer' => $this->_timer->step('Routes loaded.'),

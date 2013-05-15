@@ -11,15 +11,14 @@
  */
 namespace Splot\Framework\Routes;
 
-use Splot\Log\LogContainer;
-use Splot\Log\Logger;
+use Psr\Log\LoggerInterface;
 
+use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
-use Splot\Framework\Routes\AbstractRoute;
-use Splot\Framework\Routes\RouteMeta;
+use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Exceptions\RouteNotFoundException;
-use Splot\Framework\Routes\Exceptions\InvalidRouteException;
+use Splot\Framework\Routes\Exceptions\InvalidControllerException;
 
 class Router
 {
@@ -27,7 +26,7 @@ class Router
     /**
      * Router's logger.
      * 
-     * @var Logger
+     * @var LoggerInterface
      */
     private $_logger;
 
@@ -41,8 +40,8 @@ class Router
     /**
      * Constructor.
      */
-    public function __construct() {
-        $this->_logger = LogContainer::create('Routing');
+    public function __construct(LoggerInterface $logger) {
+        $this->_logger = $logger;
     }
 
     /**
@@ -52,12 +51,12 @@ class Router
      */
     public function readModuleRoutes(AbstractModule $module) {
         $name = $module->getName();
-        $routesDir = $module->getModuleDir() .'Routes';
+        $routesDir = $module->getModuleDir() .'Controllers';
         if (!is_dir($routesDir)) {
             return;
         }
 
-        $moduleNamespace = $module->getNamespace() . NS .'Routes'. NS;
+        $moduleNamespace = $module->getNamespace() . NS .'Controllers'. NS;
         $router = $this;
 
         // register a closure so we can recursively scan the routes directory
@@ -81,7 +80,7 @@ class Router
 
                 // class_exists autoloads a file
                 if (class_exists($class)) {
-                    $router->addRoute($name .':'. $namespace . $rawClass, $class, $module->getName(), $module->getRoutesPrefix() . $class::_getPattern());
+                    $router->addRoute($name .':'. $namespace . $rawClass, $class, $module->getName(), $module->getUrlPrefix() . $class::_getUrl());
                 }
             }
         };
@@ -93,44 +92,43 @@ class Router
     /**
      * Registers a route.
      * 
-     * @param string $name Name of the route.
-     * @param string $class Class name for the route.
+     * @param string $name Name of the controller.
+     * @param string $controllerClass Class name for the controller.
      * @param string $moduleName [optional] Module name to which this route belongs.
-     * @param string $pattern [optional] Optional URL matching pattern for this route, will override the one specified in route's class.
-     * @param array $methods [optional] Optional map of HTTP methods to class methods, as defined in routes.
-     * @return RouteMeta Object containing meta information about the created route.
+     * @param string $urlPattern [optional] Optional URL matching pattern for this controller, will override the one specified in controller's class.
+     * @param array $methods [optional] Optional map of HTTP methods to class methods, as defined in controller.
+     * @return Route
      * 
-     * @throws InvalidRouteException When given route class is not extending AbstractRoute.
+     * @throws InvalidRouteException When given route class is not extending AbstractController.
      * @throws InvalidRouteException When cannot find a non-empty pattern.
-     * @throws InvalidRouteException When route method specified for an HTTP method is not implemented or not callable by router (must be non-static and public).
+     * @throws InvalidRouteException When controller method specified for an HTTP method is not implemented or not callable by router (must be non-static and public).
      */
-    public function addRoute($name, $class, $moduleName = null, $pattern = null, array $methods = array()) {
-        // must extend AbstractRoute
-        if (!is_subclass_of($class, 'Splot\Framework\Routes\AbstractRoute', true)) {
-            throw new InvalidRouteException('Route "'. $class .'" must extend "Splot\Framework\Routes\AbstractRoute".');
+    public function addRoute($name, $controllerClass, $moduleName = null, $urlPattern = null, array $methods = array()) {
+        // must extend AbstractController
+        $abstractControllerClass = AbstractController::__class();
+        if (!is_subclass_of($controllerClass, $abstractControllerClass, true)) {
+            throw new InvalidControllerException('Route "'. $controllerClass .'" must extend "'. $abstractControllerClass .'".');
         }
 
-        /**
-         * @var string Pattern under which this route is reachable.
-         */
-        $pattern = (empty($pattern)) ? $class::_getPattern() : $pattern;
+        /** @var string URL pattern under which this controller is reachable. */
+        $urlPattern = (empty($urlPattern)) ? $controllerClass::_getUrl() : $urlPattern;
 
-        if (empty($pattern)) {
-            throw new InvalidRouteException('Route "'. $class .'" must specify a pattern under which it will be visible.');
+        if (empty($urlPattern)) {
+            throw new InvalidRouteException('Controller "'. $controllerClass .'" must specify a URL pattern under which it will be visible. Please set "'. $controllerClass .'::$_url" property.');
         }
 
-        $methods = (empty($methods)) ? $class::_getMethods() : array_merge(array(
+        $methods = (empty($methods)) ? $controllerClass::_getMethods() : array_merge(array(
             'get' => 'execute',
             'post' => 'execute',
             'put' => 'execute',
             'delete' => 'execute'
         ), $methods);
 
-        // store various metadata about this route
-        $routeMeta = new RouteMeta($name, $class, $pattern, $methods, $moduleName);
-        $this->_routes[$name] = $routeMeta;
+        // register this as a route
+        $route = new Route($name, $controllerClass, $urlPattern, $methods, $moduleName);
+        $this->_routes[$name] = $route;
 
-        return $routeMeta;
+        return $route;
     }
 
     /**
@@ -154,9 +152,9 @@ class Router
         $method = strtolower($method);
         $routes = $this->getRoutes();
 
-        foreach($routes as $name => $routeMeta) {
-            if ($routeMeta->willRespondToRequest($url, $method)) {
-                return $routeMeta;
+        foreach($routes as $name => $route) {
+            if ($route->willRespondToRequest($url, $method)) {
+                return $route;
             }
         }
 
@@ -179,13 +177,13 @@ class Router
             throw new RouteNotFoundException('There is no route called "'. $name .'" registered.');
         }
 
-        $routeMeta = $this->_routes[$name];
-        return $routeMeta->generateUrl($params);
+        $route = $this->_routes[$name];
+        return $route->generateUrl($params);
     }
 
-    /*
+    /*****************************************
      * SETTERS AND GETTERS
-     */
+     *****************************************/
     /**
      * Returns all registered routes.
      * 
@@ -196,9 +194,9 @@ class Router
     }
 
     /**
-     * Returns meta data about the given route.
+     * Returns the route with the given name.
      * 
-     * @return array
+     * @return Route
      */
     public function getRoute($name) {
         return $this->_routes[$name];

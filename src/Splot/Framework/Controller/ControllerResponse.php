@@ -1,21 +1,21 @@
 <?php
 /**
- * A container for a response that was returned from a called route's method.
+ * A container for a response that was returned from a called controller's method.
  * 
  * @package SplotFramework
- * @subpackage Routes
+ * @subpackage Controller
  * @author Michał Dudek <michal@michaldudek.pl>
  * 
  * @copyright Copyright (c) 2013, Michał Dudek
  * @license MIT
  */
-namespace Splot\Framework\Routes;
+namespace Splot\Framework\Controller;
 
-class RouteResponse
+class ControllerResponse
 {
 
     /**
-     * Whatever the route has returned.
+     * Whatever the controller has returned.
      * 
      * @var mixed
      */
@@ -24,14 +24,14 @@ class RouteResponse
     /**
      * Constructor.
      * 
-     * @param mixed $response Whatever the route has returned.
+     * @param mixed $response Whatever the controller has returned.
      */
     public function __construct($response) {
         $this->_response = $response;
     }
 
     /**
-     * Returns whatever the route has returned.
+     * Returns whatever the controller has returned.
      * 
      * @return mixed
      */
@@ -40,7 +40,7 @@ class RouteResponse
     }
 
     /**
-     * Sets a new route response.
+     * Sets a new controller response.
      * 
      * @param mixed $response
      */
