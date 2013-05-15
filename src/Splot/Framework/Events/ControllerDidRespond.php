@@ -1,6 +1,6 @@
 <?php
 /**
- * Event triggered when a controller has been successfuly executed and returned a response.
+ * Event triggered when a controller has successfully responded.
  * 
  * @package SplotFramework
  * @subpackage Events
@@ -17,7 +17,7 @@ use Splot\Framework\HTTP\Request;
 use Splot\Framework\Controller\ControllerResponse;
 use Splot\Framework\Routes\Route;
 
-class DidExecuteController extends AbstractEvent
+class ControllerDidRespond extends AbstractEvent
 {
 
     /**

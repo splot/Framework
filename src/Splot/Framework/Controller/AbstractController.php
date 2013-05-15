@@ -35,17 +35,18 @@ abstract class AbstractController
      * Keys are prefered to be lowercase. Accepted keys: get/post/put/delete.
      * The controller has to implement the specified functions for specified methods.
      * 
-     * Default value for all methods is "execute".
+     * Default value for all methods is "respond".
      * 
-     * If a method is set to false then the route will not be reachable with that method. It has to be specifically specified. If ommitted it will default to "execute".
+     * If a method is set to false then the route will not be reachable with that method.
+     * It has to be specifically specified. If ommitted it will default to "respond".
      * 
      * @var array
      */
     protected static $_methods = array(
-        'get' => 'execute',
-        'post' => 'execute',
-        'put' => 'execute',
-        'delete' => 'execute'
+        'get' => 'respond',
+        'post' => 'respond',
+        'put' => 'respond',
+        'delete' => 'respond'
     );
 
     /**
@@ -98,10 +99,10 @@ abstract class AbstractController
      */
     final public static function _getMethods() {
         return array_merge(array(
-            'get' => 'execute',
-            'post' => 'execute',
-            'put' => 'execute',
-            'delete' => 'execute'
+            'get' => 'respond',
+            'post' => 'respond',
+            'put' => 'respond',
+            'delete' => 'respond'
         ), array_change_key_case(static::$_methods, CASE_LOWER));
     }
 

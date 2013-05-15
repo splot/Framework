@@ -32,7 +32,7 @@ use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Router;
-use Splot\Framework\Events\DidExecuteController;
+use Splot\Framework\Events\ControllerDidRespond;
 use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
@@ -251,8 +251,8 @@ abstract class AbstractApplication
             '_tags' => 'routing'
         ));
 
-        // trigger DidExecuteController event
-        $this->_eventManager->trigger(new DidExecuteController($controllerResponse, $route, $request));
+        // trigger ControllerDidRespond event
+        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $route, $request));
 
         $response = $controllerResponse->getResponse();
 
@@ -262,7 +262,7 @@ abstract class AbstractApplication
         }
 
         if (!is_object($response) || !($response instanceof Response)) {
-            throw new InvalidReturnValueException('Executed route method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
+            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
         }
 
         return $response;
