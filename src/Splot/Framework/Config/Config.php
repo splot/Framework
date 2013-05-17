@@ -122,7 +122,7 @@ class Config
             $pointer = $pointer[$name];
         }
 
-        return $pointer ? $pointer : null;
+        return $pointer;
     }
 
     /**
