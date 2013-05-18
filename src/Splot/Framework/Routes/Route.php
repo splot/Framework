@@ -267,7 +267,7 @@ class Route
                     $methodReflection = $controllerReflection->getMethod($methods[$method]['method']);
 
                     if (!$methodReflection->isPublic() || $methodReflection->isStatic()) {
-                        throw new InvalidControllerException('Controller "'. $this->getControllerClass() .'" does not have a public non-static method called "'. $methods[$method] .'" for "'. strtoupper($method) .'" requests.');
+                        throw new InvalidControllerException('Controller "'. $this->getControllerClass() .'" does not have a public non-static method called "'. $methods[$method]['method'] .'" for '. strtoupper($method) .' requests.');
                     }
 
                     // also, while we're at it, create parameters map
@@ -286,7 +286,7 @@ class Route
                     }
                 } catch(\ReflectionException $e) {
                     // reroute the exception to more understandable
-                    throw new InvalidControllerException('Route "'. $this->getControllerClass() .'" does not have a method called "'. $methods[$method] .'" for "'. strtoupper($method) .'" requests.');
+                    throw new InvalidControllerException('Controller "'. $this->getControllerClass() .'" does not have a method called "'. $methods[$method]['method'] .'" for '. strtoupper($method) .' requests.', $e->getCode(), $e);
                 }
             }
         }
