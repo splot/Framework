@@ -69,21 +69,25 @@ class Framework
             return self::$_framework;
         }
 
-        // for debug, set as early as possible
-        LogContainer::setStartTime(Timer::getMicroTime());
-
         // create logger factory for default "logger_factory" service.
         $loggerFactory = new Splot_LoggerFactory();
 
         $options = ArrayUtils::merge(array(
             'console' => false,
             'logger' => null,
+            'timezone' => 'Europe/London',
             'services' => array(
                 'logger_factory' => function($c) use ($loggerFactory) {
                     return $loggerFactory;
                 }
             )
         ), $options);
+
+        // set default timezone from options, for now
+        date_default_timezone_set($options['timezone']);
+
+        // for debug, set as early as possible
+        LogContainer::setStartTime(Timer::getMicroTime());
 
         // but now just get reference to the real logger factory, in case it was overwritten in options
         $realLoggerFactory = call_user_func_array($options['services']['logger_factory'], array(null));
