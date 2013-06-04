@@ -47,7 +47,7 @@ class Finder
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
      * @return string
      */
-    public function findResource($name, $type) {
+    public function find($name, $type) {
         if (isset($this->_cache[$type]) && isset($this->_cache[$type][$name])) {
             return $this->_cache[$type][$name];
         }
