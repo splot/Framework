@@ -110,22 +110,27 @@ class Router
             throw new InvalidControllerException('Route "'. $controllerClass .'" must extend "'. $abstractControllerClass .'".');
         }
 
-        /** @var string URL pattern under which this controller is reachable. */
-        $urlPattern = (empty($urlPattern)) ? $controllerClass::_getUrl() : $urlPattern;
+        // if controller url is set to false then it means it's a "private" controller, so can't be reached via url
+        // can only be reached using application::render() method
+        $private = ($controllerClass::_getUrl() === false) ? true : false;
+        if (!$private) {
+            /** @var string URL pattern under which this controller is reachable. */
+            $urlPattern = (empty($urlPattern)) ? $controllerClass::_getUrl() : $urlPattern;
 
-        if (empty($urlPattern)) {
-            throw new InvalidRouteException('Controller "'. $controllerClass .'" must specify a URL pattern under which it will be visible. Please set "'. $controllerClass .'::$_url" property.');
+            if (empty($urlPattern)) {
+                throw new InvalidRouteException('Controller "'. $controllerClass .'" must specify a URL pattern under which it will be visible. Please set "'. $controllerClass .'::$_url" property.');
+            }
         }
 
         $methods = (empty($methods)) ? $controllerClass::_getMethods() : array_merge(array(
-            'get' => 'execute',
-            'post' => 'execute',
-            'put' => 'execute',
-            'delete' => 'execute'
+            'get' => 'index',
+            'post' => 'index',
+            'put' => 'index',
+            'delete' => 'index'
         ), $methods);
 
         // register this as a route
-        $route = new Route($name, $controllerClass, $urlPattern, $methods, $moduleName);
+        $route = new Route($name, $controllerClass, $urlPattern, $methods, $moduleName, $private);
         $this->_routes[$name] = $route;
 
         return $route;
@@ -169,15 +174,9 @@ class Router
      * @param string $name Name of the route to generate URL for.
      * @param array $params [optional] Array of route parameters.
      * @return string
-     * 
-     * @throws RouteNotFoundException When there is no route with the given name.
      */
     public function generate($name, array $params = array()) {
-        if (!isset($this->_routes[$name])) {
-            throw new RouteNotFoundException('There is no route called "'. $name .'" registered.');
-        }
-
-        $route = $this->_routes[$name];
+        $route = $this->getRoute($name);
         return $route->generateUrl($params);
     }
 
@@ -197,8 +196,14 @@ class Router
      * Returns the route with the given name.
      * 
      * @return Route
+     * 
+     * @throws RouteNotFoundException When there is no route with the given name.
      */
     public function getRoute($name) {
+        if (!isset($this->_routes[$name])) {
+            throw new RouteNotFoundException('There is no route called "'. $name .'" registered.');
+        }
+
         return $this->_routes[$name];
     }
 

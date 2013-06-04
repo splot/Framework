@@ -1,6 +1,6 @@
 <?php
 /**
- * Event triggered when a controller has successfully responded.
+ * Event triggered after a controller has been executed.
  * 
  * @package SplotFramework
  * @subpackage Events
@@ -13,72 +13,107 @@ namespace Splot\Framework\Events;
 
 use Splot\EventManager\AbstractEvent;
 
-use Splot\Framework\HTTP\Request;
+use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\Controller\ControllerResponse;
-use Splot\Framework\Routes\Route;
 
 class ControllerDidRespond extends AbstractEvent
 {
 
     /**
-     * The received response from the route.
+     * Response with which the controller responded.
      * 
      * @var ControllerResponse
      */
-    private $_controllerResponse;
+    private $controllerResponse;
 
     /**
-     * Route information.
+     * Name of the controller that was executed.
      * 
-     * @var Route
+     * @var string
      */
-    private $_route;
+    private $controllerName;
 
     /**
-     * HTTP request that called the controller.
+     * Instance of the controller that was executed.
      * 
-     * @var Request
+     * @var AbstractController
      */
-    private $_request;
+    private $controller;
+
+    /**
+     * Name of the method that was executed.
+     * 
+     * @var string
+     */
+    private $method;
+
+    /**
+     * Arguments with which the controller's method was executed.
+     * 
+     * @var array
+     */
+    private $arguments = array();
 
     /**
      * Constructor.
      * 
-     * @param ControllerResponse $controllerResponse The received response from the controller.
-     * @param Route $routeMeta Meta information about the executed route.
-     * @param Request $request HTTP request that called the controller.
+     * @param ControllerResponse $controllerResponse Response with which the controller responded.
+     * @param string $controllerName Name of the controller that was executed.
+     * @param AbstractController $controller Instance of the controller that was executed.
+     * @param string $method Name of the method that was executed.
+     * @param array $arguments [optional] Arguments with which the controller's method was executed.
      */
-    public function __construct(ControllerResponse $controllerResponse, Route $route, Request $request) {
-        $this->_controllerResponse = $controllerResponse;
-        $this->_route = $route;
-        $this->_request = $request;
+    public function __construct(ControllerResponse $controllerResponse, $controllerName, AbstractController $controller, $method, array $arguments = array()) {
+        $this->controllerResponse = $controllerResponse;
+        $this->controllerName = $controllerName;
+        $this->controller = $controller;
+        $this->method = $method;
+        $this->arguments = $arguments;
     }
 
     /**
-     * Returns the received response from the controller.
+     * Returns the response with which the controller responded.
      * 
      * @return ControllerResponse
      */
     public function getControllerResponse() {
-        return $this->_controllerResponse;
+        return $this->controllerResponse;
     }
 
     /**
-     * Returns information about the executed route.
+     * Returns name of the controller that was executed.
      * 
-     * @return Route
+     * @return string
      */
-    public function getRoute() {
-        return $this->_route;
+    public function getControllerName() {
+        return $this->controllerName;
     }
 
     /**
-     * Returns the HTTP request that called the controller.
+     * Returns instance of the controller that was executed.
      * 
-     * @return Request
+     * @return AbstractController
      */
-    public function getRequest() {
-        return $this->_request;
+    public function getController() {
+        return $this->controller;
+    }
+
+    /**
+     * Returns name of the method that was executed.
+     * 
+     * @return string
+     */
+    public function getMethod() {
+        return $this->method;
+    }
+
+    /**
+     * Returns arguments with which the controller's method was executed.
+     * 
+     * @return array
+     */
+    public function getArguments() {
+        return $this->arguments;
     }
 
 }

@@ -33,6 +33,7 @@ use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Router;
 use Splot\Framework\Events\ControllerDidRespond;
+use Splot\Framework\Events\ControllerWillRespond;
 use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
@@ -175,6 +176,41 @@ abstract class AbstractApplication
         }, true);
 
         $this->_initialized = true;
+
+        /*****************************************************
+         * REGISTER LISTENERS
+         *****************************************************/
+        // register some listeners that add some additional functionality
+        // these possibly should be a separate module in the future
+        
+        // listener that will inject Request object to controller method arguments
+        $eventManager->subscribe(ControllerWillRespond::getName(), function($event) use ($router, $container) {
+            $route = $router->getRoute($event->getControllerName());
+            $arguments = $event->getArguments();
+            $methodName = $event->getMethod();
+
+            // find the method's meta data
+            $method = array();
+            foreach($route->getMethods() as $methodInfo) {
+                if ($methodInfo['method'] === $methodName) {
+                    $method = $methodInfo;
+                    break;
+                }
+            }
+
+            // ignore if couldn't find (shouldn't happen, really..., otherwise it would mean that Router is broken)
+            if (empty($method)) {
+                return;
+            }
+
+            foreach($method['params'] as $i => $param) {
+                if ($param['class'] && Debugger::isExtending($param['class'], Request::__class(), true)) {
+                    $arguments[$i] = $container->get('request');
+                }
+            }
+
+            $event->setArguments($arguments);
+        });
     }
 
     /**
@@ -228,42 +264,32 @@ abstract class AbstractApplication
         // trigger DidFindRouteForRequest event
         $this->_eventManager->trigger(new DidFindRouteForRequest($route, $request));
 
-        $controllerClass = $route->getControllerClass();
-        $controllerMethod = $route->getControllerMethodForHttpMethod($request->getMethod());
-        $methodArguments = $route->getRouteMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod(), $request);
+        $response = $this->renderController(
+            $route->getName(),
+            $route->getControllerClass(),
+            $route->getControllerMethodForHttpMethod($request->getMethod()),
+            $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod())
+        );
 
-        // if route has been found then log it
-        $this->_logger->info('Matched route: "'. $route->getName() .'" ("'. $controllerClass .'")', array(
-            'name' => $route->getName(),
-            'function' => $controllerClass .'::'. $controllerMethod,
-            'arguments' => $methodArguments,
-            'url' => $request->getPathInfo(),
-            'method' => $request->getMethod(),
-            'module' => $route->getModuleName(),
-            '_timer' => $this->_timer->step('Matched route'),
-            '_tags' => 'routing, request'
-        ));
+        return $response;
+    }
 
-        // and finally execute the controller
-        $controllerResponse = new ControllerResponse(call_user_func_array(array(new $controllerClass($this->container), $controllerMethod), $methodArguments));
-        $this->_logger->info('Controller executed', array(
-            '_timer' => $this->_timer->step('Controller executed'),
-            '_tags' => 'routing'
-        ));
+    /**
+     * Renders a controller with the given arguments as if it was responding to a GET request.
+     * 
+     * @param string $name Name of the controller/route.
+     * @param array $arguments [optional] Arguments for the controller.
+     * @return Response
+     */
+    public function render($name, array $arguments = array()) {
+        $route = $this->getRouter()->getRoute($name);
 
-        // trigger ControllerDidRespond event
-        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $route, $request));
-
-        $response = $controllerResponse->getResponse();
-
-        // special case, if the response is a string then automatically convert it to HttpResponse
-        if (is_string($response)) {
-            $response = new Response($response);
-        }
-
-        if (!is_object($response) || !($response instanceof Response)) {
-            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
-        }
+        $response = $this->renderController(
+            $route->getName(),
+            $route->getControllerClass(),
+            $route->getControllerMethodForHttpMethod('get'),
+            $route->getControllerMethodArgumentsFromArray('get', $arguments)
+        );
 
         return $response;
     }
@@ -289,6 +315,52 @@ abstract class AbstractApplication
 
         // and finally send out the response
         $response->send();
+    }
+
+    /*****************************************************
+     * RENDERING
+     *****************************************************/
+    /**
+     * Execute the given controller.
+     * 
+     * @param string $name Name of the controller or route assigned to this controller.
+     * @param string $class Class name of the controller.
+     * @param string $method Method name to execute on the controller.
+     * @param array $arguments [optional] Arguments to execute the controller with.
+     * @return Response
+     */
+    protected function renderController($name, $class, $method, array $arguments = array()) {
+        $controller = new $class($this->container);
+
+        $willRespondEvent = new ControllerWillRespond($name, $controller, $method, $arguments);
+        $this->_eventManager->trigger($willRespondEvent);
+
+        $method = $willRespondEvent->getMethod();
+        $arguments = $willRespondEvent->getArguments();
+        
+        $controllerResponse = new ControllerResponse(call_user_func_array(array($controller, $method), $arguments));
+        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $name, $controller, $method, $arguments));
+
+        $response = $controllerResponse->getResponse();
+
+        $this->_logger->info('Executed controller: "{name}"', array(
+            'name' => $name,
+            'function' => $class .'::'. $method,
+            'arguments' => $arguments,
+            '_timer' => $this->_timer->step('Matched route'),
+            '_tags' => 'routing, request'
+        ));
+
+        // special case, if the response is a string then automatically convert it to HttpResponse
+        if (is_string($response)) {
+            $response = new Response($response);
+        }
+
+        if (!is_object($response) || !($response instanceof Response)) {
+            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
+        }
+
+        return $response;
     }
 
     /*****************************************************

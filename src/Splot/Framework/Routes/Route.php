@@ -65,6 +65,13 @@ class Route
     private $_moduleName;
 
     /**
+     * Is this route private? Ie. non reachable via URL?
+     * 
+     * @var bool
+     */
+    private $_private = false;
+
+    /**
      * Constructor.
      * 
      * @param string $name Name of the route.
@@ -72,12 +79,15 @@ class Route
      * @param string $urlPattern URL pattern for the route.
      * @param array $methods Map of HTTP methods to the controller methods.
      * @param string $moduleName [optional] Module name to which this route belongs.
+     * @param bool $private [optional] Is this route private? If route is set to private then it cannot be reached
+     *                      via URL, only using application render() method. Default: false.
      */
-    public function __construct($name, $controllerClass, $urlPattern, $methods, $moduleName = null) {
+    public function __construct($name, $controllerClass, $urlPattern, $methods, $moduleName = null, $private = false) {
         $this->_name = $name;
         $this->_controllerClass = $controllerClass;
         $this->_urlPattern = $urlPattern;
         $this->_moduleName = $moduleName;
+        $this->_private = $private;
 
         // prepare regexp for this route
         $this->_regexp = $this->regexpFromUrlPattern($urlPattern);
@@ -92,6 +102,10 @@ class Route
      * @return bool
      */
     public function willRespondToRequest($url, $httpMethod) {
+        if ($this->isPrivate()) {
+            return false;
+        }
+
         $matched = preg_match('#^'. $this->getRegExp() .'$#is', $url, $matches);
 
         // found matching controller for this URL that also accepts this HTTP method
@@ -109,16 +123,19 @@ class Route
      * 
      * @param string $url Request URL.
      * @param string $httpMethod HTTP method (GET/PUT/POST/DELETE).
-     * @param Request $request The request for this route.
      * @return array Array of arguments.
      */
-    public function getRouteMethodArgumentsForUrl($url, $httpMethod, Request $request) {
+    public function getControllerMethodArgumentsForUrl($url, $httpMethod) {
         $matched = preg_match('#^'. $this->getRegExp() .'$#is', $url, $matches);
 
         if ($matched === 0) {
             throw new NotFoundException();
         }
 
+        return $this->getControllerMethodArgumentsFromArray($httpMethod, $matches);
+    }
+
+    public function getControllerMethodArgumentsFromArray($httpMethod = 'get', array $params = array()) {
         $method = $this->_methods[strtolower($httpMethod)];
         if (!$method['method']) {
             throw new NotFoundException();
@@ -127,13 +144,7 @@ class Route
         $arguments = array();
 
         foreach($method['params'] as $i => $param) {
-            // inject request instead of a match
-            if ($param['class'] && Debugger::isExtending($param['class'], Request::__class(), true)) {
-                $arguments[$i] = $request;
-                continue;
-            }
-
-            $arguments[$i] = (isset($matches[$param['name']])) ? $matches[$param['name']] : $param['default'];
+            $arguments[$i] = (isset($params[$param['name']])) ? $params[$param['name']] : $param['default'];
         }
 
         return $arguments;
@@ -147,6 +158,10 @@ class Route
      * @param array $params Route parameters.
      */
     public function generateUrl(array $params = array()) {
+        if ($this->isPrivate()) {
+            throw new \RuntimeException('Controller "'. $route->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
+        }
+
         $routeName = $this->getName();
 
         $url = preg_replace_callback('/(\{([\w:]+)\})(\?)?/is', function($matches) use (&$params, $routeName) {
@@ -360,6 +375,24 @@ class Route
     public function getControllerMethodForHttpMethod($httpMethod) {
         $methods = $this->getMethods();
         return $methods[strtolower($httpMethod)]['method'];
+    }
+
+    /**
+     * Returns is this route/controller private?
+     * 
+     * @return bool
+     */
+    public function getPrivate() {
+        return $this->_private;
+    }
+
+    /**
+     * Returns is this route/controller private?
+     * 
+     * @return bool
+     */
+    public function isPrivate() {
+        return $this->getPrivate();
     }
 
 }
