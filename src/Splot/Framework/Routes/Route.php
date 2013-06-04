@@ -222,7 +222,7 @@ class Route
             /**
              * @var string Constraints translated to regexp.
              */
-            $regexpConstraints = '\w+';
+            $regexpConstraints = '[\w\d\.-]+';
 
             // if any constraints specified then parse them
             if (!empty($constraints)) {
