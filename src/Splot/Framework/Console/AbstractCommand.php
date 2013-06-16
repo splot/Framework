@@ -111,21 +111,41 @@ abstract class AbstractCommand
     }
 
     /**
+     * Returns a parameter with the given name.
+     * 
+     * Shortcut to container.
+     * 
+     * @param string $name Name of the parameter to return.
+     * @return mixed
+     */
+    final public function getParameter($name) {
+        return $this->getContainer()->getParameter($name);
+    }
+
+    /**
      * Writes into output.
      * 
-     * @param array|string $messages An array of or a single message to write.
+     * @param array|string $messages [optional] An array of or a single message to write.
      * @param bool $newline [optional] Should end with new line? Default: false.
      */
-    final public function write($message, $newline = false) {
+    final public function write($message = null, $newline = false) {
+        if (is_null($message)) {
+            $message = '';
+        }
+        
         $this->output->write($message, $newline);
     }
 
     /**
      * Writes into output and goes to next line.
      * 
-     * @param array|string $messages An array of or a single message to write.
+     * @param array|string $message [optional] An array of or a single message to write.
      */
-    final public function writeln($message) {
+    final public function writeln($message = null) {
+        if (is_null($message)) {
+            $message = '';
+        }
+
         $this->output->writeln($message);
     }
 
