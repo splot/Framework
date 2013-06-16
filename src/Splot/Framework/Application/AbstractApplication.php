@@ -44,6 +44,20 @@ abstract class AbstractApplication
 {
 
     /**
+     * Application name.
+     * 
+     * @var string
+     */
+    protected $name = 'Application';
+
+    /**
+     * Application version.
+     * 
+     * @var string
+     */
+    protected $version = 'dev';
+
+    /**
      * Application config.
      * 
      * @var Config
@@ -409,6 +423,24 @@ abstract class AbstractApplication
     /*****************************************************
      * SETTERS AND GETTERS
      *****************************************************/
+    /**
+     * Returns name of the application.
+     * 
+     * @return string
+     */
+    public function getName() {
+        return $this->name;
+    }
+
+    /**
+     * Returns version of the application.
+     * 
+     * @return string
+     */
+    public function getVersion() {
+        return $this->version;
+    }
+
     /**
      * Returns class name of the application.
      * 
