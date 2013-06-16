@@ -79,6 +79,18 @@ abstract class AbstractController
         return $this->getContainer()->get($name);
     }
 
+    /**
+     * Returns a parameter with the given name.
+     * 
+     * Shortcut to container.
+     * 
+     * @param string $name Name of the parameter to return.
+     * @return mixed
+     */
+    final public function getParameter($name) {
+        return $this->getContainer()->getParameter($name);
+    }
+
     /*****************************************
      * SETTERS AND GETTERS
      *****************************************/
