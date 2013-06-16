@@ -25,6 +25,7 @@ use Splot\EventManager\EventManager;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
+use Splot\Framework\Console\Console;
 use Splot\Framework\Controller\ControllerResponse;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
@@ -188,6 +189,10 @@ abstract class AbstractApplication
         $container->set('resource_finder', function($c) use ($resourceFinder) {
             return $resourceFinder;
         }, true);
+        // console
+        $container->set('console', function($c) {
+            return new Console($c->get('application'), $c->get('logger_factory')->create('Console'));
+        }, true, true);
 
         $this->_initialized = true;
 

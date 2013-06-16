@@ -13,6 +13,8 @@ namespace Splot\Framework\Console;
 
 use MD\Foundation\Exceptions\NotFoundException;
 
+use Psr\Log\LoggerInterface;
+
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Console\Exceptions\InvalidCommandException;
 use Splot\Framework\Console\AbstractCommand;
@@ -23,6 +25,8 @@ use Symfony\Component\Console\Command\Command as ConsoleCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\StringInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Console
@@ -34,6 +38,13 @@ class Console
      * @var AbstractApplication
      */
     protected $application;
+
+    /**
+     * Logger.
+     * 
+     * @var LoggerInterface
+     */
+    protected $logger;
 
     /**
      * Console application (from Symfony Components).
@@ -54,8 +65,9 @@ class Console
      * 
      * @param AbstractApplication $pplication Application to which this console belongs.
      */
-    public function __construct(AbstractApplication $application) {
+    public function __construct(AbstractApplication $application, LoggerInterface $logger = null) {
         $this->application = $application;
+        $this->logger = $logger;
 
         // initialize Symfony Console component
         $this->consoleApplication = new ConsoleApplication($application->getName() .' (Splot Console)', $application->getVersion());
@@ -64,6 +76,32 @@ class Console
         foreach($this->application->getModules() as $module) {
             $this->readModuleCommands($module);       
         }
+    }
+
+    /**
+     * Runs the console.
+     */
+    public function run() {
+        $this->consoleApplication->run();
+    }
+
+    /**
+     * Calls a command with the given name.
+     * 
+     * @param string $name Command name.
+     * @param string $argv [optional] String in argv format to call the command with.
+     */
+    public function call($name, $argv = '') {
+        if (!isset($this->commands[$name])) {
+            throw new NotFoundException('The command "'. $name .'" was not found in the list of registered commands.');
+        }
+
+        $command = $this->consoleApplication->find($name);
+        
+        $input = new StringInput($name .' '. $argv);
+        $output = new ConsoleOutput();
+
+        $command->run($input, $output);
     }
 
     /**
@@ -91,7 +129,7 @@ class Console
         $consoleCommand->setDescription($commandClass::getDescription());
         $consoleCommand->setHelp($commandClass::getHelp());
         $consoleCommand->setCode(function(InputInterface $input, OutputInterface $output) use ($console, $name) {
-            $console->call($name, $input, $output);
+            $console->exec($name, $input, $output);
         });
 
         // read some meta info about the command
@@ -165,24 +203,17 @@ class Console
         $this->consoleApplication->add($consoleCommand);
     }
 
-    /**
-     * Runs the console.
-     */
-    public function run() {
-        $this->consoleApplication->run();
-    }
-
     /*****************************************
      * HELPERS
      *****************************************/
     /**
-     * Calls a command by parsing all the input options and arguments and passing them to the command.
+     * Executes a command by parsing all the input options and arguments and passing them to the command.
      * 
      * @param string $name Name of the command to call.
      * @param InputInterface $input Input.
      * @param OutputInterface $ouput Output.
      */
-    public function call($name, InputInterface $input, OutputInterface $output) {
+    public function exec($name, InputInterface $input, OutputInterface $output) {
         if (!isset($this->commands[$name])) {
             throw new NotFoundException('The command "'. $name .'" was not found in the list of registered commands.');
         }

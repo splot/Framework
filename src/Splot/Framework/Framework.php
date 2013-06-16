@@ -27,7 +27,6 @@ use Splot\Log\Logger as Splot_Logger;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
 use Splot\Framework\Config\Config;
-use Splot\Framework\Console\Console;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
@@ -93,7 +92,7 @@ class Framework
      * @param AbstractApplication $application Application to boot.
      * @param array $options [optional] Options for framework and application.
      */
-    final public static function console(AbstractApplication $application, array $options = array()) {
+    final public static function console(AbstractApplication $application, array $options = array(), $suppressInput = false) {
         // remove time limit for console
         set_time_limit(0);
 
@@ -101,9 +100,10 @@ class Framework
         $splot = static::init($options, true);
         $application = $splot->bootApplication($application, $options);
 
-        // handling the command
-        $console = new Console($application);
-        $console->run();
+        $console = $application->getContainer()->get('console');
+        if (!$suppressInput) {
+            $console->run();
+        }
     }
 
     /*****************************************
