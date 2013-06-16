@@ -13,7 +13,6 @@
  */
 namespace Splot\Framework\Controller;
 
-use Splot\Framework\HTTP\Request;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 abstract class AbstractController
