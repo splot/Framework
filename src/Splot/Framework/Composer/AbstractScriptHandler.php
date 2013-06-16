@@ -11,18 +11,11 @@
  */
 namespace Splot\Framework\Composer;
 
+use Splot\Framework\Framework;
 use Splot\Framework\Application\AbstractApplication;
-use Splot\Framework\DependencyInjection\ServiceContainer;
 
 abstract class AbstractScriptHandler
 {
-
-    /**
-     * Service container.
-     * 
-     * @var ServiceContainer
-     */
-    private static $_container;
 
     /**
      * Application.
@@ -36,31 +29,16 @@ abstract class AbstractScriptHandler
      * 
      * @return AbstractApplication
      */
-    protected static function bootApplication() {
-        if (self::$_application) {
+    protected static function boot() {
+        if (defined('SPLOT_SCRIPT_HANDLER') && self::$_application) {
             return self::$_application;
         }
 
-        require_once realpath(dirname(__FILE__) .'/../../../../../../../console');
+        define('SPLOT_SCRIPT_HANDLER', true);
+        require_once realpath(dirname(__FILE__) .'/../../../../../../../app/console');
 
-        // cache the application instance
-        self::$_application = $application;
-
-        // link to the container as well
-        self::$_container = $application->getContainer();
-
-        return $application;
-    }
-
-    /**
-     * Returns the service container.
-     * 
-     * @return ServiceContainer
-     */
-    public static function getContainer() {
-        static::bootApplication();
-
-        return self::$_container;
+        self::$_application = Framework::getFramework()->getApplication();
+        return self::$_application;
     }
 
 }
