@@ -77,6 +77,13 @@ abstract class AbstractModule
     protected $_urlPrefix;
 
     /**
+     * Namespace for all commands that belong to this module
+     * 
+     * @var string|null
+     */
+    protected $_commandNamespace;
+
+    /**
      * Boots the module.
      */
     abstract public function boot();
@@ -159,6 +166,15 @@ abstract class AbstractModule
      */
     public function getUrlPrefix() {
         return $this->_urlPrefix;
+    }
+
+    /**
+     * Returns a namespace for all console commands from this module.
+     * 
+     * @return string|null
+     */
+    public function getCommandNamespace() {
+        return $this->_commandNamespace;
     }
 
     /**

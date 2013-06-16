@@ -27,9 +27,12 @@ use Splot\Log\Logger as Splot_Logger;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\ApplicationInterface;
 use Splot\Framework\Config\Config;
+use Splot\Framework\Console\Console;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
+use Splot\Framework\HTTP\Request;
+use Splot\Framework\HTTP\Response;
 
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -58,13 +61,62 @@ class Framework
 
     private $_application;
 
+    /*****************************************
+     * ENTRY POINTS
+     *****************************************/
+    /**
+     * Initialize application for web and handle default HTTP requests.
+     * 
+     * @param AbstractApplication $application Application to boot.
+     * @param array $options [optional] Options for framework and application.
+     */
+    final public static function web(AbstractApplication $application, array $options = array()) {
+        try {
+            // Splot Framework and application initialization
+            $splot = static::init($options);
+            $application = $splot->bootApplication($application, $options);
+
+            // handling the request
+            $request = Request::createFromGlobals();
+            $response = $application->handleRequest($request);
+
+            // rendering the response
+            $application->sendResponse($response, $request);
+        } catch (\Exception $e) {
+           Debugger::handleException($e, LogContainer::exportLogs());
+        }
+    }
+
+    /**
+     * Initialize application for command line interface (console) and handle the comand.
+     * 
+     * @param AbstractApplication $application Application to boot.
+     * @param array $options [optional] Options for framework and application.
+     */
+    final public static function console(AbstractApplication $application, array $options = array()) {
+        // remove time limit for console
+        set_time_limit(0);
+
+        // Splot Framework and application initialization
+        $splot = static::init($options, true);
+        $application = $splot->bootApplication($application, $options);
+
+        // handling the command
+        $console = new Console($application);
+        $console->run();
+    }
+
+    /*****************************************
+     * BOOTING
+     *****************************************/
     /**
      * Initialize the framework as a singleton.
      * 
      * @param array $options [optional] Array of options.
+     * @param bool $console [optional] Running in console mode? Default: false.
      * @return Framework
      */
-    final public static function init(array $options = array()) {
+    final public static function init(array $options = array(), $console = false) {
         if (self::$_framework) {
             return self::$_framework;
         }
@@ -73,7 +125,6 @@ class Framework
         $loggerFactory = new Splot_LoggerFactory();
 
         $options = ArrayUtils::merge(array(
-            'console' => false,
             'logger' => null,
             'timezone' => 'Europe/London',
             'services' => array(
@@ -95,7 +146,7 @@ class Framework
         self::$_framework = new self(
             $options,
             ($options['logger']) ? $options['logger'] : $realLoggerFactory->create('Splot Framework'),
-            $options['console']
+            $console
         );
         return self::$_framework;
     }
@@ -104,18 +155,19 @@ class Framework
      * Constructor.
      * 
      * @param array $options [optional] Array of options.
-     * @param bool $console [optional] Is it command line interface? Default: false.
+     * @param LoggerInterface $logger [optional] Global logger.
+     * @param bool $console [optional] Running in console mode? Default: false.
      */ 
     final private function __construct(array $options = array(), LoggerInterface $logger = null, $console = false) {
         $this->_timer = new Timer();
         $this->_logger = $logger;
-
         $this->_console = $console;
-        define('SPLOT_CONSOLE', $console);
 
         ini_set('default_charset', 'utf8');
 
-        $this->_registerErrorHandlers();
+        if (!$console) {
+            $this->_registerErrorHandlers();
+        }
 
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
         $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
