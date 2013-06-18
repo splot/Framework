@@ -220,9 +220,10 @@ class Console
 
         $commandInfo = $this->commands[$name];
         $commandClass = $commandInfo['class'];
+        $consoleCommand = $commandInfo['command'];
 
         // instantiate the command with appropriate DI
-        $command = new $commandClass($this->application->getContainer(), $input, $output);
+        $command = new $commandClass($this->application->getContainer(), $input, $output, $consoleCommand->getHelperSet());
 
         // parse options
         $command->setOptions($input->getOptions());

@@ -15,6 +15,8 @@ use MD\Foundation\Exceptions\NotFoundException;
 
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
+use Symfony\Component\Console\Helper\DialogHelper;
+use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -78,6 +80,13 @@ abstract class AbstractCommand
     protected $output;
 
     /**
+     * Helper set.
+     * 
+     * @var HelperSet
+     */
+    protected $helperSet;
+
+    /**
      * Options with which the command was ran.
      * 
      * @var array
@@ -88,11 +97,15 @@ abstract class AbstractCommand
      * Constructor.
      * 
      * @param ServiceContainer $container Dependency injection service container.
+     * @param InputInterface $input Input.
+     * @param OutputInterface $output Output.
+     * @param HelperSet $helperSet Helper set.
      */
-    public function __construct(ServiceContainer $container, InputInterface $input, OutputInterface $output) {
+    public function __construct(ServiceContainer $container, InputInterface $input, OutputInterface $output, HelperSet $helperSet) {
         $this->container = $container;
         $this->input = $input;
         $this->output = $output;
+        $this->helperSet = $helperSet;
     }
 
     /*****************************************
@@ -150,6 +163,87 @@ abstract class AbstractCommand
     }
 
     /*****************************************
+     * CONSOLE HELPERS SHORTCUTS
+     *****************************************/
+    /**
+     * Ask the user to confirm.
+     * 
+     * @param string $question Question to confirm.
+     * @param bool $default [optional] Default answer. Default: false.
+     * @return bool
+     */
+    final public function confirm($question, $default = false) {
+        $question = $question .' <comment>[Y/n]</comment>: ';
+        return $this->getDialog()->askConfirmation($this->output, $question, $default);
+    }
+
+    /**
+     * Ask the user to provide some info.
+     * 
+     * @param string $question Question based on which the user will provide info.
+     * @param string $default Default answer.
+     * @param array $autocomplete [optional] List of values to autocomplete.
+     * @param callable $validate Validation function callback. It should throw exceptions with explanatory messages
+     *                           if the input is invalid or return the answer to pass the validation. It takes one
+     *                           argument which is the user's input.
+     * @param bool $hidden [optional] Should the input be hidden? If true then default and autocomplete values will be ignored. Default: false.
+     * @param int $attempts [optional] Number of attempts to allow in case of validation. Default: false - infinite.
+     * @return string
+     */ 
+    final public function ask($question, $default = '', array $autocomplete = array(), $validate = null, $hidden = false, $attempts = false) {
+        if (!empty($default)) {
+            $question = $question .' [<comment>'. $default .']</comment>]';
+        }
+        $question = $question .': ';
+
+        if ($hidden) {
+            if (is_callable($validate)) {
+                return $this->getDialog()->askHiddenResponseAndValidate($this->output, $question, $validate, $attempts);
+            }
+
+            return $this->getDialog()->askHiddenResponse($this->output, $question);
+        }
+
+        if (is_callable($validate)) {
+            return $this->getDialog()->askAndValidate($this->output, $question, $validate, $attempts, $default);
+        }
+
+        return $this->getDialog()->ask($this->output, $question, $default, $autocomplete);
+    }
+
+    /**
+     * Ask the user to choose from a list of options.
+     * 
+     * @param string $question Question to ask that helps with the choice.
+     * @param array $options Array of possible options.
+     * @param mixed $default [optional] Default value. This can be either an index of the default answer or the default answer itself.
+     * @param bool $multi [optional] Should user be allowed to select multiple options? Default: false.
+     * @param string $errorMessage [optional] Error message when user selects an invalid option. Default: 'There is no option %s!'.
+     * @param int $attempts [optional] Number of allowed attempts. Default: false - infinite.
+     * @return string|array The selected answer as string for a single choice or array of selected options for a multiple choice.
+     */
+    final public function choose($question, array $options, $default = false, $multi = false, $errorMessage = 'There is no option %s!', $attempts = false) {
+        if (is_string($default)) {
+            $i = array_search($default, $options);
+            if ($i === false) {
+                throw new \InvalidArgumentException('Provided default value "'. $default .'" for a choice input cannot be found in the list of options!');
+            }
+
+            $default = $options[$i];
+        }
+
+        $selected = $this->getDialog()->select($this->output, $question, $options, $default, $attempts, $errorMessage, $multi);
+
+        if ($multi) {
+            return array_map(function($i) use ($options) {
+                return $options[$i];
+            }, $selected);
+        }
+
+        return $options[$selected];
+    }
+
+    /*****************************************
      * SETTERS AND GETTERS
      *****************************************/
     /**
@@ -202,6 +296,15 @@ abstract class AbstractCommand
         }
 
         return $this->_options[$name];
+    }
+
+    /**
+     * Returns a Dialog helper.
+     * 
+     * @return DialogHelper
+     */
+    public function getDialog() {
+        return $this->helperSet->get('dialog');
     }
 
     /**
