@@ -49,7 +49,7 @@ abstract class AbstractApplication
      * 
      * @var string
      */
-    protected $name = 'Application';
+    protected $name;
 
     /**
      * Application version.

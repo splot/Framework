@@ -19,6 +19,7 @@ use Psr\Log\LoggerInterface;
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ArrayUtils;
+use MD\Foundation\Utils\StringUtils;
 
 use Splot\Log\Factory as Splot_LoggerFactory;
 use Splot\Log\LogContainer;
@@ -190,7 +191,17 @@ class Framework
      * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
      * @return AbstractApplication The booted application.
      */
-    public function bootApplication(AbstractApplication $application, array $options = array()) {    
+    public function bootApplication(AbstractApplication $application, array $options = array()) {
+        // get and verify application name
+        $applicationName = $application->getName();
+        if (!is_string($applicationName) || empty($applicationName)) {
+            throw new \RuntimeException('You have to specify an application name inside the Application class by defining protected property "$name".');
+        }
+
+        if (!StringUtils::isClassName($applicationName)) {
+            throw new \RuntimeException('Application name must conform to variable naming rules and therefore can only start with a letter and only contain letters, numbers and _, "'. $applicationName .'" given.');
+        }
+
         // get application's class name for some debugging and logging
         $applicationClass = Debugger::getClass($application);
 
