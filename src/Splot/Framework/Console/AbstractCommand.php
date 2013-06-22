@@ -173,7 +173,7 @@ abstract class AbstractCommand
      * @return bool
      */
     final public function confirm($question, $default = false) {
-        $question = $question .' <comment>[Y/n]</comment>: ';
+        $question = $question .' <comment>['. ($default ? 'Y/n' : 'y/N') .']</comment>: ';
         return $this->getDialog()->askConfirmation($this->output, $question, $default);
     }
 
@@ -192,7 +192,7 @@ abstract class AbstractCommand
      */ 
     final public function ask($question, $default = '', array $autocomplete = array(), $validate = null, $hidden = false, $attempts = false) {
         if (!empty($default)) {
-            $question = $question .' [<comment>'. $default .']</comment>]';
+            $question = $question .' [<comment>'. $default .'</comment>]';
         }
         $question = $question .': ';
 
