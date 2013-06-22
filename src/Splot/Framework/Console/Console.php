@@ -90,8 +90,9 @@ class Console
      * 
      * @param string $name Command name.
      * @param string $argv [optional] String in argv format to call the command with.
+     * @param OutputInterface $output [optional] Output for the command. If ommitted, a console output will be used.
      */
-    public function call($name, $argv = '') {
+    public function call($name, $argv = '', OutputInterface $output = null) {
         if (!isset($this->commands[$name])) {
             throw new NotFoundException('The command "'. $name .'" was not found in the list of registered commands.');
         }
@@ -99,7 +100,7 @@ class Console
         $command = $this->consoleApplication->find($name);
         
         $input = new StringInput($name .' '. $argv);
-        $output = new ConsoleOutput();
+        $output = ($output === null) ? new ConsoleOutput() : $output;
 
         $command->run($input, $output);
     }
@@ -265,7 +266,9 @@ class Console
             $files = scandir($dir);
             foreach($files as $file) {
                 // ignore . and ..
-                if (in_array($file, array('.', '..'))) continue;
+                if (in_array($file, array('.', '..'))) {
+                    continue;
+                }
 
                 // if directory then go recursively
                 if (is_dir($dir . DS . $file)) {
