@@ -15,6 +15,7 @@
         "symfony/filesystem": "dev-master",
         "symfony/console": "dev-master",
         "michaldudek/foundation": "dev-master",
+        "splot/cache": "dev-master",
         "splot/log": "dev-master",
         "splot/event-manager": "dev-master"
     },
