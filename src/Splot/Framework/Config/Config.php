@@ -99,6 +99,15 @@ class Config
     }
 
     /**
+     * Extends the config with the given config.
+     * 
+     * @param Config $config Config to read from.
+     */
+    public function extend(Config $config) {
+        $this->_config = ArrayUtils::merge($this->_config, $config->getNamespace());
+    }
+
+    /**
      * Get config variable at the given path.
      * 
      * Path is separated by '.' and traverses through the config array.
