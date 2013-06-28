@@ -218,8 +218,11 @@ class Framework
         /*****************************************
          * READ CONFIG FOR THE APPLICATON
          *****************************************/
-        // based on env
-        $config = Config::read($this->_applicationDir .'config'. DS, $this->getEnv());
+        // default framework config first (to make sure all required settings are there)
+        $defaultConfigFile = $this->_frameworkDir .'Config'. DS .'default.php';
+        $config = new Config(include $defaultConfigFile);
+        // application config based on env next
+        $config->extend(Config::read($this->_applicationDir .'config'. DS, $this->getEnv()));
 
         // set the timezone based on config
         date_default_timezone_set($config->get('timezone'));
