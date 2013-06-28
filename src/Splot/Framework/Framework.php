@@ -171,7 +171,7 @@ class Framework
         }
 
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
-        $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__) .'/../../../') .'/';
+        $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__)) .'/';
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
 
         $this->_options = $options;
