@@ -64,7 +64,7 @@ class Config
             $included = include $envFile;
             if (is_array($included)) {
                 $files[] = $envFile;
-                $config = array_merge_recursive($config, $included);
+                $config = ArrayUtils::merge($config, $included);
             } else {
                 throw new InvalidFileException('Config file "'. $envFile .'" does not return a config array.');
             }
