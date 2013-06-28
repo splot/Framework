@@ -21,6 +21,9 @@ use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
+use Splot\Cache\Store\FileStore;
+use Splot\Cache\CacheProvider;
+
 use Splot\EventManager\EventManager;
 
 use Splot\Framework\Framework;
@@ -193,6 +196,8 @@ abstract class AbstractApplication
         $container->set('console', function($c) {
             return new Console($c->get('application'), $c->get('logger_factory')->create('Console'));
         }, true, true);
+        // cache
+        $this->registerCaches($container, $config);
 
         $this->_initialized = true;
 
@@ -423,6 +428,67 @@ abstract class AbstractApplication
         $this->getRouter()->readModuleRoutes($module);
 
         return $module;
+    }
+
+    /*****************************************************
+     * HELPERS
+     *****************************************************/
+    /**
+     * Registers all cache related services based on app config.
+     * 
+     * @param ServiceContainer $container Service container on which the cache should be registered.
+     * @param Config $config Application config for cache.
+     */
+    protected function registerCaches(ServiceContainer $container, Config $config) {
+        $enabled = $config->get('cache.enabled');
+
+        /* register default file store */
+        $fileStore = new FileStore(array(
+            'dir' => $container->getParameter('cache_dir')
+        ));
+        // as a service as well
+        $container->set('cache.store.file', $fileStore, true, true);
+
+        /* register cache provider */
+        $cacheProvider = new CacheProvider($fileStore, array(
+            'stores' => array(
+                'file' => $fileStore
+            ),
+            'global_namespace' => $container->getParameter('env')
+        ));
+        // as a service as well
+        $container->set('cache_provider', $cacheProvider, true, true);
+
+        /* register default cache as a service */
+        $container->set('cache', function($c) {
+            return $c->get('cache_provider')->provide('global');
+        }, true, true);
+
+        /*****************************************************
+         * ADD OTHER STORES
+         *****************************************************/
+        foreach($config->get('cache.stores') as $name => $storeConfig) {
+            if (!isset($storeConfig['class'])) {
+                throw new \RuntimeException('Store config has to have a "class" key defined.');
+            }
+
+            $store = new $storeConfig['class']($storeConfig);
+
+            // register in cache provider
+            $cacheProvider->registerStore($name, $store);
+
+            // register as a service as well 
+            $container->set('cache.stores.'. $name, $store, true);
+        }
+
+        /*****************************************************
+         * ADD OTHER CACHES
+         *****************************************************/
+        foreach($config->get('cache.caches') as $name => $storeName) {
+            $container->set('cache.'. $name, function($c) use ($name, $storeName) {
+                return $c->get('cache_provider')->provide($name, $storeName);
+            }, true, true);
+        }
     }
 
     /*****************************************************
