@@ -26,7 +26,7 @@ use Splot\Log\LogContainer;
 use Splot\Log\Logger as Splot_Logger;
 
 use Splot\Framework\Application\AbstractApplication;
-use Splot\Framework\Application\ApplicationInterface;
+use Splot\Framework\Application\CommandApplication;
 use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Events\ErrorDidOccur;
@@ -35,6 +35,7 @@ use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Console\Input\ArgvInput;
 
 class Framework
 {
@@ -92,6 +93,7 @@ class Framework
      * 
      * @param AbstractApplication $application Application to boot.
      * @param array $options [optional] Options for framework and application.
+     * @param bool $suppressInput [optional] For internal use. Default: false.
      */
     final public static function console(AbstractApplication $application, array $options = array(), $suppressInput = false) {
         // remove time limit for console
@@ -105,6 +107,36 @@ class Framework
         if (!$suppressInput) {
             $console->run();
         }
+    }
+
+    /**
+     * Initialize application for single command app comman line interface (console) and run the command.
+     * 
+     * @param string $commandClass [optional] Command class. Default: '\App'.
+     * @param array $config [optional] Application config.
+     * @param array $options [optional] Options for framework and application.
+     * @param bool $suppressInput [optional] For internal use. Default: false.
+     */
+    final public static function command($commandClass = '\App', array $config = array(), $options = array(), $suppressInput = false) {
+        // remove time limit for console
+        set_time_limit(0);
+
+        $options['env'] = self::ENV_DEV;
+
+        // Splot Framework and application initialization
+        $splot = static::init($options, true);
+        $options['config'] = $config;
+        $application = $splot->bootApplication(new CommandApplication($commandClass), $options);
+
+        if ($suppressInput) {
+            return;
+        }
+
+        $console = $application->getContainer()->get('console');
+        $console->addCommand('app', $commandClass);
+
+        $argv = new ArgvInput();
+        $console->call('app', (string)$argv);
     }
 
     /*****************************************
