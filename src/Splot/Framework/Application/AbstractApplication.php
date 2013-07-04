@@ -42,6 +42,7 @@ use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\WillSendResponse;
+use Splot\Framework\Process\Process;
 use Splot\Framework\Resources\Finder;
 
 abstract class AbstractApplication
@@ -192,6 +193,10 @@ abstract class AbstractApplication
         $container->set('resource_finder', function($c) use ($resourceFinder) {
             return $resourceFinder;
         }, true);
+        // process
+        $container->set('process', function($c) {
+            return new Process();
+        }, true, true);
         // console
         $container->set('console', function($c) {
             return new Console($c->get('application'), $c->get('logger_factory')->create('Console'));
