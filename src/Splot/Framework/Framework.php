@@ -122,6 +122,7 @@ class Framework
         set_time_limit(0);
 
         $options['env'] = self::ENV_DEV;
+        $options['applicationDir'] = Debugger::getClassFile($commandClass);
 
         // Splot Framework and application initialization
         $splot = static::init($options, true);
@@ -238,7 +239,9 @@ class Framework
         $applicationClass = Debugger::getClass($application);
 
         // figure out the application directory exactly
-        $this->_applicationDir = realpath(dirname(Debugger::getClassFile($application))) . DS;
+        $this->_applicationDir = (isset($options['applicationDir']))
+            ? rtrim($options['applicationDir'], DS) . DS
+            : realpath(dirname(Debugger::getClassFile($application))) . DS;
         $this->_cacheDir = $this->_applicationDir .'cache'. DS;
 
         /*****************************************
