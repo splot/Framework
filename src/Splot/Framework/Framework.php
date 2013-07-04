@@ -40,9 +40,9 @@ use Symfony\Component\Console\Input\ArgvInput;
 class Framework
 {
 
-    const ENV_PRODUCTION    = 'PRODUCTION';
-    const ENV_STAGING       = 'STAGING';
-    const ENV_DEV           = 'DEV';
+    const ENV_PRODUCTION    = 'production';
+    const ENV_STAGING       = 'staging';
+    const ENV_DEV           = 'dev';
 
     private static $_framework;
 
@@ -54,7 +54,7 @@ class Framework
 
     private $_options = array();
 
-    private $_env = 'PRODUCTION';
+    private $_env = 'production';
     private $_console = false;
 
     private $_logger;
