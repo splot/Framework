@@ -122,11 +122,16 @@ class Framework
         set_time_limit(0);
 
         $options['env'] = self::ENV_DEV;
-        $options['applicationDir'] = Debugger::getClassFile($commandClass);
+        $options['applicationDir'] = realpath(dirname(Debugger::getClassFile($commandClass)));
 
         // Splot Framework and application initialization
         $splot = static::init($options, true);
-        $options['config'] = $config;
+
+        // if a config was set then use it
+        if (!empty($config)) {
+            $options['config'] = $config;
+        }
+
         $application = $splot->bootApplication(new CommandApplication($commandClass), $options);
 
         if ($suppressInput) {
