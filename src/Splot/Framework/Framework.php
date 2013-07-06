@@ -21,9 +21,10 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\StringUtils;
 
-use Splot\Log\Factory as Splot_LoggerFactory;
+use Splot\Log\Provider\LogProvider;
+use Splot\Log\Provider\LogProviderInterface;
 use Splot\Log\LogContainer;
-use Splot\Log\Logger as Splot_Logger;
+use Splot\Log\Logger;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
@@ -57,6 +58,11 @@ class Framework
     private $_env = 'production';
     private $_console = false;
 
+    /**
+     * Global framework logger.
+     * 
+     * @var LoggerInterface
+     */
     private $_logger;
     private $_timer;
 
@@ -160,15 +166,15 @@ class Framework
             return self::$_framework;
         }
 
-        // create logger factory for default "logger_factory" service.
-        $loggerFactory = new Splot_LoggerFactory();
+        // create log provider for default "log_provider" service.
+        $logProvider = new LogProvider();
 
         $options = ArrayUtils::merge(array(
             'logger' => null,
             'timezone' => 'Europe/London',
             'services' => array(
-                'logger_factory' => function($c) use ($loggerFactory) {
-                    return $loggerFactory;
+                'log_provider' => function($c) use ($logProvider) {
+                    return $logProvider;
                 }
             )
         ), $options);
@@ -179,12 +185,12 @@ class Framework
         // for debug, set as early as possible
         LogContainer::setStartTime(Timer::getMicroTime());
 
-        // but now just get reference to the real logger factory, in case it was overwritten in options
-        $realLoggerFactory = call_user_func_array($options['services']['logger_factory'], array(null));
+        // but now just get reference to the real log provider, in case it was overwritten in options
+        $realLogProvider = call_user_func_array($options['services']['log_provider'], array(null));
 
         self::$_framework = new self(
             $options,
-            ($options['logger']) ? $options['logger'] : $realLoggerFactory->create('Splot Framework'),
+            ($options['logger']) ? $options['logger'] : $realLogProvider->provide('Splot Framework'),
             $console
         );
         return self::$_framework;
@@ -273,7 +279,7 @@ class Framework
         date_default_timezone_set($config->get('timezone'));
 
         // update the logger settings based on config
-        if ($this->_logger instanceof Splot_Logger) {
+        if ($this->_logger instanceof Logger) {
             $this->_logger->setEnabled($config->get('debugger.enabled'));
         }
         LogContainer::setEnabled($config->get('debugger.enabled'));
@@ -308,7 +314,7 @@ class Framework
          * INITIALIZE & BOOT APPLICATION
          *****************************************/
         // inject the config, dependency injection container and environment to it
-        $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('logger_factory')->create('Application');
+        $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('log_provider')->provide('Application');
         $application->init($config, $serviceContainer, $this->_env, $this->_timer, $applicationLogger);
 
         // also define the application as a read-only service
