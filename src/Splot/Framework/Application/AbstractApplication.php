@@ -170,8 +170,8 @@ abstract class AbstractApplication
         $this->container = $container;
         $this->_env = $env;
 
-        $this->_router = $router = new Router($container->get('log_provider')->create('Router'));
-        $this->_eventManager = $eventManager = new EventManager($container->get('log_provider')->create('Event Manager'));
+        $this->_router = $router = new Router($container->get('log_provider')->provide('Router'));
+        $this->_eventManager = $eventManager = new EventManager($container->get('log_provider')->provide('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
@@ -199,7 +199,7 @@ abstract class AbstractApplication
         }, true, true);
         // console
         $container->set('console', function($c) {
-            return new Console($c->get('application'), $c->get('log_provider')->create('Console'));
+            return new Console($c->get('application'), $c->get('log_provider')->provide('Console'));
         }, true, true);
         // cache
         $this->registerCaches($container, $config);
