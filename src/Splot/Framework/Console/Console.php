@@ -11,6 +11,7 @@
  */
 namespace Splot\Framework\Console;
 
+use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\NotFoundException;
 
 use Psr\Log\LoggerInterface;
@@ -114,7 +115,7 @@ class Console
     public function addCommand($name, $commandClass) {
         // must extend AbstractCommand
         $abstractCommandClass = AbstractCommand::__class();
-        if (!is_subclass_of($commandClass, $abstractCommandClass, true)) {
+        if (!Debugger::isExtending($commandClass, $abstractCommandClass)) {
             throw new InvalidCommandException('Command "'. $commandClass .'" must extend "'. $abstractCommandClass .'".');
         }
 
