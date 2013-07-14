@@ -88,6 +88,11 @@ abstract class AbstractModule
      */
     abstract public function boot();
 
+    /**
+     * Initializes the module after all other modules have been loaded.
+     */
+    public function init() {}
+
     /*****************************************
      * SETTERS AND GETTERS
      *****************************************/

@@ -431,13 +431,28 @@ abstract class AbstractApplication
         // finally add the module to the module registry
         $this->_modules[$name] = $module;
 
-        // let the module boot itself as well
-        $module->boot();
-
         // also read routes from this module
         $this->getRouter()->readModuleRoutes($module);
 
+        // let the module boot itself as well
+        $module->boot();
+
         return $module;
+    }
+
+    /**
+     * Initializes the given module.
+     * 
+     * @param AbstractModule $module
+     * 
+     * @throws \RuntimeException When trying to initialize a module that hasn't been previously booted.
+     */
+    public function initModule(AbstractModule $module) {
+        if (!isset($this->_modules[$module->getName()])) {
+            throw new \RuntimeException('Only previously booted modules can be initialized. Trying to init module called "'. $module->getName() .'".');
+        }
+
+        $module->init();
     }
 
     /*****************************************************

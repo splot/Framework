@@ -371,6 +371,13 @@ class Framework
             '_tags' => 'routing, boot'
         ));
 
+        /*****************************************
+         * INITIALIZE MODULES
+         *****************************************/
+        foreach($modules as $module) {
+            $application->initModule($module);
+        }
+
         $this->_application = $application;
         return $this->_application;
     }
