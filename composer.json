@@ -16,11 +16,14 @@
         "symfony/console": "dev-master",
         "symfony/process": "dev-master",
         "michaldudek/foundation": "dev-master",
+        "splot/event-manager": "dev-master",
         "splot/cache": "dev-master",
-        "splot/log": "dev-master",
-        "splot/event-manager": "dev-master"
+        "splot/log": "dev-master"
     },
     "autoload": {
-    	"psr-0": { "Splot\\Framework": "src/" }
+    	"psr-0": {
+            "Splot\\Framework\\Tests": "tests/",
+            "Splot\\Framework": "src/"
+        }
     }
 }
