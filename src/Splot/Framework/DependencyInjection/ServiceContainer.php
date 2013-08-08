@@ -11,7 +11,7 @@
  */
 namespace Splot\Framework\DependencyInjection;
 
-use MD\Foundation\Exceptions\NotUniqueException;
+use MD\Foundation\Exceptions\InvalidArgumentException;
 use MD\Foundation\Exceptions\NotFoundException;
 
 use Splot\Framework\DependencyInjection\Exceptions\ReadOnlyDefinitionException;
@@ -37,15 +37,15 @@ class ServiceContainer
      * Sets a service definition by passing an anonymous function that is a factory of this service.
      * 
      * @param string $name Service unique name.
-     * @param \Closure|object $factory Either service factory function or an instance of the service for direct return.
+     * @param callable|object $factory Either service factory function or an instance of the service for direct return.
      * @param bool $readOnly [optional] Should this service be read only, ie. cannot be overwritten (but still can be extended). Default: false.
      * @param bool $singleton [optional] Should this service be a singleton, ie. once created it should always return the created instance? Default: false.
      * 
-     * @throws NotUniqueException When service with the same name is already defined.
+     * @throws ReadOnlyDefinitionException When service with the same name is already defined and marked as read only.
      */
     public function set($name, $serviceFactory, $readOnly = false, $singleton = false) {
-        if (isset($this->_services[$name])) {
-            throw new NotUniqueException('Service with name "'. $name .'" is already defined.');
+        if (isset($this->_services[$name]) && $this->_services[$name]['readOnly']) {
+            throw new ReadOnlyDefinitionException('The service "'. $name .'" is marked as read only and cannot be overwritten.');
         }
 
         // differentiate between callable and instance of the service
@@ -55,6 +55,11 @@ class ServiceContainer
         } else {
             $instance = $serviceFactory;
             $singleton = true;
+            /** 
+             * @codeCoverageIgnore 
+             * This factory isn't really called anywhere as instance is already set,
+             * but the factory is created anyway just for safety's sake if the instance was lost for some reason.
+             */
             $factory = function() use ($instance) {
                 return $instance;
             };
@@ -136,13 +141,18 @@ class ServiceContainer
      * Extends a service by calling the specified service factory callback after the service has been created.
      * 
      * @param string $name Name of the service to be extended.
-     * @param \Closure $serviceFactoryCallback Callback to be called when the service is created. Takes two arguments: the created service and the ServiceContainer.
+     * @param callable $serviceFactoryCallback Callback to be called when the service is created. Takes two arguments: the created service and the ServiceContainer.
      * 
      * @throws NotFoundException When there is no such service defined yet.
+     * @throws InvalidArgumentException When the 2nd argument is not a callable.
      */
-    public function extend($name, \Closure $serviceFactoryCallback) {
-        if ($this->has($name)) {
+    public function extend($name, $serviceFactoryCallback) {
+        if (!$this->has($name)) {
             throw new NotFoundException('Service with name "'. $name .'" could not be found.');
+        }
+
+        if (!is_callable($serviceFactoryCallback)) {
+            throw new InvalidArgumentException('callable', $serviceFactoryCallback, 2);
         }
 
         $this->_services[$name]['callbacks'][] = $serviceFactoryCallback;
