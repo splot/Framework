@@ -11,6 +11,7 @@
  */
 namespace Splot\Framework\HTTP;
 
+use MD\Foundation\Exceptions\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response as Base_Response;
 
 class Response extends Base_Response
@@ -25,11 +26,11 @@ class Response extends Base_Response
      * @param string $part Part that should be replaced.
      * @param string $replace Value to be replaced with.
      * 
-     * @throws \InvalidArgumentException When the given part to be replaced is not a string or is empty.
+     * @throws InvalidArgumentException When the given part to be replaced is not a string or is empty.
      */
     public function alterPart($part, $replace) {
         if (!is_string($part) || empty($part)) {
-            throw new \InvalidArgumentException('The given part "'. $part .'" to be replaced is either not a string or empty.');
+            throw new InvalidArgumentException('not empty string', $part);
         }
 
         $this->content = str_replace($part, $replace, $this->content);
