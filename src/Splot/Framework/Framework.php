@@ -315,7 +315,7 @@ class Framework
          *****************************************/
         // inject the config, dependency injection container and environment to it
         $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('log_provider')->provide('Application');
-        $application->init($config, $serviceContainer, $this->_env, $this->_timer, $applicationLogger);
+        $application->init($config, $serviceContainer, $this->_env, $this->_timer, $applicationLogger, $serviceContainer->get('log_provider'));
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {

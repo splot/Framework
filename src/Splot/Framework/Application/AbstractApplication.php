@@ -26,6 +26,8 @@ use Splot\Cache\CacheProvider;
 
 use Splot\EventManager\EventManager;
 
+use Splot\Log\Provider\LogProviderInterface;
+
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Console\Console;
@@ -159,10 +161,12 @@ abstract class AbstractApplication
      * 
      * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer, LoggerInterface $logger) {
+    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer, LoggerInterface $logger, LogProviderInterface $logProvider) {
         if ($this->_initialized) {
             throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
         }
+
+        $app = $this;
 
         $this->_timer = $timer;
         $this->_logger = $logger;
@@ -171,8 +175,8 @@ abstract class AbstractApplication
         $this->container = $container;
         $this->_env = $env;
 
-        $this->_router = $router = new Router($container->get('log_provider')->provide('Router'));
-        $this->_eventManager = $eventManager = new EventManager($container->get('log_provider')->provide('Event Manager'));
+        $this->_router = $router = new Router($logProvider->provide('Router'));
+        $this->_eventManager = $eventManager = new EventManager($logProvider->provide('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
@@ -199,8 +203,8 @@ abstract class AbstractApplication
             return new Process();
         }, true, true);
         // console
-        $container->set('console', function($c) {
-            return new Console($c->get('application'), $c->get('log_provider')->provide('Console'));
+        $container->set('console', function($c) use ($app, $logProvider) {
+            return new Console($app, $logProvider->provide('Console'));
         }, true, true);
         // cache
         $this->registerCaches($container, $config);
@@ -208,8 +212,6 @@ abstract class AbstractApplication
         $container->set('databridge', function($c) {
             return new DataBridge();
         }, true, true);
-
-        $this->_initialized = true;
 
         /*****************************************************
          * REGISTER LISTENERS
@@ -245,6 +247,8 @@ abstract class AbstractApplication
 
             $event->setArguments($arguments);
         });
+
+        $this->_initialized = true;
     }
 
     /**
@@ -465,7 +469,7 @@ abstract class AbstractApplication
      * @param Config $config Application config for cache.
      */
     protected function registerCaches(ServiceContainer $container, Config $config) {
-        $enabled = $config->get('cache.enabled');
+        $enabled = $config->get('cache.enabled', true);
 
         /* register default file store */
         $fileStore = new FileStore(array(
@@ -503,7 +507,7 @@ abstract class AbstractApplication
             $cacheProvider->registerStore($name, $store);
 
             // register as a service as well 
-            $container->set('cache.stores.'. $name, $store, true);
+            $container->set('cache.store.'. $name, $store, true);
         }
 
         /*****************************************************
