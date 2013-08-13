@@ -100,6 +100,11 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(123, $config->get('group.subgroup.lipsum'));
     }
 
+    public function testGetDefaultValue() {
+        $config = new Config(array());
+        $this->assertEquals('lipsum', $config->get('undefined.item', 'lipsum'));
+    }
+
     /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
      */

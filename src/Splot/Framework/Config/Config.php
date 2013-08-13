@@ -113,22 +113,31 @@ class Config
      * Path is separated by '.' and traverses through the config array.
      * 
      * @param string $path Variable path / name.
+     * @param mixed $default [optional] Default value if there is no such thing defined in the config. Default: null.
      * @return mixed
      * 
      * @throws NotFoundException When the requested path is not found anywhere in the configs.
      */
-    public function get($path) {
-        $exPath = trim($path, '.');
-        $exPath = explode('.', $exPath);
+    public function get($path, $default = null) {
+        try {
+            $exPath = trim($path, '.');
+            $exPath = explode('.', $exPath);
 
-        // navigate to the requested parameter
-        $pointer = $this->_config;
-        foreach($exPath as $name) {
-            if (!isset($pointer[$name])) {
-                throw new NotFoundException('The requested config variable "'. $path .'" does not exist.');
+            // navigate to the requested parameter
+            $pointer = $this->_config;
+            foreach($exPath as $name) {
+                if (!isset($pointer[$name])) {
+                    throw new NotFoundException('The requested config variable "'. $path .'" does not exist.');
+                }
+
+                $pointer = $pointer[$name];
             }
-
-            $pointer = $pointer[$name];
+        } catch(NotFoundException $e) {
+            if ($default !== null) {
+                return $default;
+            } else {
+                throw $e;
+            }
         }
 
         return $pointer;
