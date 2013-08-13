@@ -245,6 +245,15 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('lorem ipsum', $container->getParameter('test'));
     }
 
+    /**
+     * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     */
+    public function testGettingUndefinedParameter() {
+        $container = new ServiceContainer();
+
+        $container->getParameter('undefined');
+    }
+
     public function testHasParameter() {
         $container = new ServiceContainer();
 

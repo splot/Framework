@@ -182,8 +182,13 @@ class ServiceContainer
      * 
      * @param string $name Name of the parameter.
      * @return mixed
+     * 
+     * @throws NotFoundException When there is no such parameter.
      */
     public function getParameter($name) {
+        if (!isset($this->_parameters[$name])) {
+            throw new NotFoundException('Parameter with name "'. $name .'" could not be found.');
+        }
         return $this->_parameters[$name];
     }
 
