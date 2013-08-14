@@ -11,6 +11,7 @@
     ],
     "require": {
         "php": ">=5.3.3",
+        "psr/log": "1.0.*",
         "symfony/http-foundation": "2.1.*",
         "symfony/filesystem": "dev-master",
         "symfony/console": "dev-master",
