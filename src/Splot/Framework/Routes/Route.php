@@ -106,7 +106,7 @@ class Route
             return false;
         }
 
-        $matched = preg_match('#^'. $this->getRegExp() .'$#is', $url, $matches);
+        $matched = preg_match($this->getRegExp(), $url, $matches);
 
         // found matching controller for this URL that also accepts this HTTP method
         if ($matched === 1) {
@@ -126,7 +126,7 @@ class Route
      * @return array Array of arguments.
      */
     public function getControllerMethodArgumentsForUrl($url, $httpMethod) {
-        $matched = preg_match('#^'. $this->getRegExp() .'$#is', $url, $matches);
+        $matched = preg_match($this->getRegExp(), $url, $matches);
 
         if ($matched === 0) {
             throw new NotFoundException();
@@ -136,11 +136,12 @@ class Route
     }
 
     public function getControllerMethodArgumentsFromArray($httpMethod = 'get', array $params = array()) {
-        $method = $this->_methods[strtolower($httpMethod)];
-        if (!$method['method']) {
+        $httpMethod = strtolower($httpMethod);
+        if (!isset($this->_methods[$httpMethod])) {
             throw new NotFoundException();
         }
 
+        $method = $this->_methods[$httpMethod];
         $arguments = array();
 
         foreach($method['params'] as $i => $param) {
@@ -159,16 +160,12 @@ class Route
      */
     public function generateUrl(array $params = array()) {
         if ($this->isPrivate()) {
-            throw new \RuntimeException('Controller "'. $route->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
+            throw new \RuntimeException('Controller "'. $this->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
         }
 
         $routeName = $this->getName();
 
         $url = preg_replace_callback('/(\{([\w:]+)\})(\?)?/is', function($matches) use (&$params, $routeName) {
-            if (empty($matches[2])) {
-                return $matches[0];
-            }
-
             $constraints = explode(':', $matches[2]);
             $name = array_shift($constraints);
             $optional = (isset($matches[3]) && $matches[3] === '?');
@@ -212,10 +209,6 @@ class Route
     private function regexpFromUrlPattern($urlPattern) {
         $regexp = addslashes($urlPattern);
         $regexp = preg_replace_callback('/(\{([\w:]+)\})/is', function($matches) {
-            if (empty($matches[2])) {
-                return $matches[0];
-            }
-
             $constraints = explode(':', $matches[2]);
             $name = array_shift($constraints);
 
@@ -237,7 +230,7 @@ class Route
             return '(?P<'. $name .'>'. $regexpConstraints .')';
         }, $regexp);
 
-        return $regexp;
+        return '#^'. $regexp .'$#i';
     }
 
     /**
@@ -247,9 +240,15 @@ class Route
      * @return array An array of info about the parsed methods.
      */
     private function prepareMethodsInfo(array $methodsMap) {
-        /**
-         * @var array Configuration for HTTP methods for this route.
-         */
+        $methodsMap = array_change_key_case($methodsMap, CASE_LOWER);
+        $methodsMap = array_merge(array(
+            'get' => false,
+            'post' => false,
+            'put' => false,
+            'delete' => false
+        ), $methodsMap);
+
+        /** @var array Configuration for HTTP methods for this route. */
         $methods = array(
             'get' => array(
                 'method' => $methodsMap['get'],

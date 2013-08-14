@@ -19,6 +19,7 @@ use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Exceptions\RouteNotFoundException;
 use Splot\Framework\Routes\Exceptions\InvalidControllerException;
+use Splot\Framework\Routes\Exceptions\InvalidRouteException;
 
 class Router
 {
@@ -99,9 +100,8 @@ class Router
      * @param array $methods [optional] Optional map of HTTP methods to class methods, as defined in controller.
      * @return Route
      * 
-     * @throws InvalidRouteException When given route class is not extending AbstractController.
+     * @throws InvalidControllerException When given controller class is not extending AbstractController.
      * @throws InvalidRouteException When cannot find a non-empty pattern.
-     * @throws InvalidRouteException When controller method specified for an HTTP method is not implemented or not callable by router (must be non-static and public).
      */
     public function addRoute($name, $controllerClass, $moduleName = null, $urlPattern = null, array $methods = array()) {
         // must extend AbstractController
@@ -127,7 +127,7 @@ class Router
             'post' => 'index',
             'put' => 'index',
             'delete' => 'index'
-        ), $methods);
+        ), array_change_key_case($methods, CASE_LOWER));
 
         // register this as a route
         $route = new Route($name, $controllerClass, $urlPattern, $methods, $moduleName, $private);
