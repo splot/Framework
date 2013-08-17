@@ -32,7 +32,6 @@ use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Console\Console;
 use Splot\Framework\Controller\ControllerResponse;
-use Splot\Framework\DataBridge\DataBridge;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 use Splot\Framework\DependencyInjection\ServiceContainer;
@@ -221,10 +220,6 @@ abstract class AbstractApplication
         }, true, true);
         // cache
         $this->registerCaches($container, $config);
-        // databridge
-        $container->set('databridge', function($c) {
-            return new DataBridge();
-        }, true, true);
 
         /*****************************************************
          * REGISTER LISTENERS

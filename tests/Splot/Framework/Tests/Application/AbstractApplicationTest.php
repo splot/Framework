@@ -24,7 +24,6 @@ use Splot\EventManager\EventManager;
 use Splot\Framework\Resources\Finder;
 use Splot\Framework\Process\Process;
 use Splot\Framework\Console\Console;
-use Splot\Framework\DataBridge\DataBridge;
 use Splot\Cache\Store\FileStore;
 use Splot\Cache\CacheProvider;
 use Splot\Cache\CacheInterface;
@@ -111,7 +110,6 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($logger, $app->getLogger());
         $this->assertTrue($container->get('process') instanceof Process);
         $this->assertTrue($container->get('console') instanceof Console);
-        $this->assertTrue($container->get('databridge') instanceof DataBridge);
 
         // make sure that caches from the config are also properly registered
         $this->assertTrue($container->get('cache.store.file') instanceof FileStore);
