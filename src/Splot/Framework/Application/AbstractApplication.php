@@ -233,6 +233,7 @@ abstract class AbstractApplication
         // these possibly should be a separate module in the future
         
         // listener that will inject Request object to controller method arguments
+        // @todo This should be added somewhere else probably
         $eventManager->subscribe(ControllerWillRespond::getName(), function($event) use ($router, $container) {
             $route = $router->getRoute($event->getControllerName());
             $arguments = $event->getArguments();
@@ -247,15 +248,16 @@ abstract class AbstractApplication
                 }
             }
 
-            // ignore if couldn't find (shouldn't happen, really..., otherwise it would mean that Router is broken)
-            if (empty($method)) {
-                return;
-            }
-
             foreach($method['params'] as $i => $param) {
-                if ($param['class'] && Debugger::isExtending($param['class'], Request::__class(), true)) {
-                    $arguments[$i] = $container->get('request');
+                if ($param['class'] && Debugger::isExtending($param['class'], Request::__class(), true) && !($arguments[$i] instanceof Request)) {
+                    try {
+                        $arguments[$i] = $container->get('request');
+                    } catch(NotFoundException $e) {
+                        throw new \RuntimeException('Could not inject Request object into controller\'s method, because it is not executed in web request context.', 0, $e);
+                    }
+                // @codeCoverageIgnoreStart
                 }
+                // @codeCoverageIgnoreEnd
             }
 
             $event->setArguments($arguments);
@@ -408,7 +410,7 @@ abstract class AbstractApplication
         }
 
         if (!is_object($response) || !($response instanceof Response)) {
-            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance, "'. Debugger::getType($response) .'" given.');
+            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance or a string, "'. Debugger::getType($response) .'" given.');
         }
 
         return $response;
