@@ -680,13 +680,4 @@ abstract class AbstractApplication
         return $this->_logger;
     }
 
-    /**
-     * Returns the current HTTP Request that is being handled by the application.
-     * 
-     * @return Request
-     */
-    public function getRequest() {
-        return $this->_request;
-    }
-
 }
