@@ -87,6 +87,13 @@ abstract class AbstractApplication
     protected $_env;
 
     /**
+     * Application directory path.
+     * 
+     * @var string
+     */
+    protected $_applicationDir;
+
+    /**
      * Application logger.
      * 
      * @var LoggerInterface
@@ -157,11 +164,14 @@ abstract class AbstractApplication
      * @param Config $config Application config.
      * @param ServiceContainer $container Dependency Injection Service Container.
      * @param string $env Current environment name.
+     * @param string $applicationDir Path to application directory.
      * @param Timer $timer Global timer from the framework, for profiling.
+     * @param LoggerInterface $logger Main application logger.
+     * @param LogProviderInterface $logProvider Loggers provider.
      * 
      * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function init(Config $config, ServiceContainer $container, $env, Timer $timer, LoggerInterface $logger, LogProviderInterface $logProvider) {
+    final public function init(Config $config, ServiceContainer $container, $env, $applicationDir, Timer $timer, LoggerInterface $logger, LogProviderInterface $logProvider) {
         if ($this->_initialized) {
             throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
         }
@@ -174,6 +184,7 @@ abstract class AbstractApplication
         $this->_config = $config;
         $this->container = $container;
         $this->_env = $env;
+        $this->_applicationDir = $applicationDir;
 
         $this->_router = $router = new Router($logProvider->provide('Router'));
         $this->_eventManager = $eventManager = new EventManager($logProvider->provide('Event Manager'));
@@ -186,6 +197,8 @@ abstract class AbstractApplication
         }, true);
         // env
         $container->setParameter('env', $env);
+        // application dir
+        $container->setParameter('application_dir', $applicationDir);
         // router
         $container->set('router', function($c) use ($router) {
             return $router;
@@ -574,7 +587,7 @@ abstract class AbstractApplication
      * @return string
      */
     final public function getApplicationDir() {
-        return Framework::getFramework()->getApplicationDir();
+        return $this->_applicationDir;
     }
 
     /**
