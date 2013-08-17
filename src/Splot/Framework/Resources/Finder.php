@@ -46,6 +46,8 @@ class Finder
      * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
      * @return string
+     * 
+     * @throws ResourceNotFoundException When the resource could not be found (does not exist).
      */
     public function find($name, $type) {
         if (isset($this->_cache[$type]) && isset($this->_cache[$type][$name])) {
@@ -57,20 +59,21 @@ class Finder
         if (empty($nameArray[0])) {
             $mainDir = $this->_application->getApplicationDir();
         } else {
-            $module = $this->_application->getModule($nameArray[0]);
-            if (!$module) {
+            if (!$this->_application->hasModule($nameArray[0])) {
                 throw new ResourceNotFoundException('There is no module "'. $nameArray[0] .'" registered, so cannot find its resource.');
             }
+
+            $module = $this->_application->getModule($nameArray[0]);
             $mainDir = $module->getModuleDir();
         }
 
-        $type = trim($type, DS);
-        $type = empty($type) ? null : $type . DS;
+        $typeDir = trim($type, DS);
+        $typeDir = empty($type) ? null : $type . DS;
         $subDir = trim(str_replace(NS, DS, $nameArray[1]), DS);
         $subDir = empty($subDir) ? null : $subDir . DS;
 
         // final path
-        $path = $mainDir .'Resources'. DS . $type . $subDir . $nameArray[2];
+        $path = rtrim($mainDir, '/') . DS .'Resources'. DS . $typeDir . $subDir . $nameArray[2];
 
         if (!file_exists($path)) {
             throw new ResourceNotFoundException('Resource "'. $name .'" not found at path "'. $path .'".');
