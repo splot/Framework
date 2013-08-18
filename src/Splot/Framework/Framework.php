@@ -44,18 +44,16 @@ class Framework
     const ENV_PRODUCTION    = 'production';
     const ENV_STAGING       = 'staging';
     const ENV_DEV           = 'dev';
+    const ENV_TEST          = 'test';
 
     private static $_framework;
 
     private $_rootDir;
     private $_frameworkDir;
     private $_vendorDir;
-    private $_cacheDir;
-    private $_applicationDir;
 
     private $_options = array();
 
-    private $_env = 'production';
     private $_console = false;
 
     /**
@@ -76,6 +74,8 @@ class Framework
      * 
      * @param AbstractApplication $application Application to boot.
      * @param array $options [optional] Options for framework and application.
+     * 
+     * @codeCoverageIgnore
      */
     final public static function web(AbstractApplication $application, array $options = array()) {
         try {
@@ -100,6 +100,8 @@ class Framework
      * @param AbstractApplication $application Application to boot.
      * @param array $options [optional] Options for framework and application.
      * @param bool $suppressInput [optional] For internal use. Default: false.
+     * 
+     * @codeCoverageIgnore
      */
     final public static function console(AbstractApplication $application, array $options = array(), $suppressInput = false) {
         // remove time limit for console
@@ -122,6 +124,8 @@ class Framework
      * @param array $config [optional] Application config.
      * @param array $options [optional] Options for framework and application.
      * @param bool $suppressInput [optional] For internal use. Default: false.
+     * 
+     * @codeCoverageIgnore
      */
     final public static function command($commandClass = '\App', array $config = array(), $options = array(), $suppressInput = false) {
         // remove time limit for console
@@ -215,8 +219,11 @@ class Framework
         }
 
         $this->_rootDir = @$options['rootDir'] ?: realpath(dirname(__FILE__) .'/../../../../../../') .'/';
+        $this->_rootDir = rtrim($this->_rootDir, '/') .'/';
         $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__)) .'/';
+        $this->_frameworkDir = rtrim($this->_frameworkDir, '/') .'/';
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
+        $this->_vendorDir = rtrim($this->_vendorDir, '/') .'/';
 
         $this->_options = $options;
 
@@ -250,16 +257,15 @@ class Framework
         $applicationClass = Debugger::getClass($application);
 
         // figure out the application directory exactly
-        $this->_applicationDir = (isset($options['applicationDir']))
+        $applicationDir = (isset($options['applicationDir']))
             ? rtrim($options['applicationDir'], DS) . DS
             : realpath(dirname(Debugger::getClassFile($application))) . DS;
-        $this->_cacheDir = $this->_applicationDir .'cache'. DS;
+        $cacheDir = $applicationDir .'cache'. DS;
 
         /*****************************************
          * DECIDE ON ENVIRONMENT
          *****************************************/
-        $this->_env = @$options['env'] ?: self::envFromConfigs($this->_applicationDir .'config'. DS);
-        define('SPLOT_ENV', $this->_env);
+        $env = @$options['env'] ?: self::envFromConfigs($applicationDir .'config'. DS);
 
         /*****************************************
          * READ CONFIG FOR THE APPLICATON
@@ -267,12 +273,10 @@ class Framework
         // default framework config first (to make sure all required settings are there)
         $defaultConfigFile = $this->_frameworkDir .'Config'. DS .'default.php';
         $config = new Config(include $defaultConfigFile);
+        $config->extend(Config::read($applicationDir .'config'. DS, $env));
 
         if (isset($options['config'])) {
             $config->apply($options['config']);
-        } else {
-            // application config based on env next
-            $config->extend(Config::read($this->_applicationDir .'config'. DS, $this->getEnv()));
         }
 
         // set the timezone based on config
@@ -297,8 +301,8 @@ class Framework
         $serviceContainer->setParameter('root_dir', $this->_rootDir);
         $serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
         $serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
-        $serviceContainer->setParameter('application_dir', $this->_applicationDir);
-        $serviceContainer->setParameter('cache_dir', $this->_cacheDir);
+        $serviceContainer->setParameter('application_dir', $applicationDir);
+        $serviceContainer->setParameter('cache_dir', $cacheDir);
 
         // define filesystem service
         $serviceContainer->set('filesystem', function($c) {
@@ -315,7 +319,7 @@ class Framework
          *****************************************/
         // inject the config, dependency injection container and environment to it
         $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('log_provider')->provide('Application');
-        $application->init($config, $serviceContainer, $this->_env, $this->_timer, $applicationLogger, $serviceContainer->get('log_provider'));
+        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('log_provider'));
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {
@@ -324,10 +328,10 @@ class Framework
 
         $this->_logger->info('Started application "{applicationClass}".', array(
             'applicationClass' => $applicationClass,
-            'env' => $this->getEnv(),
+            'env' => $env,
             'configFiles' => $config->getReadFiles(),
-            'applicationDir' => $this->_applicationDir,
-            'cacheDir' => $this->_cacheDir,
+            'applicationDir' => $applicationDir,
+            'cacheDir' => $cacheDir,
             '_timer' => $this->_timer->step('Application Start')
         ));
 
@@ -395,6 +399,8 @@ class Framework
      * @return string The guessed environment.
      */
     public static function envFromConfigs($configDir) {
+        $configDir = rtrim($configDir, '/') .'/';
+
         // check for development
         if (file_exists($configDir .'config.dev.php')) {
             return self::ENV_DEV;
@@ -415,7 +421,16 @@ class Framework
     }
 
     /**
+     * Resets the framework singleton.
+     */
+    public static function reset() {
+        self::$_framework = null;
+    }
+
+    /**
      * Registers error handles that trigger ErrorDidOccur and FatalErrorDidOccur events if application has been already booted.
+     * 
+     * @codeCoverageIgnore
      */
     protected function _registerErrorHandlers() {
         $self = $this;
@@ -461,15 +476,6 @@ class Framework
         });
     }
 
-    /**
-     * Adds the given path to the PHP include path.
-     * 
-     * @param string $path Path to be added to the PHP include path.
-     */
-    public static function addToIncludePath($path) {
-        set_include_path(get_include_path() . PATH_SEPARATOR . $path);
-    }
-
     /*****************************************************
      * SETTERS AND GETTERS
      *****************************************************/
@@ -480,24 +486,6 @@ class Framework
      */
     public function getRootDir() {
         return $this->_rootDir;
-    }
-
-    /**
-     * Returns the cache directory of the application.
-     * 
-     * @return string
-     */
-    public function getCacheDir() {
-        return $this->_cacheDir;
-    }
-
-    /**
-     * Returns the application directory.
-     * 
-     * @return string
-     */
-    public function getApplicationDir() {
-        return $this->_applicationDir;
     }
 
     /**
@@ -516,15 +504,6 @@ class Framework
      */
     public function getVendorDir() {
         return $this->_vendorDir;
-    }
-
-    /**
-     * Returns the current environement.
-     * 
-     * @return string
-     */
-    public function getEnv() {
-        return $this->_env;
     }
 
     /**
@@ -566,6 +545,8 @@ class Framework
     /**
      * Prevent from creating instances of this class from the outside.
      */
-    final private function __clone() {}
+    final public function __clone() {
+        throw new \RuntimeException(get_called_class() .' cannot be cloned (it\'s a singleton).');
+    }
 
 }
