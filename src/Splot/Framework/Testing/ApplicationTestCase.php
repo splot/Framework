@@ -16,6 +16,7 @@ namespace Splot\Framework\Testing;
 use Splot\Log\LogContainer;
 
 use Splot\Framework\Application\AbstractApplication;
+use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\Framework;
 
 class ApplicationTestCase extends \PHPUnit_Framework_TestCase
@@ -57,6 +58,17 @@ class ApplicationTestCase extends \PHPUnit_Framework_TestCase
         $this->_application = null;
         Framework::reset();
         LogContainer::clear();
+    }
+
+    /**
+     * Get instantiated controller with the given name.
+     * 
+     * @param string $name Short name of the controller.
+     * @return AbstractController
+     */
+    public function getController($name) {
+        $class = $this->_application->getRouter()->getRoute($name)->getControllerClass();
+        return new $class($this->_application->getContainer());
     }
 
 }
