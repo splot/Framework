@@ -34,6 +34,7 @@ use Splot\Framework\Events\ControllerDidRespond;
 use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
+use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
 
 
@@ -165,6 +166,23 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($response instanceof Response);
         $this->assertEquals('INDEX', $response->getContent());
         $this->assertTrue($didReceiveRequestCalled);
+    }
+
+    public function testCatchingExceptionsDuringHandlingOfRequests() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $exceptionDidOccurCalled = false;
+        $handledResponse = new Response('Handled exception');
+        $app->getEventManager()->subscribe(ExceptionDidOccur::getName(), function($ev) use (&$exceptionDidOccurCalled, $handledResponse) {
+            $exceptionDidOccurCalled = true;
+            $ev->setResponse($handledResponse);
+        });
+
+        $response = $app->handleRequest(Request::create('/some/undefined/route'));
+
+        $this->assertTrue($exceptionDidOccurCalled);
+        $this->assertSame($handledResponse, $response);
     }
 
     /**

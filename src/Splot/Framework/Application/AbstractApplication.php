@@ -43,6 +43,7 @@ use Splot\Framework\Events\ControllerWillRespond;
 use Splot\Framework\Events\DidReceiveRequest;
 use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
+use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
 use Splot\Framework\Process\Process;
 use Splot\Framework\Resources\Finder;
@@ -282,42 +283,59 @@ abstract class AbstractApplication
      * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFindRouteForRequest event.
      */
     public function handleRequest(Request $request) {
-        $this->_request = $request;
-        $this->container->set('request', function($c) use ($request) {
-            return $request;
-        }, true);
+        try {
+            $this->_request = $request;
+            $this->container->set('request', function($c) use ($request) {
+                return $request;
+            }, true);
 
-        $this->_logger->info('Received request', array(
-            'request' => $request,
-            '_timer' => $this->_timer->step('Received request'),
-            '_tags' => 'request'
-        ));
+            $this->_logger->info('Received request', array(
+                'request' => $request,
+                '_timer' => $this->_timer->step('Received request'),
+                '_tags' => 'request'
+            ));
 
-        // trigger DidReceiveRequest event
-        $this->_eventManager->trigger(new DidReceiveRequest($request));
+            // trigger DidReceiveRequest event
+            $this->_eventManager->trigger(new DidReceiveRequest($request));
 
-        /** @var Route Meta information about the found route. */
-        $route = $this->getRouter()->getRouteForRequest($request);
-        if (!$route) {
-            $notFoundEvent = new DidNotFindRouteForRequest($request);
-            $this->_eventManager->trigger($notFoundEvent);
+            /** @var Route Meta information about the found route. */
+            $route = $this->getRouter()->getRouteForRequest($request);
+            if (!$route) {
+                $notFoundEvent = new DidNotFindRouteForRequest($request);
+                $this->_eventManager->trigger($notFoundEvent);
 
-            if ($notFoundEvent->isHandled()) {
-                return $notFoundEvent->getResponse();
-            } else {
-                throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
+                if ($notFoundEvent->isHandled()) {
+                    return $notFoundEvent->getResponse();
+                } else {
+                    throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
+                }
             }
+
+            // trigger DidFindRouteForRequest event
+            $this->_eventManager->trigger(new DidFindRouteForRequest($route, $request));
+
+            $response = $this->renderController(
+                $route->getName(),
+                $route->getControllerClass(),
+                $route->getControllerMethodForHttpMethod($request->getMethod()),
+                $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod())
+            );
+
+        } catch(\Exception $e) {
+            // catch any exceptions that might have occurred during handling of the request
+            // and trigger ExceptionDidOccur event to potentially handle them with custom response
+            $exceptionEvent = new ExceptionDidOccur($e);
+            $this->_eventManager->trigger($exceptionEvent);
+
+            // was the exception handled?
+            if ($exceptionEvent->isHandled()) {
+                // if so then it should have a response set, so return it
+                return $exceptionEvent->getResponse();
+            }
+
+            // if it hasn't been handled then rethrow the exception
+            throw $e;
         }
-
-        // trigger DidFindRouteForRequest event
-        $this->_eventManager->trigger(new DidFindRouteForRequest($route, $request));
-
-        $response = $this->renderController(
-            $route->getName(),
-            $route->getControllerClass(),
-            $route->getControllerMethodForHttpMethod($request->getMethod()),
-            $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod())
-        );
 
         return $response;
     }

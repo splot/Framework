@@ -105,6 +105,22 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($event->getHandled());
     }
 
+    public function testExceptionDidOccur() {
+        $exception = new \Exception('Some exception', 500);
+        $event = new Events\ExceptionDidOccur($exception);
+
+        $this->assertSame($exception, $event->getException());
+
+        $this->assertFalse($event->isHandled());
+
+        $response = new Response('some response');
+
+        $event->setResponse($response);
+        $this->assertSame($response, $event->getResponse());
+        $this->assertTrue($event->isHandled());
+        $this->assertTrue($event->getHandled());
+    }
+
     public function testWillSendResponse() {
         $request = Request::create('/test/');
         $response = new Response('some response');
