@@ -90,8 +90,23 @@ class Framework
             // rendering the response
             $application->sendResponse($response, $request);
         } catch (\Exception $e) {
-           Debugger::handleException($e, LogContainer::exportLogs());
+            Debugger::handleException($e, LogContainer::exportLogs());
         }
+    }
+
+    /**
+     * Initialize application for testing.
+     * 
+     * @param AbstractApplication $application Application to be tested.
+     * @param array $options [optional] Options for framework and application.
+     * 
+     * @codeCoverageIgnore
+     */
+    final public static function test(AbstractApplication $application, array $options = array()) {
+        $options['env'] = self::ENV_TEST;
+
+        $splot = static::init($options);
+        $application = $splot->bootApplication($application, $options);
     }
 
     /**
