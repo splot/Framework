@@ -45,7 +45,7 @@ class ApplicationTestCase extends \PHPUnit_Framework_TestCase
             throw new \RuntimeException('Application class "'. static::$_applicationClass .'" does not exist. Has it been properly loaded?');
         }
 
-        $appClass = static::$_applicationClass();
+        $appClass = static::$_applicationClass;
         $this->_application = new $appClass();
         Framework::test($this->_application, array());
     }
