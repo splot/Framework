@@ -61,10 +61,13 @@ class FinderTest extends \PHPUnit_Framework_TestCase
 
         $finder = new Finder($app);
 
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js', $finder->find('::index.js', 'public/js'));
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js', $finder->find('::js/index.js', 'public'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->find('::index.js', 'public/js'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->find('::js/index.js', 'public'));
         // make sure 2nd time is the same (to cover cache case)
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js', $finder->find('::index.js', 'public/js'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->find('::index.js', 'public/js'));
     }
 
     public function testFindingInModule() {
@@ -75,8 +78,10 @@ class FinderTest extends \PHPUnit_Framework_TestCase
 
         $finder = new Finder($app);
 
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/config.php', $finder->find('SplotResourcesTestModule::config.php', 'config'));
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/test/config.php', $finder->find('SplotResourcesTestModule:test:config.php', 'config'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/config.php',
+            $finder->find('SplotResourcesTestModule::config.php', 'config'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/test/config.php',
+            $finder->find('SplotResourcesTestModule:test:config.php', 'config'));
     }
 
     /**
@@ -99,6 +104,17 @@ class FinderTest extends \PHPUnit_Framework_TestCase
 
         $finder = new Finder($app);
         $finder->find('::index.js', 'public');
+    }
+
+    /**
+     * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     */
+    public function testFindingInvalidFormat() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $finder = new Finder($app);
+        $finder->find('some.lorem.ipsum_file.js', 'public/js');
     }
 
 }

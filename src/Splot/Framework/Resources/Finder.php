@@ -11,6 +11,8 @@
  */
 namespace Splot\Framework\Resources;
 
+use MD\Foundation\Exceptions\InvalidArgumentException;
+
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Resources\Exceptions\ResourceNotFoundException;
 
@@ -55,6 +57,10 @@ class Finder
         }
 
         $nameArray = explode(':', $name);
+
+        if (count($nameArray) !== 3) {
+            throw new InvalidArgumentException('in format "ModuleName:[subDir]:filename"', $name);
+        }
 
         if (empty($nameArray[0])) {
             $mainDir = $this->_application->getApplicationDir();
