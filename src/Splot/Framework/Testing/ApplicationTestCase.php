@@ -2,32 +2,23 @@
 /**
  * Splot Framework Application test case.
  * 
+ * For easy testing of specific applications.
+ * 
  * @package SplotFramework
  * @subpackage Testing
  * @author Michał Dudek <michal@michaldudek.pl>
  * 
  * @copyright Copyright (c) 2013, Michał Dudek
  * @license MIT
- * 
- * @codeCoverageIgnore
  */
 namespace Splot\Framework\Testing;
 
-use Splot\Log\LogContainer;
-
-use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\Framework;
+use Splot\Framework\Testing\TestCase;
 
-class ApplicationTestCase extends \PHPUnit_Framework_TestCase
+class ApplicationTestCase extends TestCase
 {
-
-    /**
-     * Application which elements are being tested.
-     * 
-     * @var AbstractApplication
-     */
-    protected $_application;
 
     /**
      * Application class name.
@@ -49,15 +40,6 @@ class ApplicationTestCase extends \PHPUnit_Framework_TestCase
         $appClass = static::$_applicationClass;
         $this->_application = new $appClass();
         Framework::test($this->_application, array());
-    }
-
-    /**
-     * Tear down after every test.
-     */
-    public function tearDown() {
-        $this->_application = null;
-        Framework::reset();
-        LogContainer::clear();
     }
 
     /**
