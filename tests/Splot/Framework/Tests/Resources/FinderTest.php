@@ -80,7 +80,7 @@ class FinderTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/config.php',
             $finder->find('SplotResourcesTestModule::config.php', 'config'));
-        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/test/config/config.php',
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/test/config.php',
             $finder->find('SplotResourcesTestModule:test:config.php', 'config'));
     }
 

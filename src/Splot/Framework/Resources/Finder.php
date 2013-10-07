@@ -79,7 +79,7 @@ class Finder
         $subDir = empty($subDir) ? null : $subDir . DS;
 
         // final path
-        $path = rtrim($mainDir, '/') . DS .'Resources'. DS . $subDir . $typeDir . $nameArray[2];
+        $path = rtrim($mainDir, '/') . DS .'Resources'. DS . $typeDir . $subDir . $nameArray[2];
 
         if (!file_exists($path)) {
             throw new ResourceNotFoundException('Resource "'. $name .'" not found at path "'. $path .'".');
