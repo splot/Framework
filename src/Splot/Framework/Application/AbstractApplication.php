@@ -318,7 +318,8 @@ abstract class AbstractApplication
                 $route->getName(),
                 $route->getControllerClass(),
                 $route->getControllerMethodForHttpMethod($request->getMethod()),
-                $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod())
+                $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod()),
+                $request
             );
 
         } catch(\Exception $e) {
@@ -395,7 +396,7 @@ abstract class AbstractApplication
      * @param array $arguments [optional] Arguments to execute the controller with.
      * @return Response
      */
-    protected function renderController($name, $class, $method, array $arguments = array()) {
+    protected function renderController($name, $class, $method, array $arguments = array(), Request $request = null) {
         $controller = new $class($this->container);
 
         $willRespondEvent = new ControllerWillRespond($name, $controller, $method, $arguments);
@@ -405,7 +406,7 @@ abstract class AbstractApplication
         $arguments = $willRespondEvent->getArguments();
         
         $controllerResponse = new ControllerResponse(call_user_func_array(array($controller, $method), $arguments));
-        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $name, $controller, $method, $arguments));
+        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $name, $controller, $method, $arguments, $request));
 
         $response = $controllerResponse->getResponse();
 

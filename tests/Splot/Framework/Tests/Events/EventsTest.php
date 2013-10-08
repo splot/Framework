@@ -28,6 +28,18 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($controller, $event->getController());
         $this->assertEquals('index', $event->getMethod());
         $this->assertEquals($arguments, $event->getArguments());
+        $this->assertNull($event->getRequest());
+    }
+
+    public function testControllerDidRespondToRequest() {
+        $controllerResponse = new ControllerResponse('some response');
+        $controller = new TestController(new ServiceContainer());
+
+        $request = Request::create('/test/');
+        
+        $event = new Events\ControllerDidRespond($controllerResponse, 'SplotTestModule:TestController', $controller, 'index', array(), $request);
+
+        $this->assertSame($event->getRequest(), $request);
     }
 
     public function testControllerWillRespond() {
