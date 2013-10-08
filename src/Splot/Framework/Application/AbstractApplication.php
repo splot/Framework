@@ -312,7 +312,16 @@ abstract class AbstractApplication
             }
 
             // trigger DidFindRouteForRequest event
-            $this->_eventManager->trigger(new DidFindRouteForRequest($route, $request));
+            if (!$this->_eventManager->trigger(new DidFindRouteForRequest($route, $request))) {
+                $notFoundEvent = new DidNotFindRouteForRequest($request);
+                $this->_eventManager->trigger($notFoundEvent);
+
+                if ($notFoundEvent->isHandled()) {
+                    return $notFoundEvent->getResponse();
+                } else {
+                    throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'" (rendering prevented).');
+                }
+            }
 
             $response = $this->renderController(
                 $route->getName(),

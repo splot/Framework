@@ -195,7 +195,7 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $app->handleRequest(Request::create('/some/undefined/route.html'));
     }
 
-    public function testHandlingNotFoundRoute() {
+    public function testHandlingNotFoundRouteEvent() {
         $app = new TestApplication();
         $this->initApplication($app);
 
@@ -210,6 +210,48 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         });
 
         $response = $app->handleRequest(Request::create('/some/undefined/route.html'));
+
+        $this->assertTrue($didNotFoundRouteForRequestCalled);
+        $this->assertSame($response, $handledResponse);
+    }
+
+    /**
+     * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     */
+    public function testHandlingRequestAndPreventingRenderingOfTheFoundRoute() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $app->bootModule(new SplotResponseTestModule());
+
+        $app->getEventManager()->subscribe(DidFindRouteForRequest::getName(), function($ev) {
+            return false;
+        });
+
+        $response = $app->handleRequest(Request::create('/'));
+    }
+
+    public function testHandlingRequestAndPreventingRenderingOfTheFoundRouteAndHandlingThat() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $app->bootModule(new SplotResponseTestModule());
+
+        $app->getEventManager()->subscribe(DidFindRouteForRequest::getName(), function($ev) {
+            return false;
+        });
+
+        $didNotFoundRouteForRequestCalled = false;
+        $handledResponse = new Response('Handled 404');
+        $app->getEventManager()->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
+            $didNotFoundRouteForRequestCalled = true;
+
+            $ev->setResponse($handledResponse);
+
+            return false;
+        });
+
+        $response = $app->handleRequest(Request::create('/'));
 
         $this->assertTrue($didNotFoundRouteForRequestCalled);
         $this->assertSame($response, $handledResponse);
