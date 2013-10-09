@@ -127,6 +127,38 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($routePrivate->willRespondToRequest('/test/lipsum', 'get'));
     }
 
+    public function testCatchAllConstraint() {
+        $route = new Route('lipsum', TestController::__class(), '/test/{url:all}', array(
+            'get' => 'index',
+            'post' => 'save',
+            'put' => 'newItem',
+            'delete' => false
+        ));
+
+        $this->assertTrue($route->willRespondToRequest('/test/lorem-ipsum/dolor/sit/amet', 'get'));
+        $this->assertFalse($route->willRespondToRequest('/test/', 'get'));
+        $this->assertFalse($route->willRespondToRequest('/not-test/lorem/test', 'get'));
+
+        // with optional url param
+        $routeOptional = new Route('lipsum', TestController::__class(), '/test/{url:all}?', array(
+            'get' => 'index',
+            'post' => 'save',
+            'put' => 'newItem',
+            'delete' => false
+        ));
+        $this->assertTrue($routeOptional->willRespondToRequest('/test/', 'get'));
+
+
+        $routeWithParams = new Route('lipsum', TestController::__class(), '/test/{id:int}/{slug:all}', array(
+            'get' => 'index',
+            'post' => 'save',
+            'put' => 'newItem',
+            'delete' => false
+        ));
+
+        $this->assertEquals(array(5, 'lorem-ipsum-dolor/sit-amet.html'), $routeWithParams->getControllerMethodArgumentsForUrl('/test/5/lorem-ipsum-dolor/sit-amet.html', 'get'));
+    }
+
     public function testControllerMethodArgumentsFromArray() {
         $route = new Route(
             'lipsum',

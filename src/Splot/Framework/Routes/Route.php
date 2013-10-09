@@ -221,8 +221,14 @@ class Route
             if (!empty($constraints)) {
                 $regexpConstraints = '';
                 foreach($constraints as $constraint) {
-                    if ($constraint === 'int') {
-                        $regexpConstraints .= '\d+';
+                    switch($constraint) {
+                        case 'int':
+                            $regexpConstraints .= '\d+';
+                        break;
+
+                        case 'all':
+                            $regexpConstraints .= '.+';
+                        break;
                     }
                 }
             }
