@@ -36,6 +36,7 @@ use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Modules\AbstractModule;
+use Splot\Framework\Routes\Exceptions\RouteNotFoundException;
 use Splot\Framework\Routes\Route;
 use Splot\Framework\Routes\Router;
 use Splot\Framework\Events\ControllerDidRespond;
@@ -335,7 +336,7 @@ abstract class AbstractApplication
                 if ($notFoundEvent->isHandled()) {
                     return $notFoundEvent->getResponse();
                 } else {
-                    throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
+                    throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
                 }
             }
 
@@ -347,7 +348,7 @@ abstract class AbstractApplication
                 if ($notFoundEvent->isHandled()) {
                     return $notFoundEvent->getResponse();
                 } else {
-                    throw new NotFoundException('Could not find route for "'. $request->getPathInfo() .'" (rendering prevented).');
+                    throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'" (rendering prevented).');
                 }
             }
 

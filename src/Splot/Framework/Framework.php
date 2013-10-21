@@ -32,6 +32,8 @@ use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
+use Splot\Framework\HTTP\Exceptions\NoAccessException;
+use Splot\Framework\HTTP\Exceptions\NotFoundException;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 
@@ -90,7 +92,15 @@ class Framework
             // rendering the response
             $application->sendResponse($response, $request);
         } catch (\Exception $e) {
-            Debugger::handleException($e, LogContainer::exportLogs());
+            // set a valid response code
+            $httpResponseCode = 500;
+            if ($e instanceof NotFoundException) {
+                $httpResponseCode = 404;
+            } elseif ($e instanceof NoAccessException) {
+                $httpResponseCode = 403;
+            }
+
+            Debugger::handleException($e, LogContainer::exportLogs(), $httpResponseCode);
         }
     }
 
