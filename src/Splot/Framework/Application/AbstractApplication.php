@@ -186,7 +186,12 @@ abstract class AbstractApplication
         $this->_env = $env;
         $this->_applicationDir = $applicationDir;
 
-        $this->_router = $router = new Router($logProvider->provide('Router'));
+        $this->_router = $router = new Router(
+            $logProvider->provide('Router'),
+            $config->get('router.host'),
+            $config->get('router.protocol'),
+            $config->get('router.port')
+        );
         $this->_eventManager = $eventManager = new EventManager($logProvider->provide('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
@@ -228,8 +233,31 @@ abstract class AbstractApplication
         // register some listeners that add some additional functionality
         // these possibly should be a separate module in the future
         
+        // get protocol, hostname and port number from request to use in router
+        // @todo move to FrameworkExtra
+        if ($config->get('router.use_request')) {
+            $eventManager->subscribe(DidReceiveRequest::getName(), function($event) use ($router) {
+                $request = $event->getRequest();
+                $protocol = $request->getScheme();
+                $host = $request->getHost();
+                $port = $request->getPort();
+
+                if (!empty($protocol)) {
+                    $router->setProtocol($protocol);
+                }
+
+                if (!empty($host)) {
+                    $router->setHost($host);
+                }
+
+                if (!empty($port)) {
+                    $router->setPort($port);
+                }
+            });
+        }
+        
         // listener that will inject Request object to controller method arguments
-        // @todo This should be added somewhere else probably
+        // @todo Move to FrameworkExtra
         $eventManager->subscribe(ControllerWillRespond::getName(), function($event) use ($router, $container) {
             $route = $router->getRoute($event->getControllerName());
             $arguments = $event->getArguments();

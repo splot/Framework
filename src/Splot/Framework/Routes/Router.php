@@ -39,10 +39,34 @@ class Router
     private $_routes = array();
 
     /**
+     * Protocol to use when generating full URL's.
+     * 
+     * @var string
+     */
+    private $_scheme = 'http://';
+
+    /**
+     * Host to use when generating full URL's.
+     * 
+     * @var string
+     */
+    private $_host = 'localhost';
+
+    /**
+     * Port to use when generating full URL's.
+     * 
+     * @var int
+     */
+    private $_port = 80;
+
+    /**
      * Constructor.
      */
-    public function __construct(LoggerInterface $logger) {
+    public function __construct(LoggerInterface $logger, $host = 'localhost', $protocol = 'http://', $port = 80) {
         $this->_logger = $logger;
+        $this->setHost($host);
+        $this->setProtocol($protocol);
+        $this->setPort($port);
     }
 
     /**
@@ -173,11 +197,19 @@ class Router
      * 
      * @param string $name Name of the route to generate URL for.
      * @param array $params [optional] Array of route parameters.
+     * @param bool $includeHost [optional] Should the hostname be included? Hostname and protocol need to be set previously.
+     *                          Default: false.
      * @return string
      */
-    public function generate($name, array $params = array()) {
+    public function generate($name, array $params = array(), $includeHost = false) {
         $route = $this->getRoute($name);
-        return $route->generateUrl($params);
+
+        $host = null;
+        if ($includeHost) {
+            $host = $this->getProtocolAndHost();
+        }
+
+        return $route->generateUrl($params, $host);
     }
 
     /*****************************************
@@ -205,6 +237,69 @@ class Router
         }
 
         return $this->_routes[$name];
+    }
+
+    /**
+     * Sets the protocol to use when generating full URL's.
+     * 
+     * @param string $protocol Protocol to use. E.g. 'http://' or 'https://'.
+     */
+    public function setProtocol($protocol) {
+        $this->_protocol = rtrim($protocol, ':/') .'://';
+    }
+
+    /**
+     * Returns the protocol to use when generating full URL's.
+     * 
+     * @return string
+     */
+    public function getProtocol() {
+        return $this->_protocol;
+    }
+
+    /**
+     * Sets the host to use when generating full URL's.
+     * 
+     * @param string $host Host name to use.
+     */
+    public function setHost($host) {
+        $this->_host = trim($host, '/');
+    }
+
+    /**
+     * Returns the host to use when generating full URL's.
+     * 
+     * @return string
+     */
+    public function getHost() {
+        return $this->_host;
+    }
+
+    /**
+     * Sets the port to use when generating full URL's.
+     * 
+     * @param int $port Port number.
+     */
+    public function setPort($port) {
+        $this->_port = intval($port);
+    }
+
+    /**
+     * Returns the port to use when generating full URL's.
+     * 
+     * @return int
+     */
+    public function getPort() {
+        return $this->_port;
+    }
+
+    /**
+     * Returns the full protocol, host and port number to use when generating full URL's.
+     * 
+     * @return string
+     */
+    public function getProtocolAndHost() {
+        return $this->getProtocol() . $this->getHost() . ($this->getPort() !== 80 ? ':'. $ths->getPort() : '') .'/';
     }
 
 }

@@ -25,7 +25,13 @@ class FinderTest extends \PHPUnit_Framework_TestCase
             'cache' => array(
                 'stores' => array(),
                 'caches' => array()
-            )
+            ),
+            'router' => array(
+                'host' => 'localhost',
+                'protocol' => 'http://',
+                'port' => 80,
+                'use_request' => true
+            )   
         );
         $config = new Config($configArray);
         $container = new ServiceContainer();

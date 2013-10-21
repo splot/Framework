@@ -12,6 +12,13 @@ return array(
         'enabled' => true,
         'stores' => array(),
         'caches' => array()
+    ),
+
+    'router' => array(
+        'host' => 'localhost',
+        'protocol' => 'http://',
+        'port' => 80,
+        'use_request' => true
     )
 
 );

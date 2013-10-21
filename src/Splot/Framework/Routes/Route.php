@@ -157,8 +157,11 @@ class Route
      * If some parameters aren't in the pattern, then they will be attached as a query string.
      * 
      * @param array $params Route parameters.
+     * @param string $host [optional] Host to prefix the URL with. Should also include the protocol, e.g. 'http://domain.com'.
+     *                     Default: null - no host included.
+     * @return string
      */
-    public function generateUrl(array $params = array()) {
+    public function generateUrl(array $params = array(), $host = null) {
         if ($this->isPrivate()) {
             throw new \RuntimeException('Controller "'. $this->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
         }
@@ -192,6 +195,10 @@ class Route
 
         if (!empty($params)) {
             $url .= '?'. ArrayUtils::toQueryString($params);
+        }
+
+        if ($host && !empty($host)) {
+            $url = rtrim($host, '/') .'/'. ltrim($url, '/');
         }
 
         return $url;

@@ -50,6 +50,12 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
             'cache' => array(
                 'stores' => array(),
                 'caches' => array()
+            ),
+            'router' => array(
+                'host' => 'localhost',
+                'protocol' => 'http://',
+                'port' => 80,
+                'use_request' => true
             )
         );
         $config = new Config($configArray);
@@ -80,6 +86,12 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
                 'caches' => array(
                     'lipsum' => 'memory'
                 )
+            ),
+            'router' => array(
+                'host' => 'localhost',
+                'protocol' => 'http://',
+                'port' => 80,
+                'use_request' => true
             )
         ));
         $container = new ServiceContainer();
@@ -139,7 +151,13 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
                     'memory' => array()
                 )
             ),
-            'caches' => array()
+            'caches' => array(),
+            'router' => array(
+                'host' => 'localhost',
+                'protocol' => 'http://',
+                'port' => 80,
+                'use_request' => true
+            )
         ));
     }
 
@@ -288,6 +306,12 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
                     )
                 ),
                 'caches' => array()
+            ),
+            'router' => array(
+                'host' => 'localhost',
+                'protocol' => 'http://',
+                'port' => 80,
+                'use_request' => true
             ),
             'SplotConfiguredTestModule' => array(
                 'setting2' => true,
