@@ -91,6 +91,19 @@ abstract class AbstractController
         return $this->getContainer()->getParameter($name);
     }
 
+    /**
+     * Renders a view found under the given name with the given variables to be interpolated.
+     * 
+     * Uses "templating" service that needs to be registered in the container.
+     * 
+     * @param string $view View name.
+     * @param array $data [optional] Any additional variables to be interpolated in the view template.
+     * @return string
+     */
+    final public function render($view, array $data = array()) {
+        return $this->get('templating')->render($view, $data);
+    }
+
     /*****************************************
      * SETTERS AND GETTERS
      *****************************************/
