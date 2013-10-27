@@ -11,6 +11,8 @@
  */
 namespace Splot\Framework\HTTP;
 
+use MD\Foundation\Exceptions\InvalidArgumentException;
+
 use Splot\Framework\HTTP\Response;
 
 class JsonResponse extends Response
@@ -25,7 +27,15 @@ class JsonResponse extends Response
      * @param int $status [optional] HTTP response status code. Default: 200.
      * @param array $headers [optional] Headers array.
      */
-    public function __construct(array $data = array(), $status = 200, array $headers = array()) {
+    public function __construct($data = '', $status = 200, $headers = array()) {
+        if (!is_array($data)) {
+            throw new InvalidArgumentException('array', $data);
+        }
+
+        if (!is_array($headers)) {
+            throw new InvalidArgumentException('array', $headers, 3);
+        }
+
         $this->jsonData = $data;
         $headers = array_merge($headers, array(
             'Content-Type' => 'application/json'
@@ -42,7 +52,7 @@ class JsonResponse extends Response
      * @param array $headers [optional] Headers array.
      * @return JsonResponse
      */
-    public static function create(array $data = array(), $status = 200, array $headers = array()) {
+    public static function create($data = '', $status = 200, $headers = array()) {
         return new static($data, $status, $headers);
     }
 
