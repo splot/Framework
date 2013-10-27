@@ -25,7 +25,11 @@ class RedirectResponse extends Response
      * @param int $status [optional] Response status code. Default: 302.
      * @param array $headers [optional] Headers array.
      */
-    public function __construct($url, $status = 302, $headers = array()) {
+    public function __construct($url = '', $status = 302, $headers = array()) {
+        if (empty($url)) {
+            throw new InvalidArgumentException('non-empty string', $url);
+        }
+
         if (!is_array($headers)) {
             throw new InvalidArgumentException('array', $headers, 3);
         }
@@ -43,7 +47,7 @@ class RedirectResponse extends Response
      * @param array $headers [optional] Headers array.
      * @return RedirectResponse
      */
-    public static function create($url, $status = 302, $headers = array()) {
+    public static function create($url = '', $status = 302, $headers = array()) {
         return new static($url, $status, $headers);
     }
 
