@@ -145,7 +145,13 @@ class Route
         $arguments = array();
 
         foreach($method['params'] as $i => $param) {
-            $arguments[$i] = (isset($params[$param['name']])) ? $params[$param['name']] : $param['default'];
+            $argument = isset($params[$param['name']])
+                ? (is_string($params[$param['name']])
+                    ? urldecode($params[$param['name']])
+                    : $params[$param['name']])
+                : $param['default'];
+
+            $arguments[$i] = $argument;
         }
 
         return $arguments;
@@ -181,7 +187,7 @@ class Route
                 }
             }
 
-            $param = $params[$name];
+            $param = urlencode($params[$name]);
             unset($params[$name]);
 
             /** @todo Should also check the constraints before injecting the item. */
@@ -219,10 +225,8 @@ class Route
             $constraints = explode(':', $matches[2]);
             $name = array_shift($constraints);
 
-            /**
-             * @var string Constraints translated to regexp.
-             */
-            $regexpConstraints = '[\w\d\.-]+';
+            /* @var string Constraints translated to regexp. */
+            $regexpConstraints = '[\w\d\.\+%:-]+';
 
             // if any constraints specified then parse them
             if (!empty($constraints)) {

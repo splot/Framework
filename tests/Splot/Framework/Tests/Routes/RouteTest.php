@@ -125,6 +125,20 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($routePrivate->willRespondToRequest('/test/123', 'PUT'));
         $this->assertFalse($routePrivate->willRespondToRequest('/test/1', 'delete'));
         $this->assertFalse($routePrivate->willRespondToRequest('/test/lipsum', 'get'));
+
+        $routeEncoded = new Route(
+            'lipsum',
+            TestController::__class(),
+            '/test/{id:int}/{slug}/',
+            array(
+                'get' => 'index',
+                'post' => false,
+                'put' => false,
+                'delete' => false
+            ),
+            'TestModule'
+        );
+        $this->assertTrue($routeEncoded->willRespondToRequest('/test/123/lorem%3Aipsum.dolor-sit%25amet+adipiscit+elit++::html/', 'get'));
     }
 
     public function testCatchAllConstraint() {
@@ -193,6 +207,11 @@ class RouteTest extends \PHPUnit_Framework_TestCase
             'id' => 123,
             'slug' => 'lipsum'
         )));
+
+        $this->assertEquals(array(123, 'lorem:ipsum.dolor-sit%amet adipiscit  elit'), $route->getControllerMethodArgumentsFromArray('get', array(
+            'id' => 123,
+            'slug' => 'lorem%3Aipsum.dolor-sit%25amet+adipiscit++elit'
+        )));
     }
 
     /**
@@ -231,11 +250,13 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertEquals(array(123, 'lipsum'), $route->getControllerMethodArgumentsForUrl('/test/123/lipsum/', 'get'));
+        $this->assertEquals(array(123, 'lorem:ipsum.dolor-sit%amet'), $route->getControllerMethodArgumentsForUrl('/test/123/lorem%3Aipsum.dolor-sit%25amet/', 'get'));
 
         $route2 = new Route(
             'lipsum',
             TestController::__class(),
-            '/test/{slug}/{id:int}',
+            // inverted order of parameters
+            '/test/{slug}/{id:int}/',
             array(
                 'get' => 'index',
                 'post' => 'save',
@@ -244,7 +265,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
             )
         );
 
-        $this->assertEquals(array(123, 'lipsum'), $route->getControllerMethodArgumentsForUrl('/test/123/lipsum/', 'get'));
+        $this->assertEquals(array(123, 'lipsum'), $route2->getControllerMethodArgumentsForUrl('/test/lipsum/123/', 'get'));
     }
 
     /**
@@ -282,6 +303,15 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('/test/123/13/jul/2013/lipsum/1.html', $route->generateUrl(array(
             'id' => 123,
             'slug' => 'lipsum',
+            'page' => 1,
+            'day' => '13',
+            'month' => 'jul',
+            'year' => 2013
+        )));
+
+        $this->assertEquals('/test/123/13/jul/2013/lorem%3Aipsum.dolor-sit%25amet+adipiscit++elit/1.html', $route->generateUrl(array(
+            'id' => 123,
+            'slug' => 'lorem:ipsum.dolor-sit%amet adipiscit  elit',
             'page' => 1,
             'day' => '13',
             'month' => 'jul',
