@@ -195,6 +195,9 @@ class Framework
             return self::$_framework;
         }
 
+        // init the benchmark timer as early as possible
+        $timer = new Timer();
+
         // create log provider for default "log_provider" service.
         $logProvider = new LogProvider();
 
@@ -205,7 +208,8 @@ class Framework
                 'log_provider' => function($c) use ($logProvider) {
                     return $logProvider;
                 }
-            )
+            ),
+            'timer' => $timer
         ), $options);
 
         // set default timezone from options, for now
@@ -233,7 +237,7 @@ class Framework
      * @param bool $console [optional] Running in console mode? Default: false.
      */ 
     final private function __construct(array $options = array(), LoggerInterface $logger = null, $console = false) {
-        $this->_timer = new Timer();
+        $this->_timer = $options['timer'];
         $this->_logger = $logger;
         $this->_console = $console;
 

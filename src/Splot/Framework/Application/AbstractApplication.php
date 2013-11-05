@@ -227,6 +227,10 @@ abstract class AbstractApplication
         }, true, true);
         // cache
         $this->registerCaches($container, $config);
+        // timer
+        $container->set('timer', function($c) use ($timer) {
+            return $timer;
+        });
 
         /*****************************************************
          * REGISTER LISTENERS
@@ -705,6 +709,15 @@ abstract class AbstractApplication
      */
     final public function getRouter() {
         return $this->_router;
+    }
+
+    /**
+     * Returns the application's benchmark timer.
+     * 
+     * @return Timer
+     */
+    final public function getTimer() {
+        return $this->_timer;
     }
 
     /**
