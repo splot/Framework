@@ -251,6 +251,8 @@ class Framework
         $this->_rootDir = rtrim($this->_rootDir, '/') .'/';
         $this->_frameworkDir = @$options['frameworkDir'] ?: realpath(dirname(__FILE__)) .'/';
         $this->_frameworkDir = rtrim($this->_frameworkDir, '/') .'/';
+        $this->_webDir = @$options['webDir'] ?: $this->_rootDir .'web/';
+        $this->_webDir = rtrim($this->_webDir, '/') .'/';
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
         $this->_vendorDir = rtrim($this->_vendorDir, '/') .'/';
 
@@ -259,6 +261,7 @@ class Framework
         $this->_logger->info('Splot Framework successfully initialized.', array(
             'rootDir' => $this->_rootDir,
             'frameworkDir' => $this->_frameworkDir,
+            'webDir' => $this->_webDir,
             'vendorDir' => $this->_vendorDir,
             '_timer' => $this->_timer->step('Initialization')
         ));
@@ -329,6 +332,7 @@ class Framework
         // set some parameters
         $serviceContainer->setParameter('root_dir', $this->_rootDir);
         $serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
+        $serviceContainer->setParameter('web_dir', $this->_webDir);
         $serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
         $serviceContainer->setParameter('application_dir', $applicationDir);
         $serviceContainer->setParameter('cache_dir', $cacheDir);
@@ -524,6 +528,15 @@ class Framework
      */
     public function getFrameworkDir() {
         return $this->_frameworkDir;
+    }
+
+    /**
+     * Returns the web directory.
+     * 
+     * @return string
+     */
+    public function getWebDir() {
+        return $this->_webDir;
     }
 
     /**
