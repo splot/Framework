@@ -19,6 +19,13 @@ class RedirectResponse extends Response
 {
 
     /**
+     * URL to redirect to.
+     * 
+     * @var string
+     */
+    protected $url;
+
+    /**
      * Constructor.
      * 
      * @param string $url URL to redirect to.
@@ -37,6 +44,8 @@ class RedirectResponse extends Response
         parent::__construct('', $status, array(
             'Location' => $url
         ));
+
+        $this->url = $url;
     }
 
     /**
@@ -49,6 +58,15 @@ class RedirectResponse extends Response
      */
     public static function create($url = '', $status = 302, $headers = array()) {
         return new static($url, $status, $headers);
+    }
+
+    /**
+     * Returns the URL to redirect to.
+     * 
+     * @return string
+     */
+    public function getUrl() {
+        return $this->url;
     }
 
 }
