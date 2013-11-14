@@ -80,6 +80,15 @@ class Finder
         return $path;
     }
 
+    /**
+     * Finds path to the given resource in the application resources dir.
+     * 
+     * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
+     * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
+     * @return string
+     * 
+     * @throws ResourceNotFoundException When the resource could not be found (does not exist).
+     */
     public function findInApplicationDir($name, $type) {
         $nameArray = explode(':', $name);
 
@@ -109,6 +118,15 @@ class Finder
         return $path;
     }
 
+    /**
+     * Finds path to the given resource in the resource's module dir.
+     * 
+     * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
+     * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
+     * @return string
+     * 
+     * @throws ResourceNotFoundException When the resource could not be found (does not exist).
+     */
     public function findInModuleDir($name, $type) {
         // otherwise check in the module dir
         $nameArray = explode(':', $name);
@@ -133,6 +151,15 @@ class Finder
         return $path;
     }
 
+    /**
+     * Helper function for building paths to resources.
+     * 
+     * @param string $mainDir Root of the directory on which to build.
+     * @param string $type Type of the resource.
+     * @param string $subDir Any subdirectory under which the asset is.
+     * @param string $file Name of the resource's file.
+     * @return string
+     */
     private function buildResourcePath($mainDir, $type, $subDir, $file) {
         $typeDir = trim($type, DS);
         $typeDir = empty($type) ? null : $type . DS;
