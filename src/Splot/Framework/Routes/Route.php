@@ -169,7 +169,7 @@ class Route
      */
     public function generateUrl(array $params = array(), $host = null) {
         if ($this->isPrivate()) {
-            throw new \RuntimeException('Controller "'. $this->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
+            throw new \RuntimeException('Route "'. $this->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL generated.');
         }
 
         $routeName = $this->getName();
@@ -208,6 +208,21 @@ class Route
         }
 
         return $url;
+    }
+
+    /**
+     * Exposes the route pattern so that it can be generated elsewhere (e.g. in JavaScript).
+     * 
+     * @return string
+     */
+    public function expose() {
+        if ($this->isPrivate()) {
+            throw new \RuntimeException('Route "'. $this->getName() .'" is set to private, so it is not reachable via URL, therefore it cannot have a URL exposed.');
+        }
+
+        $exposedUrl = preg_replace('/\{(\w+):(\w+)\}/is', '{$1}', $this->getUrlPattern());
+        $exposedUrl = str_replace('?', '', $exposedUrl);
+        return $exposedUrl;
     }
 
     /*****************************************

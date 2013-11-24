@@ -6,6 +6,9 @@ use Splot\Framework\Routes\Route;
 use Splot\Framework\Tests\Routes\Fixtures\TestController;
 use Splot\Framework\Tests\Routes\Fixtures\TestPrivateController;
 
+/**
+ * @coversDefaultClass \Splot\Framework\Routes\Route
+ */
 class RouteTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -86,6 +89,10 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    /**
+     * @covers ::willRespondToRequest
+     * @covers ::regexpFromUrlPattern
+     */
     public function testWillRespondToRequest() {
         $route = new Route(
             'lipsum',
@@ -141,6 +148,10 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($routeEncoded->willRespondToRequest('/test/123/lorem%3Aipsum.dolor-sit%25amet+adipiscit+elit++::html/', 'get'));
     }
 
+    /**
+     * @covers ::willRespondToRequest
+     * @covers ::regexpFromUrlPattern
+     */
     public function testCatchAllConstraint() {
         $route = new Route('lipsum', TestController::__class(), '/test/{url:all}', array(
             'get' => 'index',
@@ -173,6 +184,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array(5, 'lorem-ipsum-dolor/sit-amet.html'), $routeWithParams->getControllerMethodArgumentsForUrl('/test/5/lorem-ipsum-dolor/sit-amet.html', 'get'));
     }
 
+    /**
+     * @covers ::getControllerMethodArgumentsFromArray
+     */
     public function testControllerMethodArgumentsFromArray() {
         $route = new Route(
             'lipsum',
@@ -216,6 +230,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     * @covers ::getControllerMethodArgumentsFromArray
      */
     public function testControllerMethodArgumentsFromArrayInvalid() {
         $route = new Route(
@@ -236,6 +251,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         ));
     }
 
+    /**
+     * @covers ::getControllerMethodArgumentsForUrl
+     */
     public function testControllerMethodArgumentsForUrl() {
         $route = new Route(
             'lipsum',
@@ -270,6 +288,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     * @covers ::getControllerMethodArgumentsForUrl
      */
     public function testControllerMethodArgumentsForUrlInvalid() {
         $route = new Route(
@@ -287,6 +306,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $route->getControllerMethodArgumentsForUrl('/testing/123/lipsum', 'get');
     }
 
+    /**
+     * @covers ::generateUrl
+     */
     public function testGenerateUrl() {
         $route = new Route(
             'lipsum',
@@ -331,6 +353,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         )));
     }
 
+    /**
+     * @covers ::generateUrl
+     */
     public function testGenerateUrlWithOptionalParam() {
         $route = new Route(
             'lipsum',
@@ -355,7 +380,30 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::generateUrl
+     */
+    public function testGenerateUrlWithHost() {
+        $route = new Route(
+            'lipsum',
+            TestController::__class(),
+            '/test/{id:int}/{slug}?',
+            array(
+                'get' => 'index',
+                'post' => 'save',
+                'put' => 'newItem',
+                'delete' => false
+            )
+        );
+
+        $this->assertEquals('http://www.host.com/test/123/lipsum', $route->generateUrl(array(
+            'id' => '123',
+            'slug' => 'lipsum'
+        ), 'http://www.host.com/'));
+    }
+
+    /**
      * @expectedException \Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException
+     * @covers ::generateUrl
      */
     public function testgenerateUrlInsufficientParams() {
         $route = new Route(
@@ -379,6 +427,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \RuntimeException
+     * @covers ::generateUrl
      */
     public function testGenerateUrlPrivate() {
         $routePrivate = new Route(
@@ -398,6 +447,47 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $routePrivate->generateUrl(array(
             'id' => 123
         ));
+    }
+
+    /**
+     * @covers ::expose
+     */
+    public function testExpose() {
+        $route = new Route(
+            'lipsum',
+            TestController::__class(), 
+            '/test/{id:int}/{data:int}/{month}/{year:int}/{slug}/{page:int}.html',
+            array(
+                'get' => 'index',
+                'post' => 'save',
+                'put' => 'newItem',
+                'delete' => false
+            )
+        );
+
+        $this->assertEquals('/test/{id}/{data}/{month}/{year}/{slug}/{page}.html', $route->expose());
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @covers ::expose
+     */
+    public function testExposePrivate() {
+        $routePrivate = new Route(
+            'lipsum',
+            TestController::__class(),
+            '/test/{id:int}',
+            array(
+                'get' => 'index',
+                'post' => 'save',
+                'put' => 'newItem',
+                'delete' => false
+            ),
+            'TestModule',
+            true
+        );
+
+        $routePrivate->expose();
     }
 
 }

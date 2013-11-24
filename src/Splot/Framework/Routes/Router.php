@@ -212,6 +212,17 @@ class Router
         return $route->generateUrl($params, $host);
     }
 
+    /**
+     * Exposes the route pattern so that it can be generated elsewhere (e.g. in JavaScript).
+     * 
+     * @param string $name Name of the route to expose.
+     * @return string
+     */
+    public function expose($name) {
+        $route = $this->getRoute($name);
+        return $route->expose();
+    }
+
     /*****************************************
      * SETTERS AND GETTERS
      *****************************************/
@@ -299,7 +310,7 @@ class Router
      * @return string
      */
     public function getProtocolAndHost() {
-        return $this->getProtocol() . $this->getHost() . ($this->getPort() !== 80 ? ':'. $ths->getPort() : '') .'/';
+        return $this->getProtocol() . $this->getHost() . ($this->getPort() !== 80 ? ':'. $this->getPort() : '') .'/';
     }
 
 }

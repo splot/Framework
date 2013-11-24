@@ -13,6 +13,9 @@ use Splot\Framework\Tests\Modules\Fixtures\TestModule;
 
 use Psr\Log\NullLogger;
 
+/**
+ * @coversDefaultClass Splot\Framework\Routes\Router
+ */
 class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -20,6 +23,10 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         return new Router(new NullLogger());
     }
 
+    /**
+     * @covers ::addRoute
+     * @covers ::getRoutes
+     */
     public function testAddingRoutes() {
         $router = $this->provideRouter();
 
@@ -44,6 +51,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \Splot\Framework\Routes\Exceptions\InvalidControllerException
+     * @covers ::addRoute
      */
     public function testAddingRouteNotForValidController() {
         $router = $this->provideRouter();
@@ -52,12 +60,16 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \Splot\Framework\Routes\Exceptions\InvalidRouteException
+     * @covers ::addRoute
      */
     public function testAddingPublicRouteWithNoUrlPattern() {
         $router = $this->provideRouter();
         $router->addRoute('empty', EmptyController::__class());
     }
 
+    /**
+     * @covers ::getRouteForUrl
+     */
     public function testGettingRouteForUrl() {
         $router = $this->provideRouter();
 
@@ -80,6 +92,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($router->getRouteForUrl('/test/admin/12/', 'PUT'));
     }
 
+    /**
+     * @covers ::getRouteForRequest
+     */
     public function testGettingRouteForRequest() {
         $router = $this->provideRouter();
 
@@ -104,12 +119,16 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \Splot\Framework\Routes\Exceptions\RouteNotFoundException
+     * @covers ::getRoute
      */
     public function testGettingUndefinedRoute() {
         $router = $this->provideRouter();
         $router->getRoute('undefined');
     }
 
+    /**
+     * @covers ::generate
+     */
     public function testGenerate() {
         $router = $this->provideRouter();
 
@@ -156,9 +175,32 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException
+     * @covers ::generate
      */
-    public function testgenerateInsufficientParams() {
+    public function testGenerateWithHost() {
+        $router = $this->provideRouter();
+        $router->setHost('www.host.com');
+
+        $router->addRoute('test', TestController::__class(), null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
+
+        $this->assertEquals(
+            'http://www.host.com/test/123/13/jul/2013/lipsum/1.html',
+            $router->generate('test', array(
+                'id' => 123,
+                'slug' => 'lipsum',
+                'page' => 1,
+                'day' => '13',
+                'month' => 'jul',
+                'year' => 2013
+            ), true)
+        );
+    }
+
+    /**
+     * @expectedException \Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException
+     * @covers ::generate
+     */
+    public function testGenerateInsufficientParams() {
         $router = $this->provideRouter();
 
         $router->addRoute('test.insufficient', TestController::__class(), null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
@@ -169,6 +211,20 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         )));
     }
 
+    /**
+     * @covers ::expose
+     */
+    public function testExpose() {
+        $router = $this->provideRouter();
+
+        $router->addRoute('test', TestController::__class(), null, '/test/{id:int}/{data:int}/{month}/{year:int}/{slug}/{page:int}.html');
+
+        $this->assertEquals('/test/{id}/{data}/{month}/{year}/{slug}/{page}.html', $router->expose('test'));
+    }
+
+    /**
+     * @covers ::readModuleRoutes
+     */
     public function testReadingModuleRoutes() {
         $router = $this->provideRouter();
         $module = new SplotRouterTestModule();
@@ -192,6 +248,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         }
     }
 
+    /**
+     * @covers ::readModuleRoutes
+     */
     public function testReadingModuleWhenEmpty() {
         $router = $this->provideRouter();
         $module = new TestModule();
@@ -199,6 +258,56 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
         $foundRoutes = $router->getRoutes();
         $this->assertEmpty($foundRoutes);
+    }
+
+    /**
+     * @covers ::setProtocol
+     * @covers ::getProtocol
+     */
+    public function testSettingAndGettingProtocol() {
+        $router = $this->provideRouter();
+        $router->setProtocol('http');
+        $this->assertEquals('http://', $router->getProtocol());
+        $router->setProtocol('http://');
+        $this->assertEquals('http://', $router->getProtocol());
+    }
+
+    /**
+     * @covers ::setHost
+     * @covers ::getHost
+     */
+    public function testSettingAndGettingHost() {
+        $router = $this->provideRouter();
+        $router->setHost('www.host.com');
+        $this->assertEquals('www.host.com', $router->getHost());
+        $router->setHost('www.host.com/');
+        $this->assertEquals('www.host.com', $router->getHost());
+    }
+
+    /**
+     * @covers ::setPort
+     * @covers ::getPort
+     */
+    public function testSettingAndGettingPort() {
+        $router = $this->provideRouter();
+        $router->setPort(80);
+        $this->assertEquals(80, $router->getPort());
+        $router->setPort('80');
+        $this->assertEquals(80, $router->getPort());
+    }
+
+    /**
+     * @covers ::getProtocolAndHost
+     */
+    public function testGettingProtocolAndHost() {
+        $router = $this->provideRouter();
+        $router->setProtocol('https');
+        $router->setHost('www.host.com/');
+        $router->setPort('8080');
+        $this->assertEquals('https://www.host.com:8080/', $router->getProtocolAndHost());
+
+        $router->setPort(80);
+        $this->assertEquals('https://www.host.com/', $router->getProtocolAndHost());
     }
 
 }
