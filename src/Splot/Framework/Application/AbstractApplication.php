@@ -28,6 +28,8 @@ use Splot\EventManager\EventManager;
 
 use Splot\Log\Provider\LogProviderInterface;
 
+use Splot\StatsTracker\NullStatsTracker;
+
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Console\Console;
@@ -217,6 +219,10 @@ abstract class AbstractApplication
         $container->set('resource_finder', function($c) use ($resourceFinder) {
             return $resourceFinder;
         }, true);
+        // null stats tracker
+        $container->set('stats_tracker', function($c) {
+            return new NullStatsTracker();
+        });
         // process
         $container->set('process', function($c) {
             return new Process();

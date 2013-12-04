@@ -19,7 +19,8 @@
         "michaldudek/foundation": "dev-master",
         "splot/event-manager": "dev-master",
         "splot/cache": "dev-master",
-        "splot/log": "dev-master"
+        "splot/log": "dev-master",
+        "splot/stats-tracker": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "3.8.*@dev"
