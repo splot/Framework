@@ -52,7 +52,7 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
 
         $container->set('test', function() {
             return new TestService();
-        });
+        }, false, false);
 
         $test1 = $container->get('test');
         $test1->setId(1);

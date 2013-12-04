@@ -43,7 +43,7 @@ class ServiceContainer
      * 
      * @throws ReadOnlyDefinitionException When service with the same name is already defined and marked as read only.
      */
-    public function set($name, $serviceFactory, $readOnly = false, $singleton = false) {
+    public function set($name, $serviceFactory, $readOnly = false, $singleton = true) {
         if (isset($this->_services[$name]) && $this->_services[$name]['readOnly']) {
             throw new ReadOnlyDefinitionException('The service "'. $name .'" is marked as read only and cannot be overwritten.');
         }
