@@ -29,6 +29,8 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     protected $_application;
 
+    protected $_options = array();
+
     /**
      * Sets up the application before every test.
      * 
@@ -36,7 +38,7 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function setUp() {
         $this->_application = new TestApplication();
-        Framework::test($this->_application, array());
+        Framework::test($this->_application, $this->_options);
     }
 
     /**
