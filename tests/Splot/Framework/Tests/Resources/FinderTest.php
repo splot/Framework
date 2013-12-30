@@ -108,6 +108,59 @@ class FinderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider provideGlobPatterns
+     */
+    public function testFindingGlobPatterns($pattern, array $result) {
+        $app = new TestApplication();
+        $this->initApplication($app);
+        $app->bootModule(new SplotResourcesTestModule());
+
+        $finder = new Finder($app);
+
+        $this->assertEquals($result, $finder->find($pattern, 'public'), 'Failed to return valid glob results when finding resources.');
+    }
+
+    public function provideGlobPatterns() {
+        $basePath = realpath(dirname(__FILE__)) .'/Fixtures/Resources/';
+        $baseAppPath = $basePath .'public/js/';
+        $baseModulePath = realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/public/js/';
+
+        return array(
+            array('::js/*.js', array(
+                    $baseAppPath .'chat.js',
+                    $baseAppPath .'contact.js',
+                    $baseAppPath .'index.js',
+                    $baseAppPath .'map.js'
+                )),
+            array('::js/**/*.js', array(
+                    $baseAppPath .'lib/angular.js',
+                    $baseAppPath .'lib/jquery.js',
+                    $baseAppPath .'lib/lodash.js',
+                    $baseAppPath .'misc/chuckifier.js',
+                    $baseAppPath .'misc/gmap.js',
+                    $baseAppPath .'plugin/caroufredsel.js',
+                    $baseAppPath .'plugin/infinitescroll.js',
+                    $baseAppPath .'plugin/jquery.appendix.js'
+                )),
+            array('::js/{lib,plugin}/*.js', array(
+                    $baseAppPath .'lib/angular.js',
+                    $baseAppPath .'lib/jquery.js',
+                    $baseAppPath .'lib/lodash.js',
+                    $baseAppPath .'plugin/caroufredsel.js',
+                    $baseAppPath .'plugin/infinitescroll.js',
+                    $baseAppPath .'plugin/jquery.appendix.js'
+                )),
+            array('SplotResourcesTestModule::js/*.js', array(
+                    $basePath .'SplotResourcesTestModule/public/js/overwrite.js',
+                    $basePath .'SplotResourcesTestModule/public/js/overwritten.js',
+                    $baseModulePath .'resources.js',
+                    $baseModulePath .'stuff.js',
+                    $baseModulePath .'test.js'
+                )),
+        );
+    }
+
+    /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
      */
     public function testFindingInNotExistingModule() {

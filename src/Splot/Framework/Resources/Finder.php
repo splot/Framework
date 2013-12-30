@@ -45,10 +45,14 @@ class Finder
 
     /**
      * Finds path to the given resource based on its name and type.
+     *
+     * GLOB patterns are allowed in the file name section of the resource pattern.
+     *
+     * If using GLOB patterns and multiple files were found then they are returned in an array.
      * 
      * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
-     * @return string
+     * @return string|array
      * 
      * @throws ResourceNotFoundException When the resource could not be found (does not exist).
      */
@@ -57,27 +61,71 @@ class Finder
             return $this->_cache[$type][$name];
         }
 
+        $nameArray = explode(':', $name);
+
+        $appFiles = array();
+        $moduleFiles = array();
+
         // at first try application resources dir
         try {
-            $path = $this->findInApplicationDir($name, $type);
+            $appFiles = $this->findInApplicationDir($name, $type);
+            $appFiles = !is_array($appFiles) ? array($appFiles) : $appFiles;
         } catch(ResourceNotFoundException $e) {
             // and if that failed, check in the module dir (assuming that the module name is specified)
-            $nameArray = explode(':', $name);
             if (empty($nameArray[0])) {
                 // rethrow the original exception then
                 throw $e;
             }
-
-            $path = $this->findInModuleDir($name, $type);
         }
 
+        // if module name is specified then also look in the module
+        if (!empty($nameArray[0])) {
+            try {
+                $moduleFiles = $this->findInModuleDir($name, $type);
+                $moduleFiles = !is_array($moduleFiles) ? array($moduleFiles) : $moduleFiles;
+
+                // now remove any of the module files that were overwritten in the application dir
+                $appDir = rtrim($this->_application->getApplicationDir(), '/') . DS . 'Resources' . DS;
+                $appDirLength = strlen($appDir);
+                $moduleDir = rtrim($this->_application->getModule($nameArray[0])->getModuleDir(), '/') . DS .'Resources'. DS;
+                $moduleDirLength = strlen($moduleDir);
+
+                $rawAppFiles = array();
+                foreach($appFiles as $file) {
+                    $rawAppFile = substr($file, $appDirLength);
+                    $rawAppFiles[$rawAppFile] = $file;
+                }
+
+                foreach($moduleFiles as $i => $file) {
+                    $rawModuleFile = $nameArray[0] .'/'. substr($file, $moduleDirLength);
+                    if (isset($rawAppFiles[$rawModuleFile])) {
+                        unset($moduleFiles[$i]);
+                    }
+                }
+
+            } catch(ResourceNotFoundException $e) {
+                // if something was found in the app dir then we're good - ignore this exception
+                // otherwise rethrow it
+                if (empty($appFiles)) {
+                    throw $e;
+                }
+            }
+        }
+
+        $files = array_merge($appFiles, $moduleFiles);
+
+        // if only one result then return it
+        if (count($files) === 1) {
+            $files = $files[0];
+        }
+
+        // cache the result
         if (!isset($this->_cache[$type])) {
             $this->_cache[$type] = array();
         }
+        $this->_cache[$type][$name] = $files;
 
-        $this->_cache[$type][$name] = $path;
-
-        return $path;
+        return $files;
     }
 
     /**
@@ -109,13 +157,19 @@ class Finder
             $mainDir = $mainDir . $nameArray[0] . DS;
         }
 
-        $path = $this->buildResourcePath($mainDir, $type, $nameArray[1], $nameArray[2]);
+        $files = $this->buildResourcePath($mainDir, $type, $nameArray[1], $nameArray[2]);
 
-        if (!file_exists($path)) {
-            throw new ResourceNotFoundException('Resource "'. $name .'" not found in application resources dir "'. $path .'".');
+        // multiple files were found by glob so just return them (glob wouldn't return nonexistent files)
+        if (is_array($files)) {
+            return $files;
         }
 
-        return $path;
+        // single file was returned
+        if (!file_exists($files)) {
+            throw new ResourceNotFoundException('Resource "'. $name .'" not found in application resources dir at path "'. $files .'".');
+        }
+
+        return $files;
     }
 
     /**
@@ -142,23 +196,32 @@ class Finder
         $module = $this->_application->getModule($nameArray[0]);
         $mainDir = $module->getModuleDir();
 
-        $path = $this->buildResourcePath(rtrim($mainDir, '/') . DS .'Resources'. DS, $type, $nameArray[1], $nameArray[2]);
+        $files = $this->buildResourcePath(rtrim($mainDir, '/') . DS .'Resources'. DS, $type, $nameArray[1], $nameArray[2]);
 
-        if (!file_exists($path)) {
-            throw new ResourceNotFoundException('Resource "'. $name .'" not found at path "'. $path .'".');
+        // multiple files were found by glob so just return them (glob wouldn't return nonexistent files)
+        if (is_array($files)) {
+            return $files;
         }
 
-        return $path;
+        if (!file_exists($files)) {
+            throw new ResourceNotFoundException('Resource "'. $name .'" not found at path "'. $files .'".');
+        }
+
+        return $files;
     }
 
     /**
      * Helper function for building paths to resources.
+     *
+     * GLOB patterns can be used in $file.
+     *
+     * If GLOB matches more than one file then an array of those matched files is returned.
      * 
      * @param string $mainDir Root of the directory on which to build.
      * @param string $type Type of the resource.
      * @param string $subDir Any subdirectory under which the asset is.
-     * @param string $file Name of the resource's file.
-     * @return string
+     * @param string $file Name of the resource's file. GLOB patterns are allowed here.
+     * @return string|array
      */
     private function buildResourcePath($mainDir, $type, $subDir, $file) {
         $typeDir = trim($type, DS);
@@ -166,8 +229,12 @@ class Finder
         $subDir = trim(str_replace(NS, DS, $subDir), DS);
         $subDir = empty($subDir) ? null : $subDir . DS;
 
-        // final path
-        return $mainDir . $typeDir . $subDir . $file;
+        // final pattern
+        $pattern = $mainDir . $typeDir . $subDir . $file;
+
+        $files = glob($pattern, GLOB_NOCHECK | GLOB_BRACE);
+
+        return is_array($files) && count($files) === 1 ? $files[0] : $files;
     }
 
     /*
