@@ -12,6 +12,7 @@
 namespace Splot\Framework\Resources;
 
 use MD\Foundation\Exceptions\InvalidArgumentException;
+use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\FilesystemUtils;
 
 use Splot\Framework\Application\AbstractApplication;
@@ -36,6 +37,13 @@ class Finder
     private $_cache = array();
 
     /**
+     * Cache for all single resources already found.
+     * 
+     * @var array
+     */
+    private $_resourceCache = array();
+
+    /**
      * Constructor.
      * 
      * @param AbstractApplication $application Reference to the application.
@@ -51,178 +59,185 @@ class Finder
      *
      * If using GLOB patterns and multiple files were found then they are returned in an array.
      * 
-     * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
+     * @param string $resource Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
      * @return string|array
      * 
      * @throws ResourceNotFoundException When the resource could not be found (does not exist).
      */
-    public function find($name, $type) {
-        if (isset($this->_cache[$type]) && isset($this->_cache[$type][$name])) {
-            return $this->_cache[$type][$name];
+    public function find($resource, $type) {
+        $cacheKey = $type .'#'. $resource;
+        if (isset($this->_cache[$cacheKey])) {
+            return $this->_cache[$cacheKey];
         }
 
-        $nameArray = explode(':', $name);
+        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
 
-        $appFiles = array();
-        $moduleFiles = array();
+        $expanded = $this->expand($resource, $type);
+        $found = array();
+        foreach($expanded as $resource) {
+            $found[] = $this->findResource($resource, $type);
+        }
+
+        $this->_cache[$cacheKey] = count($found) === 1 ? $found[0] : $found;
+        return $this->_cache[$cacheKey];
+    }
+
+    /**
+     * Finds a single resource. Does not support GLOB patterns.
+     *
+     * If you want to use GLOB patterns, use the find() method.
+     * 
+     * @param  string $resource Name of the resource to find.
+     * @param  string $type     Type of the resource.
+     * @return string
+     */
+    public function findResource($resource, $type) {
+        $cacheKey = $type .'#'. $resource;
+        if (isset($this->_resourceCache[$cacheKey])) {
+            return $this->_resourceCache[$cacheKey];
+        }
+
+        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
 
         // at first try application resources dir
+        // we do it always because some module resources may be overwritten in app resources dir
         try {
-            $appFiles = $this->findInApplicationDir($name, $type);
-            $appFiles = !is_array($appFiles) ? array($appFiles) : $appFiles;
+            $file = $this->findInApplicationDir($resource, $type);
         } catch(ResourceNotFoundException $e) {
-            // and if that failed, check in the module dir (assuming that the module name is specified)
-            if (empty($nameArray[0])) {
-                // rethrow the original exception then
+            // if this was a resource from app dir (no module name defined) then rethrow the exception
+            if (empty($moduleName)) {
                 throw $e;
             }
+
+            $file = $this->findInModuleDir($resource, $type);
         }
 
-        // if module name is specified then also look in the module
-        if (!empty($nameArray[0])) {
-            try {
-                $moduleFiles = $this->findInModuleDir($name, $type);
-                $moduleFiles = !is_array($moduleFiles) ? array($moduleFiles) : $moduleFiles;
-
-                // now remove any of the module files that were overwritten in the application dir
-                $appDir = rtrim($this->_application->getApplicationDir(), '/') . DS . 'Resources' . DS;
-                $appDirLength = strlen($appDir);
-                $moduleDir = rtrim($this->_application->getModule($nameArray[0])->getModuleDir(), '/') . DS .'Resources'. DS;
-                $moduleDirLength = strlen($moduleDir);
-
-                $rawAppFiles = array();
-                foreach($appFiles as $file) {
-                    $rawAppFile = substr($file, $appDirLength);
-                    $rawAppFiles[$rawAppFile] = $file;
-                }
-
-                foreach($moduleFiles as $i => $file) {
-                    $rawModuleFile = $nameArray[0] .'/'. substr($file, $moduleDirLength);
-                    if (isset($rawAppFiles[$rawModuleFile])) {
-                        unset($moduleFiles[$i]);
-                    }
-                }
-
-            } catch(ResourceNotFoundException $e) {
-                // if something was found in the app dir then we're good - ignore this exception
-                // otherwise rethrow it
-                if (empty($appFiles)) {
-                    throw $e;
-                }
-            }
-        }
-
-        $files = array_merge($appFiles, $moduleFiles);
-
-        // if only one result then return it
-        if (count($files) === 1) {
-            $files = $files[0];
-        }
-
-        // cache the result
-        if (!isset($this->_cache[$type])) {
-            $this->_cache[$type] = array();
-        }
-        $this->_cache[$type][$name] = $files;
-
-        return $files;
+        $this->_resourceCache[$cacheKey] = $file;
+        return $this->_resourceCache[$cacheKey];
     }
 
     /**
      * Finds path to the given resource in the application resources dir.
      * 
-     * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
+     * @param string $resource Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
      * @return string
      * 
      * @throws ResourceNotFoundException When the resource could not be found (does not exist).
      */
-    public function findInApplicationDir($name, $type) {
-        $nameArray = explode(':', $name);
-
-        if (count($nameArray) !== 3) {
-            throw new InvalidArgumentException('in format "[ModuleName]:[subDir]:filename"', $name);
-        }
+    public function findInApplicationDir($resource, $type) {
+        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
 
         // point to the application resources dir
-        $mainDir = rtrim($this->_application->getApplicationDir(), '/') . DS . 'Resources' . DS;
+        $mainDir = rtrim($this->_application->getApplicationDir(), DS) . DS . 'Resources' . DS;
 
-        // if a module name was specified then point to a subfolder with the modulename name
-        if (!empty($nameArray[0])) {
+        // if a module name was specified then point to a subfolder with the module name
+        if (!empty($moduleName)) {
             // check for module existence in the first place
-            if (!$this->_application->hasModule($nameArray[0])) {
-                throw new ResourceNotFoundException('There is no module "'. $nameArray[0] .'" registered, so cannot find its resource.');
+            if (!$this->_application->hasModule($moduleName)) {
+                throw new ResourceNotFoundException('There is no module "'. $moduleName .'" registered, so cannot find its resource.');
             }
 
-            $mainDir = $mainDir . $nameArray[0] . DS;
+            $mainDir = $mainDir . $moduleName . DS;
         }
 
-        $files = $this->buildResourcePath($mainDir, $type, $nameArray[1], $nameArray[2]);
-
-        // multiple files were found by glob so just return them (glob wouldn't return nonexistent files)
-        if (is_array($files)) {
-            return $files;
-        }
+        $path = $this->buildResourcePath($mainDir, $type, $subDir, $resourceFile);
 
         // single file was returned
-        if (!file_exists($files)) {
-            throw new ResourceNotFoundException('Resource "'. $name .'" not found in application resources dir at path "'. $files .'".');
+        if (!file_exists($path)) {
+            throw new ResourceNotFoundException('Resource "'. $resource .'" not found in application resources dir at path "'. $path .'".');
         }
 
-        return $files;
+        return $path;
     }
 
     /**
      * Finds path to the given resource in the resource's module dir.
      * 
-     * @param string $name Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
+     * @param string $resource Name of the resource in the format ModuleName:ResourceNameSpace:resourcename
      * @param string $type Type of the resource, e.g. "view". Really: sub dir of the module Resources dir where the resource could be.
      * @return string
      * 
      * @throws ResourceNotFoundException When the resource could not be found (does not exist).
      */
-    public function findInModuleDir($name, $type) {
-        // otherwise check in the module dir
-        $nameArray = explode(':', $name);
+    public function findInModuleDir($resource, $type) {
+        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource, true);
 
-        if (count($nameArray) !== 3 || empty($nameArray[0])) {
-            throw new InvalidArgumentException('in format "ModuleName:[subDir]:filename"', $name);
+        if (!$this->_application->hasModule($moduleName)) {
+            throw new ResourceNotFoundException('There is no module "'. $moduleName .'" registered, so cannot find its resource.');
         }
 
-        if (!$this->_application->hasModule($nameArray[0])) {
-            throw new ResourceNotFoundException('There is no module "'. $nameArray[0] .'" registered, so cannot find its resource.');
-        }
-
-        $module = $this->_application->getModule($nameArray[0]);
+        $module = $this->_application->getModule($moduleName);
         $mainDir = $module->getModuleDir();
 
-        $files = $this->buildResourcePath(rtrim($mainDir, '/') . DS .'Resources'. DS, $type, $nameArray[1], $nameArray[2]);
+        $path = $this->buildResourcePath(rtrim($mainDir, DS) . DS .'Resources'. DS, $type, $subDir, $resourceFile);
 
-        // multiple files were found by glob so just return them (glob wouldn't return nonexistent files)
-        if (is_array($files)) {
-            return $files;
+        if (!file_exists($path)) {
+            throw new ResourceNotFoundException('Resource "'. $resource .'" not found at path "'. $path .'".');
         }
 
-        if (!file_exists($files)) {
-            throw new ResourceNotFoundException('Resource "'. $name .'" not found at path "'. $files .'".');
+        return $path;
+    }
+
+    /**
+     * Expands GLOB resource patterns.
+     * 
+     * @param  string $resource Resource name.
+     * @param  string $type    Type of the resource.
+     * @return array
+     */
+    public function expand($resource, $type) {
+        list($moduleName, $subDir, $filePattern) = $this->parseResourceName($resource);
+
+        $resourceLocation = $moduleName .':'. $subDir .':';
+
+        // read from application dir
+        $appDir = rtrim($this->_application->getApplicationDir(), DS) . DS . 'Resources' . DS;
+
+        // if a module name was specified then point to a subfolder with the module name
+        if (!empty($moduleName)) {
+            // check for module existence in the first place
+            if (!$this->_application->hasModule($moduleName)) {
+                throw new ResourceNotFoundException('There is no module "'. $moduleName .'" registered, so cannot find its resource.');
+            }
+
+            $appDir = $appDir . $moduleName . DS;
         }
 
-        return $files;
+        $appDir = $this->buildResourcePath($appDir, $type, $subDir, '');
+        $appFiles = FilesystemUtils::glob($appDir . $filePattern, GLOB_NOCHECK | GLOB_BRACE);
+
+        $resources = array();
+        foreach($appFiles as $file) {
+            $resources[] = $resourceLocation . substr($file, mb_strlen($appDir));
+        }
+
+        // now take care of the module dir
+        if ($moduleName) {
+            $module = $this->_application->getModule($moduleName);
+            $moduleDir = rtrim($module->getModuleDir(), DS) . DS . 'Resources' . DS;
+            $moduleDir = $this->buildResourcePath($moduleDir, $type, $subDir, '');
+
+            $moduleFiles = FilesystemUtils::glob($moduleDir . $filePattern, GLOB_NOCHECK | GLOB_BRACE);
+
+            foreach($moduleFiles as $file) {
+                $resources[] = $resourceLocation . substr($file, mb_strlen($moduleDir));
+            }
+        }
+
+        $resources = array_unique($resources);
+        return ArrayUtils::resetKeys($resources);
     }
 
     /**
      * Helper function for building paths to resources.
-     *
-     * GLOB patterns can be used in $file.
-     *
-     * If GLOB matches more than one file then an array of those matched files is returned.
      * 
      * @param string $mainDir Root of the directory on which to build.
      * @param string $type Type of the resource.
      * @param string $subDir Any subdirectory under which the asset is.
      * @param string $file Name of the resource's file. GLOB patterns are allowed here.
-     * @return string|array
+     * @return string
      */
     private function buildResourcePath($mainDir, $type, $subDir, $file) {
         $typeDir = trim($type, DS);
@@ -230,17 +245,34 @@ class Finder
         $subDir = trim(str_replace(NS, DS, $subDir), DS);
         $subDir = empty($subDir) ? null : $subDir . DS;
 
-        // final pattern
-        $pattern = $mainDir . $typeDir . $subDir . $file;
-
-        $files = FilesystemUtils::glob($pattern, GLOB_NOCHECK | GLOB_BRACE);
-
-        return is_array($files) && count($files) === 1 ? $files[0] : $files;
+        return $mainDir . $typeDir . $subDir . $file;
     }
 
-    /*
-     * SETTERS AND GETTERS
+    /**
+     * Helper function for validating and parsing a resource name.
+     * 
+     * @param  string  $name           Resource name.
+     * @param  boolean $moduleRequired [optional] Is module name required? Default: false.
+     * @return array
+     *
+     * @throws InvalidArgumentException When the format is invalid.
      */
+    private function parseResourceName($name, $moduleRequired = false) {
+        $nameArray = explode(':', $name);
+        if (count($nameArray) !== 3) {
+            throw new InvalidArgumentException('in format "[ModuleName]:[subDir]:filename"', $name);
+        }
+
+        if ($moduleRequired && empty($nameArray[0])) {
+            throw new InvalidArgumentException('in format "ModuleName:[subDir]:filename"', $name);
+        }
+
+        return $nameArray;
+    }
+
+    /**************************
+     * SETTERS AND GETTERS
+     **************************/
     /**
      * Returns the application.
      * 

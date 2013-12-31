@@ -76,6 +76,21 @@ class FinderTest extends \PHPUnit_Framework_TestCase
             $finder->find('::index.js', 'public/js'));
     }
 
+    public function testFindingSingleInApplication() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $finder = new Finder($app);
+
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->findResource('::index.js', 'public/js'));
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->findResource('::js/index.js', 'public'));
+        // make sure 2nd time is the same (to cover cache case)
+        $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
+            $finder->findResource('::index.js', 'public/js'));
+    }
+
     public function testFindingInModule() {
         $app = new TestApplication();
         $this->initApplication($app);
@@ -110,66 +125,62 @@ class FinderTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider provideGlobPatterns
      */
-    public function testFindingGlobPatterns($pattern, array $result) {
+    public function testExpandingGlobPatterns($pattern, array $result) {
         $app = new TestApplication();
         $this->initApplication($app);
         $app->bootModule(new SplotResourcesTestModule());
 
         $finder = new Finder($app);
 
-        $this->assertEquals($result, $finder->find($pattern, 'public'), 'Failed to return valid glob results when finding resources.');
+        $this->assertEquals($result, $finder->expand($pattern, 'public'), 'Failed to return valid glob results when finding resources.');
     }
 
     public function provideGlobPatterns() {
-        $basePath = realpath(dirname(__FILE__)) .'/Fixtures/Resources/';
-        $baseAppPath = $basePath .'public/js/';
-        $baseModulePath = realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/public/js/';
-
         return array(
             array('::js/*.js', array(
-                    $baseAppPath .'chat.js',
-                    $baseAppPath .'contact.js',
-                    $baseAppPath .'index.js',
-                    $baseAppPath .'map.js'
+                    '::js/chat.js',
+                    '::js/contact.js',
+                    '::js/index.js',
+                    '::js/map.js'
                 )),
             array('::js/**/*.js', array(
-                    $baseAppPath .'lib/angular.js',
-                    $baseAppPath .'lib/jquery.js',
-                    $baseAppPath .'lib/lodash.js',
-                    $baseAppPath .'misc/chuckifier.js',
-                    $baseAppPath .'misc/gmap.js',
-                    $baseAppPath .'plugin/caroufredsel.js',
-                    $baseAppPath .'plugin/infinitescroll.js',
-                    $baseAppPath .'plugin/jquery.appendix.js'
+                    '::js/lib/angular.js',
+                    '::js/lib/jquery.js',
+                    '::js/lib/lodash.js',
+                    '::js/misc/chuckifier.js',
+                    '::js/misc/gmap.js',
+                    '::js/plugin/caroufredsel.js',
+                    '::js/plugin/infinitescroll.js',
+                    '::js/plugin/jquery.appendix.js'
                 )),
             array('::js/{,**/}*.js', array(
-                    $baseAppPath .'chat.js',
-                    $baseAppPath .'contact.js',
-                    $baseAppPath .'index.js',
-                    $baseAppPath .'lib/angular.js',
-                    $baseAppPath .'lib/jquery.js',
-                    $baseAppPath .'lib/lodash.js',
-                    $baseAppPath .'map.js',
-                    $baseAppPath .'misc/chuckifier.js',
-                    $baseAppPath .'misc/gmap.js',
-                    $baseAppPath .'plugin/caroufredsel.js',
-                    $baseAppPath .'plugin/infinitescroll.js',
-                    $baseAppPath .'plugin/jquery.appendix.js'
+                    '::js/chat.js',
+                    '::js/contact.js',
+                    '::js/index.js',
+                    '::js/lib/angular.js',
+                    '::js/lib/jquery.js',
+                    '::js/lib/lodash.js',
+                    '::js/map.js',
+                    '::js/misc/chuckifier.js',
+                    '::js/misc/gmap.js',
+                    '::js/plugin/caroufredsel.js',
+                    '::js/plugin/infinitescroll.js',
+                    '::js/plugin/jquery.appendix.js'
                 )),
             array('::js/{lib,plugin}/*.js', array(
-                    $baseAppPath .'lib/angular.js',
-                    $baseAppPath .'lib/jquery.js',
-                    $baseAppPath .'lib/lodash.js',
-                    $baseAppPath .'plugin/caroufredsel.js',
-                    $baseAppPath .'plugin/infinitescroll.js',
-                    $baseAppPath .'plugin/jquery.appendix.js'
+                    '::js/lib/angular.js',
+                    '::js/lib/jquery.js',
+                    '::js/lib/lodash.js',
+                    '::js/plugin/caroufredsel.js',
+                    '::js/plugin/infinitescroll.js',
+                    '::js/plugin/jquery.appendix.js'
                 )),
             array('SplotResourcesTestModule::js/*.js', array(
-                    $basePath .'SplotResourcesTestModule/public/js/overwrite.js',
-                    $basePath .'SplotResourcesTestModule/public/js/overwritten.js',
-                    $baseModulePath .'resources.js',
-                    $baseModulePath .'stuff.js',
-                    $baseModulePath .'test.js'
+                    'SplotResourcesTestModule::js/overwrite.js',
+                    'SplotResourcesTestModule::js/overwritten.js',
+                    'SplotResourcesTestModule::js/resources.js',
+                    'SplotResourcesTestModule::js/stuff.js',
+                    'SplotResourcesTestModule::js/test.js'
                 )),
         );
     }
@@ -232,6 +243,17 @@ class FinderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     */
+    public function testFindingInApplicationInvalidModule() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $finder = new Finder($app);
+        $finder->findInApplicationDir('RandomModule::index.js', 'public/js');
+    }
+
+    /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
      */
     public function testFindingInModuleInvalidFormat() {
@@ -240,6 +262,17 @@ class FinderTest extends \PHPUnit_Framework_TestCase
 
         $finder = new Finder($app);
         $finder->findInModuleDir('::some.lorem.ipsum_file.js', 'public/js');
+    }
+
+    /**
+     * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     */
+    public function testFindingInModuleInvalidModule() {
+        $app = new TestApplication();
+        $this->initApplication($app);
+
+        $finder = new Finder($app);
+        $finder->findInModuleDir('RandomModule::index.js', 'public/js');
     }
 
 }
