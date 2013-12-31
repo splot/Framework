@@ -142,6 +142,20 @@ class FinderTest extends \PHPUnit_Framework_TestCase
                     $baseAppPath .'plugin/infinitescroll.js',
                     $baseAppPath .'plugin/jquery.appendix.js'
                 )),
+            array('::js/{,**/}*.js', array(
+                    $baseAppPath .'chat.js',
+                    $baseAppPath .'contact.js',
+                    $baseAppPath .'index.js',
+                    $baseAppPath .'lib/angular.js',
+                    $baseAppPath .'lib/jquery.js',
+                    $baseAppPath .'lib/lodash.js',
+                    $baseAppPath .'map.js',
+                    $baseAppPath .'misc/chuckifier.js',
+                    $baseAppPath .'misc/gmap.js',
+                    $baseAppPath .'plugin/caroufredsel.js',
+                    $baseAppPath .'plugin/infinitescroll.js',
+                    $baseAppPath .'plugin/jquery.appendix.js'
+                )),
             array('::js/{lib,plugin}/*.js', array(
                     $baseAppPath .'lib/angular.js',
                     $baseAppPath .'lib/jquery.js',

@@ -12,6 +12,7 @@
 namespace Splot\Framework\Resources;
 
 use MD\Foundation\Exceptions\InvalidArgumentException;
+use MD\Foundation\Utils\FilesystemUtils;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Modules\AbstractModule;
@@ -232,7 +233,7 @@ class Finder
         // final pattern
         $pattern = $mainDir . $typeDir . $subDir . $file;
 
-        $files = glob($pattern, GLOB_NOCHECK | GLOB_BRACE);
+        $files = FilesystemUtils::glob($pattern, GLOB_NOCHECK | GLOB_BRACE);
 
         return is_array($files) && count($files) === 1 ? $files[0] : $files;
     }
