@@ -182,6 +182,9 @@ class FinderTest extends \PHPUnit_Framework_TestCase
                     'SplotResourcesTestModule::js/stuff.js',
                     'SplotResourcesTestModule::js/test.js'
                 )),
+            array('SplotResourcesTestModule::js/Lorem/*.js', array(
+                    'SplotResourcesTestModule::js/Lorem/ipsum.js'
+                )),
         );
     }
 

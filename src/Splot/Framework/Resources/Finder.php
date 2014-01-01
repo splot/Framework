@@ -74,6 +74,11 @@ class Finder
         list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
 
         $expanded = $this->expand($resource, $type);
+
+        if (empty($expanded)) {
+            throw new ResourceNotFoundException('Could not find resource "'. $resource .'".');
+        }
+
         $found = array();
         foreach($expanded as $resource) {
             $found[] = $this->findResource($resource, $type);
@@ -206,7 +211,7 @@ class Finder
         }
 
         $appDir = $this->buildResourcePath($appDir, $type, $subDir, '');
-        $appFiles = FilesystemUtils::glob($appDir . $filePattern, GLOB_NOCHECK | GLOB_BRACE);
+        $appFiles = FilesystemUtils::glob($appDir . $filePattern, GLOB_BRACE);
 
         $resources = array();
         foreach($appFiles as $file) {
@@ -219,7 +224,7 @@ class Finder
             $moduleDir = rtrim($module->getModuleDir(), DS) . DS . 'Resources' . DS;
             $moduleDir = $this->buildResourcePath($moduleDir, $type, $subDir, '');
 
-            $moduleFiles = FilesystemUtils::glob($moduleDir . $filePattern, GLOB_NOCHECK | GLOB_BRACE);
+            $moduleFiles = FilesystemUtils::glob($moduleDir . $filePattern, GLOB_BRACE);
 
             foreach($moduleFiles as $file) {
                 $resources[] = $resourceLocation . substr($file, mb_strlen($moduleDir));
