@@ -157,10 +157,10 @@ class FinderTest extends \PHPUnit_Framework_TestCase
                     '::js/chat.js',
                     '::js/contact.js',
                     '::js/index.js',
+                    '::js/map.js',
                     '::js/lib/angular.js',
                     '::js/lib/jquery.js',
                     '::js/lib/lodash.js',
-                    '::js/map.js',
                     '::js/misc/chuckifier.js',
                     '::js/misc/gmap.js',
                     '::js/plugin/caroufredsel.js',
@@ -183,6 +183,14 @@ class FinderTest extends \PHPUnit_Framework_TestCase
                     'SplotResourcesTestModule::js/test.js'
                 )),
             array('SplotResourcesTestModule::js/Lorem/*.js', array(
+                    'SplotResourcesTestModule::js/Lorem/ipsum.js'
+                )),
+            array('SplotResourcesTestModule::js/{,**/}*.js', array(
+                    'SplotResourcesTestModule::js/overwrite.js',
+                    'SplotResourcesTestModule::js/overwritten.js',
+                    'SplotResourcesTestModule::js/resources.js',
+                    'SplotResourcesTestModule::js/stuff.js',
+                    'SplotResourcesTestModule::js/test.js',
                     'SplotResourcesTestModule::js/Lorem/ipsum.js'
                 )),
         );

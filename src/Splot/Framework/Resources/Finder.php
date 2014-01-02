@@ -211,7 +211,7 @@ class Finder
         }
 
         $appDir = $this->buildResourcePath($appDir, $type, $subDir, '');
-        $appFiles = FilesystemUtils::glob($appDir . $filePattern, GLOB_BRACE);
+        $appFiles = FilesystemUtils::glob($appDir . $filePattern, FilesystemUtils::GLOB_ROOTFIRST | GLOB_BRACE);
 
         $resources = array();
         foreach($appFiles as $file) {
@@ -232,7 +232,7 @@ class Finder
         }
 
         $resources = array_unique($resources);
-        return ArrayUtils::resetKeys($resources);
+        return ArrayUtils::sortPaths($resources, true);
     }
 
     /**
