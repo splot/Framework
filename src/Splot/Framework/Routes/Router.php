@@ -130,7 +130,7 @@ class Router
     public function addRoute($name, $controllerClass, $moduleName = null, $urlPattern = null, array $methods = array()) {
         // must extend AbstractController
         $abstractControllerClass = AbstractController::__class();
-        if (!is_subclass_of($controllerClass, $abstractControllerClass, true)) {
+        if (!is_subclass_of($controllerClass, $abstractControllerClass)) {
             throw new InvalidControllerException('Route "'. $controllerClass .'" must extend "'. $abstractControllerClass .'".');
         }
 
