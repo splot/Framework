@@ -221,7 +221,7 @@ abstract class AbstractModule
         }
 
         $file = Debugger::getClassFile($this);
-        $this->_moduleDir = realpath(dirname($file)) .'/';
+        $this->_moduleDir = dirname($file) .'/';
         return $this->_moduleDir;
     }
 

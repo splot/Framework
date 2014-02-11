@@ -34,13 +34,13 @@ abstract class AbstractScriptHandler
             return self::$_application;
         }
 
-        $composerFile = realpath(dirname(__FILE__) .'/../../../../../../../composer.json');
+        $composerFile = dirname(__FILE__) .'/../../../../../../../composer.json';
         $composer = json_decode(file_get_contents($composerFile), true);
 
         define('SPLOT_SCRIPT_HANDLER', true);
 
         $appEntryPoint = (isset($composer['extra']) && isset($composer['extra']['splot-console'])) ? $composer['extra']['splot-console'] : 'app/console';
-        require_once realpath(dirname(__FILE__) .'/../../../../../../../'. $appEntryPoint);
+        require_once dirname(__FILE__) .'/../../../../../../../'. $appEntryPoint;
 
         self::$_application = Framework::getFramework()->getApplication();
         return self::$_application;
