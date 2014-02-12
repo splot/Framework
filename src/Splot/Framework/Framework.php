@@ -292,12 +292,17 @@ class Framework
         $applicationDir = (isset($options['applicationDir']))
             ? rtrim($options['applicationDir'], DS) . DS
             : dirname(Debugger::getClassFile($application)) . DS;
-        $cacheDir = $applicationDir .'cache'. DS;
+        $cacheDir = (isset($options['cacheDir']))
+            ? rtrim($options['cacheDir'], DS) . DS
+            : $applicationDir .'cache'. DS;
+        $configDir = (isset($options['configDir']))
+            ? rtrim($options['configDir'], DS) . DS
+            : $applicationDir .'config'. DS;
 
         /*****************************************
          * DECIDE ON ENVIRONMENT
          *****************************************/
-        $env = @$options['env'] ?: self::envFromConfigs($applicationDir .'config'. DS);
+        $env = @$options['env'] ?: $configDir;
 
         /*****************************************
          * READ CONFIG FOR THE APPLICATON
@@ -305,7 +310,7 @@ class Framework
         // default framework config first (to make sure all required settings are there)
         $defaultConfigFile = $this->_frameworkDir .'Config'. DS .'default.php';
         $config = new Config(include $defaultConfigFile);
-        $config->extend(Config::read($applicationDir .'config'. DS, $env));
+        $config->extend(Config::read($configDir, $env));
 
         if (isset($options['config'])) {
             $config->apply($options['config']);
