@@ -302,7 +302,7 @@ class Framework
         /*****************************************
          * DECIDE ON ENVIRONMENT
          *****************************************/
-        $env = @$options['env'] ?: $configDir;
+        $env = @$options['env'] ?: self::envFromConfigs($configDir);
 
         /*****************************************
          * READ CONFIG FOR THE APPLICATON
