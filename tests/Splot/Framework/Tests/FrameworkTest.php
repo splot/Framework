@@ -101,7 +101,7 @@ class FrameworkTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($container->hasParameter('cache_dir'));
         $this->assertTrue($container->has('filesystem'));
         $this->assertTrue($container->get('filesystem') instanceof Filesystem);
-        $this->assertTrue($container->has('log_provider'));
+        $this->assertTrue($container->has('logger_provider'));
         $this->assertSame($app, $container->get('application'));
         $this->assertEquals($options, $app->getOptions());
         $this->assertTrue($app->getConfig()->get('someInjectedSetting'));

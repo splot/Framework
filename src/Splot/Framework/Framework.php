@@ -21,7 +21,6 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\StringUtils;
 
-use MD\Clog\Clog;
 use MD\Clog\Writers\MemoryLogger;
 
 use Splot\Framework\Application\AbstractApplication;
@@ -34,6 +33,7 @@ use Splot\Framework\HTTP\Exceptions\NoAccessException;
 use Splot\Framework\HTTP\Exceptions\NotFoundException;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
+use Splot\Framework\Log\Clog;
 
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -214,7 +214,7 @@ class Framework
             'services' => array(
                 'clog' => $clog,
                 'clog.writer.memory' => $memoryLogger,
-                'log_provider' => $clog
+                'logger_provider' => $clog
             ),
             'timer' => $timer
         ), $options);
@@ -224,7 +224,7 @@ class Framework
 
         static::$_framework = new static(
             $options,
-            $clog->provideLogger('Splot'),
+            $clog->provide('Splot'),
             $console
         );
         return static::$_framework;
@@ -353,8 +353,8 @@ class Framework
         // inject the config, dependency injection container and environment to it
         $applicationLogger = isset($this->options['applicationLogger'])
             ? $this->options['applicationLogger']
-            : $serviceContainer->get('log_provider')->provideLogger('Application');
-        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('clog'));
+            : $serviceContainer->get('logger_provider')->provide('Application');
+        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('logger_provider'));
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {

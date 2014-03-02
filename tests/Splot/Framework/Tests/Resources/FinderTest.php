@@ -36,18 +36,17 @@ class FinderTest extends \PHPUnit_Framework_TestCase
         $config = new Config($configArray);
         $container = new ServiceContainer();
         $timer = new Timer();
-        $clog = $this->getMock('MD\Clog\Clog');
+        $loggerProvider = $this->getMock('Splot\Framework\Log\LoggerProviderInterface');
         $logger = $this->getMock('Psr\Log\LoggerInterface');
-
-        $clog->expects($this->any())
-            ->method('provideLogger')
+        $loggerProvider->expects($this->any())
+            ->method('provide')
             ->will($this->returnValue($logger));
 
         // container has to have few things defined
         $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
         $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
 
-        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $clog);
+        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $loggerProvider);
         
         return $app;
     }

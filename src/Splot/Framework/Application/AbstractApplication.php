@@ -21,8 +21,6 @@ use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
-use MD\Clog\Clog;
-
 use Splot\Cache\Store\FileStore;
 use Splot\Cache\CacheProvider;
 
@@ -48,6 +46,7 @@ use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
+use Splot\Framework\Log\LoggerProviderInterface;
 use Splot\Framework\Process\Process;
 use Splot\Framework\Resources\Finder;
 
@@ -170,11 +169,11 @@ abstract class AbstractApplication
      * @param string $applicationDir Path to application directory.
      * @param Timer $timer Global timer from the framework, for profiling.
      * @param LoggerInterface $logger Main application logger.
-     * @param Clog $clog Clog instance.
+     * @param LoggerProviderInterface $loggerProvider Logger provider.
      * 
      * @throws \RuntimeException When trying to initialize the application for a second time.
      */
-    final public function init(Config $config, ServiceContainer $container, $env, $applicationDir, Timer $timer, LoggerInterface $logger, Clog $clog) {
+    final public function init(Config $config, ServiceContainer $container, $env, $applicationDir, Timer $timer, LoggerInterface $logger, LoggerProviderInterface $loggerProvider) {
         if ($this->_initialized) {
             throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
         }
@@ -190,12 +189,12 @@ abstract class AbstractApplication
         $this->_applicationDir = $applicationDir;
 
         $this->_router = $router = new Router(
-            $clog->provideLogger('Router'),
+            $loggerProvider->provide('Router'),
             $config->get('router.host'),
             $config->get('router.protocol'),
             $config->get('router.port')
         );
-        $this->_eventManager = $eventManager = new EventManager($clog->provideLogger('Event Manager'));
+        $this->_eventManager = $eventManager = new EventManager($loggerProvider->provide('Event Manager'));
         $this->_resourceFinder = $resourceFinder = new Finder($this);
 
         // define all of the above as services as well
@@ -228,8 +227,8 @@ abstract class AbstractApplication
             return new Process();
         }, true, true);
         // console
-        $container->set('console', function($c) use ($app, $clog) {
-            return new Console($app, $clog->provideLogger('Console'));
+        $container->set('console', function($c) use ($app, $loggerProvider) {
+            return new Console($app, $loggerProvider->provide('Console'));
         }, true, true);
         // cache
         $this->registerCaches($container, $config);
