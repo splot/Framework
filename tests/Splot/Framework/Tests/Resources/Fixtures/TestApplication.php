@@ -1,5 +1,5 @@
 <?php
-namespace Splot\Framework\Tests\Finder\Fixtures;
+namespace Splot\Framework\Tests\Resources\Fixtures;
 
 use Splot\Framework\Application\AbstractApplication;
 

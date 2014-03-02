@@ -16,6 +16,7 @@ use Splot\Framework\Tests\Application\Fixtures\Modules\ResponseTestModule\SplotR
 
 use Psr\Log\NullLogger;
 use MD\Foundation\Debug\Timer;
+use MD\Clog\Clog;
 use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Routes\Router;
@@ -42,6 +43,8 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 
     protected function initApplication(AbstractApplication $app, $env = 'test', array $configArray = array()) {
         $configArray = (!empty($configArray)) ? $configArray : array(
+            'log_file' => false,
+            'log_threshold' => 'debug',
             'cache' => array(
                 'stores' => array(),
                 'caches' => array()
@@ -65,6 +68,7 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 
         // container has to have few things defined
         $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
+        $container->set('clog', new Clog());
         $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
 
         $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $loggerProvider);
@@ -76,6 +80,8 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $app = new TestApplication();
 
         $config = new Config(array(
+            'log_file' => false,
+            'log_threshold' => 'debug',
             'cache' => array(
                 'stores' => array(
                     'memory' => array(
@@ -103,6 +109,7 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 
         // container has to have few things defined
         $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
+        $container->set('clog', new Clog());
         $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
 
         $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $loggerProvider);
@@ -148,6 +155,8 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
     public function testInvalidCacheStoreInitialization() {
         $app = new TestApplication();
         $this->initApplication($app, 'test', array(
+            'log_file' => false,
+            'log_threshold' => 'debug',
             'cache' => array(
                 'stores' => array(
                     'memory' => array()
@@ -301,6 +310,8 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
     public function testBootingAndInitializingModules() {
         $app = new TestApplication();
         $this->initApplication($app, 'test', array(
+            'log_file' => false,
+            'log_threshold' => 'debug',
             'cache' => array(
                 'stores' => array(
                     'memory' => array(

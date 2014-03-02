@@ -4,6 +4,9 @@ return array(
 
     'timezone' => 'Europe/London',
 
+    'log_file' => false,
+    'log_threshold' => 'debug',
+
     'debugger' => array(
         'enabled' => true
     ),

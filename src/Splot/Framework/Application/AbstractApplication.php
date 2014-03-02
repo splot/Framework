@@ -21,6 +21,8 @@ use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
+use MD\Clog\Writers\FileLogger;
+
 use Splot\Cache\Store\FileStore;
 use Splot\Cache\CacheProvider;
 
@@ -187,6 +189,10 @@ abstract class AbstractApplication
         $this->container = $container;
         $this->_env = $env;
         $this->_applicationDir = $applicationDir;
+
+        // set file logger
+        $container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
+        $container->get('clog')->addWriter($container->get('clog.writer.file'));
 
         $this->_router = $router = new Router(
             $loggerProvider->provide('Router'),
@@ -415,7 +421,7 @@ abstract class AbstractApplication
      * @param Request $request The original HTTP request for context.
      */
     public function sendResponse(Response $response, Request $request) {
-        $this->_logger->info('Will send response', array(
+        $this->_logger->debug('Will send response', array(
             'time' => $this->_timer->getDuration(),
             'memory' => $this->_timer->getCurrentMemoryPeak(),
             '_timer' => $this->_timer->step('Will send response'),
@@ -457,7 +463,7 @@ abstract class AbstractApplication
 
         $response = $controllerResponse->getResponse();
 
-        $this->_logger->info('Executed controller: "{name}"', array(
+        $this->_logger->debug('Executed controller: "{name}"', array(
             'name' => $name,
             'function' => $class .'::'. $method,
             'arguments' => $arguments,
