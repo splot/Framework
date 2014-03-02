@@ -8,7 +8,6 @@ use Splot\Framework\Tests\Framework\Fixtures\UnnamedApplication;
 use Splot\Framework\Tests\Framework\Fixtures\WronglyNamedApplication;
 
 use Psr\Log\NullLogger;
-use Splot\Log\LogContainer;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -17,7 +16,6 @@ class FrameworkTest extends \PHPUnit_Framework_TestCase
 
     public function tearDown() {
         Framework::reset();
-        LogContainer::clear();
     }
 
     public function testInitializingWithDefaults() {

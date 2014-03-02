@@ -15,7 +15,6 @@
  */
 namespace Splot\Framework\Testing;
 
-use Splot\Log\LogContainer;
 use Splot\Framework\Framework;
 use Splot\Framework\Testing\Stubs\TestApplication;
 
@@ -47,7 +46,6 @@ class TestCase extends \PHPUnit_Framework_TestCase
     public function tearDown() {
         $this->_application = null;
         Framework::reset();
-        LogContainer::clear();
     }
 
 }

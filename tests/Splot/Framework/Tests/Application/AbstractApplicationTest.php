@@ -15,7 +15,6 @@ use Splot\Framework\Tests\Application\Fixtures\Modules\RoutesTestModule\SplotRou
 use Splot\Framework\Tests\Application\Fixtures\Modules\ResponseTestModule\SplotResponseTestModule;
 
 use Psr\Log\NullLogger;
-use Splot\Log\Provider\LogProvider;
 use MD\Foundation\Debug\Timer;
 use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
@@ -41,10 +40,6 @@ use Splot\Framework\Events\WillSendResponse;
 class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
 
-    public function tearDown() {
-        \Splot\Log\LogContainer::clear();
-    }
-
     protected function initApplication(AbstractApplication $app, $env = 'test', array $configArray = array()) {
         $configArray = (!empty($configArray)) ? $configArray : array(
             'cache' => array(
@@ -61,14 +56,19 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $config = new Config($configArray);
         $container = new ServiceContainer();
         $timer = new Timer();
-        $logger = new NullLogger();
-        $logProvider = new LogProvider();
+
+        $clog = $this->getMock('MD\Clog\Clog');
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+
+        $clog->expects($this->any())
+            ->method('provideLogger')
+            ->will($this->returnValue($logger));
 
         // container has to have few things defined
         $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
         $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
 
-        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $logProvider);
+        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $clog);
         
         return $app;
     }
@@ -96,14 +96,18 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         ));
         $container = new ServiceContainer();
         $timer = new Timer();
-        $logger = new NullLogger();
-        $logProvider = new LogProvider();
+        $clog = $this->getMock('MD\Clog\Clog');
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+
+        $clog->expects($this->any())
+            ->method('provideLogger')
+            ->will($this->returnValue($logger));
 
         // container has to have few things defined
         $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
         $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
 
-        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $logProvider);
+        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $clog);
 
         // make sure the injected objects are properly available
         $this->assertSame($container, $app->getContainer());

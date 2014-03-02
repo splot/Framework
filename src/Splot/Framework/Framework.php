@@ -21,10 +21,8 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\StringUtils;
 
-use Splot\Log\Provider\LogProvider;
-use Splot\Log\Provider\LogProviderInterface;
-use Splot\Log\LogContainer;
-use Splot\Log\Logger;
+use MD\Clog\Clog;
+use MD\Clog\Writers\MemoryLogger;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
@@ -54,7 +52,7 @@ class Framework
     private $_frameworkDir;
     private $_vendorDir;
 
-    private $_options = array();
+    protected $options = array();
 
     private $_console = false;
 
@@ -63,7 +61,7 @@ class Framework
      * 
      * @var LoggerInterface
      */
-    private $_logger;
+    protected $logger;
     private $_timer;
 
     private $_application;
@@ -80,9 +78,10 @@ class Framework
      * @codeCoverageIgnore
      */
     final public static function web(AbstractApplication $application, array $options = array()) {
+        // Splot Framework and application initialization
+        $splot = static::init($options);
+
         try {
-            // Splot Framework and application initialization
-            $splot = static::init($options);
             $application = $splot->bootApplication($application, $options);
 
             // handling the request
@@ -100,7 +99,13 @@ class Framework
                 $httpResponseCode = 403;
             }
 
-            Debugger::handleException($e, LogContainer::exportLogs(), $httpResponseCode);
+            $options = $splot->getOptions();
+            $messages = array();
+            if (isset($options['services']) && isset($options['services']['clog.writer.memory'])) {
+                $messages = $options['services']['clog.writer.memory']->getMessages();
+            }
+
+            Debugger::handleException($e, $messages, $httpResponseCode);
         }
     }
 
@@ -191,23 +196,25 @@ class Framework
      * @return Framework
      */
     final public static function init(array $options = array(), $console = false) {
-        if (self::$_framework) {
-            return self::$_framework;
+        if (static::$_framework) {
+            return static::$_framework;
         }
 
         // init the benchmark timer as early as possible
         $timer = new Timer();
 
-        // create log provider for default "log_provider" service.
-        $logProvider = new LogProvider();
+        // use Clog everywhere with a default memory writer
+        $clog = new Clog();
+        $memoryLogger = new MemoryLogger();
+        $clog->addWriter($memoryLogger);
 
         $options = ArrayUtils::merge(array(
             'logger' => null,
             'timezone' => 'Europe/London',
             'services' => array(
-                'log_provider' => function($c) use ($logProvider) {
-                    return $logProvider;
-                }
+                'clog' => $clog,
+                'clog.writer.memory' => $memoryLogger,
+                'log_provider' => $clog
             ),
             'timer' => $timer
         ), $options);
@@ -215,18 +222,12 @@ class Framework
         // set default timezone from options, for now
         date_default_timezone_set($options['timezone']);
 
-        // for debug, set as early as possible
-        LogContainer::setStartTime(Timer::getMicroTime());
-
-        // but now just get reference to the real log provider, in case it was overwritten in options
-        $realLogProvider = call_user_func_array($options['services']['log_provider'], array(null));
-
-        self::$_framework = new self(
+        static::$_framework = new static(
             $options,
-            ($options['logger']) ? $options['logger'] : $realLogProvider->provide('Splot Framework'),
+            $clog->provideLogger('Splot'),
             $console
         );
-        return self::$_framework;
+        return static::$_framework;
     }
 
     /**
@@ -238,7 +239,7 @@ class Framework
      */ 
     final private function __construct(array $options = array(), LoggerInterface $logger = null, $console = false) {
         $this->_timer = $options['timer'];
-        $this->_logger = $logger;
+        $this->logger = $logger;
         $this->_console = $console;
 
         ini_set('default_charset', 'utf8');
@@ -256,9 +257,9 @@ class Framework
         $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
         $this->_vendorDir = rtrim($this->_vendorDir, '/') .'/';
 
-        $this->_options = $options;
+        $this->options = $options;
 
-        $this->_logger->info('Splot Framework successfully initialized.', array(
+        $this->logger->info('Splot Framework successfully initialized.', array(
             'rootDir' => $this->_rootDir,
             'frameworkDir' => $this->_frameworkDir,
             'webDir' => $this->_webDir,
@@ -319,12 +320,6 @@ class Framework
         // set the timezone based on config
         date_default_timezone_set($config->get('timezone'));
 
-        // update the logger settings based on config
-        if ($this->_logger instanceof Logger) {
-            $this->_logger->setEnabled($config->get('debugger.enabled'));
-        }
-        LogContainer::setEnabled($config->get('debugger.enabled'));
-
         /*****************************************
          * INITIALIZE DEPENDENCY INJECTION CONTAINER
          *****************************************/
@@ -348,7 +343,7 @@ class Framework
         }, true, true);
 
         // now register all custom services that may have been sent in framework options
-        foreach($this->_options['services'] as $name => $service) {
+        foreach($this->options['services'] as $name => $service) {
             $serviceContainer->set($name, $service);
         }
 
@@ -356,15 +351,17 @@ class Framework
          * INITIALIZE & BOOT APPLICATION
          *****************************************/
         // inject the config, dependency injection container and environment to it
-        $applicationLogger = (isset($this->_options['applicationLogger'])) ? $this->_options['applicationLogger'] : $serviceContainer->get('log_provider')->provide('Application');
-        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('log_provider'));
+        $applicationLogger = isset($this->options['applicationLogger'])
+            ? $this->options['applicationLogger']
+            : $serviceContainer->get('log_provider')->provideLogger('Application');
+        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('clog'));
 
         // also define the application as a read-only service
         $serviceContainer->set('application', function($container) use ($application) {
             return $application;
         }, true, true);
 
-        $this->_logger->info('Started application "{applicationClass}".', array(
+        $this->logger->info('Started application "{applicationClass}".', array(
             'applicationClass' => $applicationClass,
             'env' => $env,
             'configFiles' => $config->getReadFiles(),
@@ -375,7 +372,7 @@ class Framework
 
         // boot the application
         $application->boot($options);
-        $this->_logger->info('Booted application "{applicationClass}".', array(
+        $this->logger->info('Booted application "{applicationClass}".', array(
             'applicationClass' => $applicationClass,
             'options' => $options,
             '_timer' => $this->_timer->step('Application Boot')
@@ -388,7 +385,7 @@ class Framework
         foreach($modules as $module) {
             $application->bootModule($module);
 
-            $this->_logger->info('Module "{name}" loaded.', array(
+            $this->logger->info('Module "{name}" loaded.', array(
                 'name' => $module->getName(),
                 'class' => $module->getClass(),
                 'dir' => $module->getModuleDir(),
@@ -406,7 +403,7 @@ class Framework
         foreach($routes as $route) {
             $routesLog[$route->getName()] = $route->getUrlPattern();
         }
-        $this->_logger->info('Registered {count} routes to controllers.', array(
+        $this->logger->info('Registered {count} routes to controllers.', array(
             'count' => count($routes),
             'routes' => $routesLog,
             '_timer' => $this->_timer->step('Routes loaded.'),
@@ -551,6 +548,24 @@ class Framework
      */
     public function getVendorDir() {
         return $this->_vendorDir;
+    }
+
+    /**
+     * Returns the initialization options.
+     * 
+     * @return array
+     */
+    public function getOptions() {
+        return $this->options;
+    }
+
+    /**
+     * Returns the application logger.
+     * 
+     * @return LoggerInterface
+     */
+    public function getLogger() {
+        return $this->logger;
     }
 
     /**

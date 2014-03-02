@@ -17,13 +17,13 @@
         "symfony/console": "dev-master",
         "symfony/process": "dev-master",
         "michaldudek/foundation": "dev-master",
+        "michaldudek/clog": "dev-master",
         "splot/event-manager": "dev-master",
         "splot/cache": "dev-master",
-        "splot/log": "dev-master",
         "splot/stats-tracker": "dev-master"
     },
     "require-dev": {
-        "phpunit/phpunit": "3.8.*@dev"
+        "phpunit/phpunit": "3.7.*"
     },
     "minimum-stability": "dev",
     "autoload": {
