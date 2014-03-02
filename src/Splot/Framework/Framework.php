@@ -259,7 +259,7 @@ class Framework
 
         $this->options = $options;
 
-        $this->logger->info('Splot Framework successfully initialized.', array(
+        $this->logger->debug('Splot Framework successfully initialized.', array(
             'rootDir' => $this->_rootDir,
             'frameworkDir' => $this->_frameworkDir,
             'webDir' => $this->_webDir,
@@ -361,7 +361,7 @@ class Framework
             return $application;
         }, true, true);
 
-        $this->logger->info('Started application "{applicationClass}".', array(
+        $this->logger->debug('Started application "{applicationClass}".', array(
             'applicationClass' => $applicationClass,
             'env' => $env,
             'configFiles' => $config->getReadFiles(),
@@ -372,7 +372,7 @@ class Framework
 
         // boot the application
         $application->boot($options);
-        $this->logger->info('Booted application "{applicationClass}".', array(
+        $this->logger->debug('Booted application "{applicationClass}".', array(
             'applicationClass' => $applicationClass,
             'options' => $options,
             '_timer' => $this->_timer->step('Application Boot')
@@ -385,7 +385,7 @@ class Framework
         foreach($modules as $module) {
             $application->bootModule($module);
 
-            $this->logger->info('Module "{name}" loaded.', array(
+            $this->logger->debug('Module "{name}" loaded.', array(
                 'name' => $module->getName(),
                 'class' => $module->getClass(),
                 'dir' => $module->getModuleDir(),
@@ -403,7 +403,7 @@ class Framework
         foreach($routes as $route) {
             $routesLog[$route->getName()] = $route->getUrlPattern();
         }
-        $this->logger->info('Registered {count} routes to controllers.', array(
+        $this->logger->debug('Registered {count} routes to controllers.', array(
             'count' => count($routes),
             'routes' => $routesLog,
             '_timer' => $this->_timer->step('Routes loaded.'),
