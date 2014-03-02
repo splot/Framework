@@ -474,6 +474,14 @@ class Framework
         set_error_handler(function($code, $message, $file, $line, $context) use ($self) {
             // if application is already booted then handle error using event manager
             if ($self->getApplication()) {
+                // log it
+                $self->getApplication()->getLogger()->critical($message .' - in {file} on line {line}', array(
+                    'code' => $code,
+                    'file' => $file,
+                    'line' => $line
+                ));
+
+                // also run it through event manager
                 $eventManager = $self->getApplication()->getEventManager();
                 $errorEvent = new ErrorDidOccur($code, $message, $file, $line, $context);
                 $eventManager->trigger($errorEvent);
@@ -495,6 +503,14 @@ class Framework
                 $error = error_get_last();
 
                 if ($error !== null) {
+                    // log it
+                    $self->getApplication()->getLogger()->critical($error['message'] .' - {type} in {file} on line {line}', array(
+                        'type' => $error['type'],
+                        'file' => $error['file'],
+                        'line' => $error['line']
+                    ));
+
+                    // also run it through event manager
                     $eventManager = $self->getApplication()->getEventManager();
                     $fatalErrorEvent = new FatalErrorDidOccur($error['type'], $error['message'], $error['file'], $error['line']);
                     $eventManager->trigger($fatalErrorEvent);
