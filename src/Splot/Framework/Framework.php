@@ -29,8 +29,7 @@ use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
-use Splot\Framework\HTTP\Exceptions\NoAccessException;
-use Splot\Framework\HTTP\Exceptions\NotFoundException;
+use Splot\Framework\HTTP\Exceptions\HTTPExceptionInterface;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
 use Splot\Framework\Log\Clog;
@@ -93,10 +92,8 @@ class Framework
         } catch (\Exception $e) {
             // set a valid response code
             $httpResponseCode = 500;
-            if ($e instanceof NotFoundException) {
-                $httpResponseCode = 404;
-            } elseif ($e instanceof NoAccessException) {
-                $httpResponseCode = 403;
+            if ($e instanceof HTTPExceptionInterface) {
+                $httpResponseCode = $e->getCode();
             }
 
             $options = $splot->getOptions();

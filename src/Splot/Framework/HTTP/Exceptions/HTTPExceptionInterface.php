@@ -1,6 +1,6 @@
 <?php
 /**
- * Exception thrown when access is denied to a resource and it should trigger a 403 response.
+ * Interface for tagging exceptions which code should be used as a HTTP response code.
  * 
  * @package SplotFramework
  * @subpackage HTTP
@@ -11,9 +11,7 @@
  */
 namespace Splot\Framework\HTTP\Exceptions;
 
-use MD\Foundation\Exceptions\Exception;
-
-class NoAccessException extends Exception
+interface HTTPExceptionInterface
 {
 
     

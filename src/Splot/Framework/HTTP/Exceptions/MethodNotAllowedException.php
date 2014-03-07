@@ -1,6 +1,6 @@
 <?php
 /**
- * Exception thrown when something has not been found and it should trigger a 404 response.
+ * Exception thrown when request method is not allowed.
  * 
  * @package SplotFramework
  * @subpackage HTTP
@@ -11,13 +11,13 @@
  */
 namespace Splot\Framework\HTTP\Exceptions;
 
-use MD\Foundation\Exceptions\NotFoundException as Base_NotFoundException;
+use MD\Foundation\Exceptions\Exception;
 
 use Splot\Framework\HTTP\Exceptions\HTTPExceptionInterface;
 
-class NotFoundException extends Base_NotFoundException implements HTTPExceptionInterface
+class MethodNotAllowedException extends Exception implements HTTPExceptionInterface
 {
 
-    protected $code = 404;    
+    protected $code = 405;
 
 }
