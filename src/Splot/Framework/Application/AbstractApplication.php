@@ -333,7 +333,8 @@ abstract class AbstractApplication
                 return $request;
             }, true);
 
-            $this->_logger->info('Received request', array(
+            $this->_logger->debug('Received request for {uri}', array(
+                'uri' => $request->getRequestUri(),
                 'request' => $request,
                 '_timer' => $this->_timer->step('Received request'),
                 '_tags' => 'request'
