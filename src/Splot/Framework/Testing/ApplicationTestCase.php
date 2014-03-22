@@ -39,7 +39,7 @@ class ApplicationTestCase extends TestCase
 
         $appClass = static::$_applicationClass;
         $this->_application = new $appClass();
-        Framework::test($this->_application, array());
+        Framework::run($this->_application, 'dev', true, Framework::MODE_TEST);
     }
 
     /**
@@ -49,7 +49,7 @@ class ApplicationTestCase extends TestCase
      * @return AbstractController
      */
     public function getController($name) {
-        $class = $this->_application->getRouter()->getRoute($name)->getControllerClass();
+        $class = $this->_application->getContainer()->get('router')->getRoute($name)->getControllerClass();
         return new $class($this->_application->getContainer());
     }
 

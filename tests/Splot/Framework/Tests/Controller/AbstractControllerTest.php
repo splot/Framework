@@ -6,7 +6,11 @@ use Splot\Framework\Tests\Controller\Fixtures\TestController;
 use Splot\Framework\Tests\Controller\Fixtures\NonEmptyController;
 use Splot\Framework\Tests\DependencyInjection\Fixtures\TestService;
 
+use Splot\Framework\Controller\AbstractController;
 
+/**
+ * @coversDefaultClass Splot\Framework\Controller\AbstractController
+ */
 class AbstractControllerTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -52,6 +56,33 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
             'put' => 'new',
             'delete' => false
         ), NonEmptyController::_getMethods());
+    }
+
+    /**
+     * @covers ::render
+     */
+    public function testRender() {
+        $view = 'index.html';
+        $data = array(
+            'var1' => 'value',
+            'var2' => 'value2'
+        );
+        $rendered = 'Hello World!';
+
+        $templating = $this->getMock('Splot\Framework\Templating\TemplatingEngineInterface');
+        $templating->expects($this->once())
+            ->method('render')
+            ->with($this->equalTo($view), $this->equalTo($data))
+            ->will($this->returnValue($rendered));
+
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container->expects($this->once())
+            ->method('get')
+            ->with($this->equalTo('templating'))
+            ->will($this->returnValue($templating));
+
+        $controller = $this->getMockForAbstractClass('Splot\Framework\Controller\AbstractController', array($container));
+        $this->assertEquals($rendered, $controller->render($view, $data));
     }
 
     public function testCheckingIfWillRespondToMethod() {

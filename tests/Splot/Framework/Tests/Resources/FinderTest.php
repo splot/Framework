@@ -54,7 +54,7 @@ class FinderTest extends ApplicationTestCase
     }
 
     public function testFindingInModule() {
-        $this->_application->bootModule(new SplotResourcesTestModule());
+        $this->_application->addTestModule(new SplotResourcesTestModule());
 
         $finder = new Finder($this->_application);
 
@@ -65,7 +65,7 @@ class FinderTest extends ApplicationTestCase
     }
 
     public function testFindingOverwrittenInApplication() {
-        $this->_application->bootModule(new SplotResourcesTestModule());
+        $this->_application->addTestModule(new SplotResourcesTestModule());
 
         $finder = new Finder($this->_application);
 
@@ -83,7 +83,7 @@ class FinderTest extends ApplicationTestCase
      * @dataProvider provideGlobPatterns
      */
     public function testExpandingGlobPatterns($pattern, array $result) {
-        $this->_application->bootModule(new SplotResourcesTestModule());
+        $this->_application->addTestModule(new SplotResourcesTestModule());
 
         $finder = new Finder($this->_application);
 
@@ -171,7 +171,7 @@ class FinderTest extends ApplicationTestCase
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
      */
     public function testFindingNotExistingFileInModule() {
-        $this->_application->bootModule(new SplotResourcesTestModule());
+        $this->_application->addTestModule(new SplotResourcesTestModule());
 
         $finder = new Finder($this->_application);
         $finder->find('SplotResourcesTestModule::undefined.js', 'public');

@@ -10,8 +10,6 @@ class defaultTest extends \PHPUnit_Framework_TestCase
 
         $this->assertInternalType('array', $default);
         $this->assertArrayHasKey('timezone', $default);
-        $this->assertArrayHasKey('debugger', $default);
-        $this->assertArrayHasKey('enabled', $default['debugger']);
         $this->assertArrayHasKey('cache', $default);
     }
 

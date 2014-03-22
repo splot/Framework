@@ -11,8 +11,6 @@ use Splot\Framework\Tests\Routes\Fixtures\TestPrivateController;
 use Splot\Framework\Tests\Routes\Fixtures\TestModule\SplotRouterTestModule;
 use Splot\Framework\Tests\Modules\Fixtures\TestModule;
 
-use Psr\Log\NullLogger;
-
 /**
  * @coversDefaultClass Splot\Framework\Routes\Router
  */
@@ -20,7 +18,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
     protected function provideRouter() {
-        return new Router(new NullLogger());
+        return new Router($this->getMock('Psr\Log\LoggerInterface'));
     }
 
     /**

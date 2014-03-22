@@ -1,17 +1,13 @@
 <?php
 namespace Splot\Framework\Tests\Application\Fixtures;
 
-use Splot\Framework\Application\AbstractApplication;
+use Splot\Framework\Testing\Stubs\TestApplication as Base_TestApplication;
 
-class TestApplication extends AbstractApplication
+class TestApplication extends Base_TestApplication
 {
 
     protected $name = 'TestApplication';
     protected $version = 'test';
-
-    public function boot(array $options = array()) {
-
-    }
 
     public function loadModules() {
         return array();

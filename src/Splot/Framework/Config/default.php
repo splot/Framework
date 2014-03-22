@@ -7,10 +7,6 @@ return array(
     'log_file' => false,
     'log_threshold' => 'debug',
 
-    'debugger' => array(
-        'enabled' => true
-    ),
-
     'cache' => array(
         'enabled' => true,
         'stores' => array(),

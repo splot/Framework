@@ -214,6 +214,15 @@ class ServiceContainer
     }
 
     /**
+     * Returns all set parameters.
+     * 
+     * @return array
+     */
+    public function getParameters() {
+        return $this->_parameters;
+    }
+
+    /**
      * Lists all defined parameters.
      * 
      * @return array

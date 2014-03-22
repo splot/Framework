@@ -15,6 +15,8 @@ use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\InvalidFileException;
 use MD\Foundation\Utils\ArrayUtils;
 
+use Splot\Framework\DependencyInjection\ServiceContainer;
+
 class Config
 {
 
@@ -161,6 +163,25 @@ class Config
         }
 
         return $this->_config[$namespace];
+    }
+
+    /**
+     * Returns a parameter value from the service container.
+     * 
+     * @param  string $name Name of the parameter.
+     * @return mixed
+     */
+    public function getParameter($name) {
+        return $this->container->getParameter($name);
+    }
+
+    /**
+     * Inject the service container.
+     * 
+     * @param ServiceContainer $container The service container.
+     */
+    public function setContainer(ServiceContainer $container) {
+        $this->container = $container;
     }
 
     /**

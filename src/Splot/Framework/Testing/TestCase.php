@@ -37,7 +37,7 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function setUp() {
         $this->_application = new TestApplication();
-        Framework::test($this->_application, $this->_options);
+        Framework::run($this->_application, 'dev', true, Framework::MODE_TEST);
     }
 
     /**
@@ -45,7 +45,6 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function tearDown() {
         $this->_application = null;
-        Framework::reset();
     }
 
 }

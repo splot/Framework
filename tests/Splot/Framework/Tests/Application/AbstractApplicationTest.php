@@ -1,485 +1,197 @@
 <?php
 namespace Splot\Framework\Tests\Application;
 
-use Splot\Framework\Application\AbstractApplication;
-
 use Splot\Framework\Tests\Application\Fixtures\TestApplication;
-use Splot\Framework\Tests\Modules\Fixtures\NamedModule;
-use Splot\Framework\Tests\Modules\Fixtures\TestModule;
-use Splot\Framework\Tests\Application\Fixtures\Controllers\InjectedRequestController;
-use Splot\Framework\Tests\Application\Fixtures\Controllers\InvalidReturnValueController;
-use Splot\Framework\Tests\Application\Fixtures\Modules\ConfiguredTestModule\SplotConfiguredTestModule;
-use Splot\Framework\Tests\Application\Fixtures\Modules\DuplicatedTestModule\SplotDuplicatedTestModule;
-use Splot\Framework\Tests\Application\Fixtures\Modules\EmptyTestModule\SplotEmptyTestModule;
-use Splot\Framework\Tests\Application\Fixtures\Modules\RoutesTestModule\SplotRoutesTestModule;
-use Splot\Framework\Tests\Application\Fixtures\Modules\ResponseTestModule\SplotResponseTestModule;
 
-use Psr\Log\NullLogger;
-use MD\Foundation\Debug\Timer;
-use MD\Clog\Clog;
-use Splot\Framework\Config\Config;
-use Splot\Framework\DependencyInjection\ServiceContainer;
-use Splot\Framework\Routes\Router;
-use Splot\EventManager\EventManager;
-use Splot\Framework\Resources\Finder;
-use Splot\Framework\Process\Process;
-use Splot\Framework\Console\Console;
-use Splot\Cache\Store\FileStore;
-use Splot\Cache\CacheProvider;
-use Splot\Cache\CacheInterface;
-use Splot\Framework\HTTP\Request;
-use Splot\Framework\HTTP\Response;
-use Splot\Framework\Events\ControllerWillRespond;
-use Splot\Framework\Events\ControllerDidRespond;
-use Splot\Framework\Events\DidReceiveRequest;
-use Splot\Framework\Events\DidFindRouteForRequest;
-use Splot\Framework\Events\DidNotFindRouteForRequest;
-use Splot\Framework\Events\ExceptionDidOccur;
-use Splot\Framework\Events\WillSendResponse;
-
-
+/**
+ * @coversDefaultClass Splot\Framework\Application\AbstractApplication
+ */
 class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
 
-    protected function initApplication(AbstractApplication $app, $env = 'test', array $configArray = array()) {
-        $configArray = (!empty($configArray)) ? $configArray : array(
-            'log_file' => false,
-            'log_threshold' => 'debug',
-            'cache' => array(
-                'stores' => array(),
-                'caches' => array()
-            ),
-            'router' => array(
-                'host' => 'localhost',
-                'protocol' => 'http://',
-                'port' => 80,
-                'use_request' => true
-            )
-        );
-        $config = new Config($configArray);
-        $container = new ServiceContainer();
-        $timer = new Timer();
+    /**
+     * @covers ::bootstrap
+     * @covers ::setContainer
+     * @covers ::getContainer
+     * @covers ::setLogger
+     * @covers ::getLogger
+     */
+    public function testBootstrap() {
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->setContainer($container);
+
+        $this->assertSame($container, $application->getContainer());
+
+        $parameters = array();
+        $services = array();
+        $container->expects($this->any())
+            ->method('setParameter')
+            ->will($this->returnCallback(function($name, $val) use (&$parameters) {
+                $parameters[] = $name;
+                return null;
+            }));
+        $container->expects($this->any())
+            ->method('set')
+            ->will($this->returnCallback(function($name, $val) use (&$services) {
+                $services[] = $name;
+                return null;
+            }));
+        $container->expects($this->any())
+            ->method('getParameters')
+            ->will($this->returnValue(array()));
 
         $loggerProvider = $this->getMock('Splot\Framework\Log\LoggerProviderInterface');
         $logger = $this->getMock('Psr\Log\LoggerInterface');
         $loggerProvider->expects($this->any())
             ->method('provide')
             ->will($this->returnValue($logger));
+        $container->expects($this->any())
+            ->method('get')
+            ->with($this->equalTo('logger_provider'))
+            ->will($this->returnValue($loggerProvider));
 
-        // container has to have few things defined
-        $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
-        $container->set('clog', new Clog());
-        $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
+        $application->bootstrap();
 
-        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $loggerProvider);
-        
-        return $app;
-    }
-
-    public function testInitialization() {
-        $app = new TestApplication();
-
-        $config = new Config(array(
-            'log_file' => false,
-            'log_threshold' => 'debug',
-            'cache' => array(
-                'stores' => array(
-                    'memory' => array(
-                        'class' => 'Splot\\Cache\\Store\\MemoryStore'
-                    )
-                ),
-                'caches' => array(
-                    'lipsum' => 'memory'
-                )
-            ),
-            'router' => array(
-                'host' => 'localhost',
-                'protocol' => 'http://',
-                'port' => 80,
-                'use_request' => true
-            )
-        ));
-        $container = new ServiceContainer();
-        $timer = new Timer();
-        $loggerProvider = $this->getMock('Splot\Framework\Log\LoggerProviderInterface');
-        $logger = $this->getMock('Psr\Log\LoggerInterface');
-        $loggerProvider->expects($this->any())
-            ->method('provide')
-            ->will($this->returnValue($logger));
-
-        // container has to have few things defined
-        $container->setParameter('cache_dir', realpath(dirname(__FILE__) .'/../../../..') .'/tmp/cache');
-        $container->set('clog', new Clog());
-        $applicationDir = realpath(dirname(__FILE__) .'/Fixtures');
-
-        $app->init($config, $container, 'test', $applicationDir, $timer, $logger, $loggerProvider);
-
-        // make sure the injected objects are properly available
-        $this->assertSame($container, $app->getContainer());
-        $this->assertEquals('test', $app->getEnv());
-        $this->assertEquals('test', $container->getParameter('env'));
-        $this->assertEquals($applicationDir, $app->getApplicationDir());
-        $this->assertEquals($applicationDir, $container->getParameter('application_dir'));
-        $this->assertFalse($app->isDevEnv());
-        $this->assertSame($config, $app->getConfig());
-        $this->assertSame($config, $container->get('config'));
-        $this->assertTrue($app->getRouter() instanceof Router);
-        $this->assertSame($app->getRouter(), $container->get('router'));
-        $this->assertTrue($app->getEventManager() instanceof EventManager);
-        $this->assertSame($app->getEventManager(), $container->get('event_manager'));
-        $this->assertTrue($app->getResourceFinder() instanceof Finder);
-        $this->assertSame($app->getResourceFinder(), $container->get('resource_finder'));
-        $this->assertSame($logger, $app->getLogger());
-        $this->assertTrue($container->get('process') instanceof Process);
-        $this->assertTrue($container->get('console') instanceof Console);
-
-        // make sure that caches from the config are also properly registered
-        $this->assertTrue($container->get('cache.store.file') instanceof FileStore);
-        $this->assertTrue($container->get('cache.store.memory') instanceof \Splot\Cache\Store\MemoryStore);
-        $this->assertTrue($container->get('cache') instanceof CacheInterface);
-        $this->assertTrue($container->get('cache.lipsum') instanceof CacheInterface);
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     */
-    public function testDoubleInitializationFailing() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-        $this->initApplication($app);
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     */
-    public function testInvalidCacheStoreInitialization() {
-        $app = new TestApplication();
-        $this->initApplication($app, 'test', array(
-            'log_file' => false,
-            'log_threshold' => 'debug',
-            'cache' => array(
-                'stores' => array(
-                    'memory' => array()
-                )
-            ),
-            'caches' => array(),
-            'router' => array(
-                'host' => 'localhost',
-                'protocol' => 'http://',
-                'port' => 80,
-                'use_request' => true
-            )
-        ));
-    }
-
-    public function testHandlingRequest() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $app->bootModule(new SplotResponseTestModule());
-
-        $request = Request::create('/');
-        $didReceiveRequestCalled = false;
-        $didFindRouteForRequestCalled = false;
-
-        $app->getEventManager()->subscribe(DidReceiveRequest::getName(), function() use (&$didReceiveRequestCalled) {
-            $didReceiveRequestCalled = true;
-        });
-        $app->getEventManager()->subscribe(DidFindRouteForRequest::getName(), function() use (&$didFindRouteForRequestCalled) {
-            $didFindRouteForRequestCalled = true;
-        });
-
-        $response = $app->handleRequest($request);
-
-        $this->assertSame($request, $app->getContainer()->get('request'));
-        $this->assertTrue($response instanceof Response);
-        $this->assertEquals('INDEX', $response->getContent());
-        $this->assertTrue($didReceiveRequestCalled);
-    }
-
-    public function testCatchingExceptionsDuringHandlingOfRequests() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $exceptionDidOccurCalled = false;
-        $handledResponse = new Response('Handled exception');
-        $app->getEventManager()->subscribe(ExceptionDidOccur::getName(), function($ev) use (&$exceptionDidOccurCalled, $handledResponse) {
-            $exceptionDidOccurCalled = true;
-            $ev->setResponse($handledResponse);
-        });
-
-        $response = $app->handleRequest(Request::create('/some/undefined/route'));
-
-        $this->assertTrue($exceptionDidOccurCalled);
-        $this->assertSame($handledResponse, $response);
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\NotFoundException
-     */
-    public function testHandlingRequestWithNotFoundRoute() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $app->handleRequest(Request::create('/some/undefined/route.html'));
-    }
-
-    public function testHandlingNotFoundRouteEvent() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $didNotFoundRouteForRequestCalled = false;
-        $handledResponse = new Response('Handled 404');
-        $app->getEventManager()->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
-            $didNotFoundRouteForRequestCalled = true;
-
-            $ev->setResponse($handledResponse);
-
-            return false;
-        });
-
-        $response = $app->handleRequest(Request::create('/some/undefined/route.html'));
-
-        $this->assertTrue($didNotFoundRouteForRequestCalled);
-        $this->assertSame($response, $handledResponse);
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\NotFoundException
-     */
-    public function testHandlingRequestAndPreventingRenderingOfTheFoundRoute() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $app->bootModule(new SplotResponseTestModule());
-
-        $app->getEventManager()->subscribe(DidFindRouteForRequest::getName(), function($ev) {
-            return false;
-        });
-
-        $response = $app->handleRequest(Request::create('/'));
-    }
-
-    public function testHandlingRequestAndPreventingRenderingOfTheFoundRouteAndHandlingThat() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $app->bootModule(new SplotResponseTestModule());
-
-        $app->getEventManager()->subscribe(DidFindRouteForRequest::getName(), function($ev) {
-            return false;
-        });
-
-        $didNotFoundRouteForRequestCalled = false;
-        $handledResponse = new Response('Handled 404');
-        $app->getEventManager()->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
-            $didNotFoundRouteForRequestCalled = true;
-
-            $ev->setResponse($handledResponse);
-
-            return false;
-        });
-
-        $response = $app->handleRequest(Request::create('/'));
-
-        $this->assertTrue($didNotFoundRouteForRequestCalled);
-        $this->assertSame($response, $handledResponse);
-    }
-
-    public function testSendingResponse() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $willSendResponseCalled = false;
-        $app->getEventManager()->subscribe(WillSendResponse::getName(), function() use (&$willSendResponseCalled) {
-            $willSendResponseCalled = true;
-        });
-
-        $request = Request::create('/');
-        $response = new Response('This is some valid response.');
-
-        ob_start();
-        $app->sendResponse($response, $request);
-        $content = ob_get_contents();
-        ob_end_clean();
-
-        $this->assertEquals('This is some valid response.', $content);
-        $this->assertTrue($willSendResponseCalled);
-    }
-
-    public function testBootingAndInitializingModules() {
-        $app = new TestApplication();
-        $this->initApplication($app, 'test', array(
-            'log_file' => false,
-            'log_threshold' => 'debug',
-            'cache' => array(
-                'stores' => array(
-                    'memory' => array(
-                        'class' => 'Splot\\Cache\\Store\\MemoryStore'
-                    )
-                ),
-                'caches' => array()
-            ),
-            'router' => array(
-                'host' => 'localhost',
-                'protocol' => 'http://',
-                'port' => 80,
-                'use_request' => true
-            ),
-            'SplotConfiguredTestModule' => array(
-                'setting2' => true,
-                'subsettings' => array(
-                    'sub' => 1234,
-                    'notexistent' => 'is now set'
-                )
-            )
-        ));
-
-        $configuredModule = new SplotConfiguredTestModule();
-        $emptyModule = new SplotEmptyTestModule();
-        $routesModule = new SplotRoutesTestModule();
-
-        $modules = array(
-            'SplotConfiguredTestModule' => $configuredModule,
-            'SplotEmptyTestModule' => $emptyModule,
-            'SplotRoutesTestModule' => $routesModule
-        );
-
-        foreach($modules as $name => $module) {
-            $app->bootModule($module);
-            $this->assertTrue($module->isBooted());
-            $this->assertTrue($app->hasModule($name));
-            $this->assertSame($module, $app->getModule($name));
-
-            $this->assertSame($app, $module->getApplication());
-            $this->assertNotNull($module->getContainer());
-
-            $app->initModule($module);
-            $this->assertTrue($module->isInitialized());
+        // expected parameters
+        foreach(array(
+            'application_dir',
+            'root_dir',
+            'config_dir',
+            'cache_dir',
+            'web_dir'
+        ) as $name) {
+            $this->assertContains($name, $parameters, 'Bootstrap didnt set "'. $name .'" parameter.');
         }
 
-        $this->assertEquals(array_keys($modules), $app->listModules());
-        $this->assertFalse($app->hasModule('SplotUndefinedTestModule'));
+        // expected services
+        foreach(array(
+            'clog',
+            'logger_provider',
+            'logger',
+            'event_manager',
+            'router',
+            'resource_finder',
+            'process',
+            'console'
+        ) as $name) {
+            $this->assertContains($name, $services, 'Bootstrap didnt set "'. $name .'" service.');
+        }
 
-        // check the config on the configured module
-        $config = $configuredModule->getConfig();
-        $this->assertEquals(true, $config->get('setting2'));
-        $this->assertEquals(1234, $config->get('subsettings.sub'));
-        $this->assertEquals('is now set', $config->get('subsettings.notexistent'));
-
-        // check routes from the routes module
-        $router = $app->getRouter();
-        $routes = $router->getRoutes();
-        $this->assertEquals(2, count($routes));
-        $this->assertArrayHasKey('SplotRoutesTestModule:Index', $routes);
-        $this->assertArrayHasKey('SplotRoutesTestModule:Item', $routes);
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\NotUniqueException
-     */
-    public function testBootingModulesWithSameNames() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $emptyModule = new SplotEmptyTestModule();
-        $duplicatedModule = new SplotDuplicatedTestModule();
-
-        $app->bootModule($emptyModule);
-        $app->bootModule($duplicatedModule);
+        // also make sure logger has been injected
+        $this->assertInstanceOf('Psr\Log\LoggerInterface', $application->getLogger());
     }
 
     /**
      * @expectedException \RuntimeException
+     * @covers ::bootstrap
+     * @covers ::finishBootstrap
      */
-    public function testInitializingModuleWithoutBootingFirst() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $module = new SplotEmptyTestModule();
-        $app->initModule($module);
+    public function testBootstrappingAfterBootstrapFinished() {
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->finishBootstrap();
+        
+        $application->bootstrap();
     }
 
-    public function testRenderingControllers() {
-        $app = new TestApplication();
-        $this->initApplication($app);
+    public function testLoadParameters() {
 
-        $routesModule = new SplotRoutesTestModule();
-        $app->bootModule($routesModule);
-
-        $controllerWillRespondCalled = false;
-        $controllerDidRespondCalled = false;
-
-        $app->getEventManager()->subscribe(ControllerWillRespond::getName(), function() use (&$controllerWillRespondCalled) {
-            $controllerWillRespondCalled = true;
-        });
-        $app->getEventManager()->subscribe(ControllerDidRespond::getName(), function() use (&$controllerDidRespondCalled) {
-            $controllerDidRespondCalled = true;
-        });
-
-        $response = $app->render('SplotRoutesTestModule:Item', array(
-            'id' => 123
-        ));
-        $this->assertTrue($response instanceof Response);
-        $this->assertEquals('Received Item ID: 123', $response->getContent());
-
-        $this->assertTrue($controllerWillRespondCalled);
-        $this->assertTrue($controllerDidRespondCalled);
     }
 
-    public function testInjectingRequestObjectIntoRenderedController() {
-        $app = new TestApplication();
-        $this->initApplication($app);
+    public function testAddModule() {
 
-        $router = $app->getRouter();
-        $router->addRoute('injector', InjectedRequestController::__class());
+    }
 
-        $response = $app->render('injector', array(
-            'id' => 123,
-            'request' => Request::create('/something')
-        ));
+    public function testConfigure() {
+
     }
 
     /**
-     * @expectedException \RuntimeException
+     * @covers ::getName
      */
-    public function testInjectingRequestObjectWhenNotAvailable() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $router = $app->getRouter();
-        $router->addRoute('injector', InjectedRequestController::__class());
-
-        $response = $app->render('injector', array(
-            'id' => 123
-        ));
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\InvalidReturnValueException
-     */
-    public function testRenderingControllerWithInvalidReturnValue() {
-        $app = new TestApplication();
-        $this->initApplication($app);
-
-        $router = $app->getRouter();
-        $router->addRoute('invalid', InvalidReturnValueController::__class());
-
-        $response = $app->render('invalid');
-    }
-
     public function testGetName() {
         $app = new TestApplication();
         $this->assertAttributeEquals($app->getName(), 'name', $app);
     }
 
+    /**
+     * @covers ::getVersion
+     */
     public function testGetVersion() {
         $app = new TestApplication();
         $this->assertAttributeEquals($app->getVersion(), 'version', $app);
     }
 
-    public function testGetClass() {
-        $this->assertEquals('Splot\\Framework\\Tests\\Application\\Fixtures\\TestApplication', TestApplication::getClass());
+    /**
+     * @covers ::setContainer
+     * @expectedException \RuntimeException
+     */
+    public function testSettingContainerTwice() {
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->setContainer($container);
+        $application->setContainer($container);
+    }
+
+    /**
+     * @covers ::getConfig
+     */
+    public function testGetConfig() {
+
+    }
+
+    public function testGetApplicationDir() {
+
+    }
+
+    /**
+     * @covers ::getEnv
+     */
+    public function testGetEnv() {
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->setContainer($container);
+        $container->expects($this->once())
+            ->method('getParameter')
+            ->with($this->equalTo('env'))
+            ->will($this->returnValue('dev'));
+
+        $this->assertEquals('dev', $application->getEnv());
+    }
+
+    /**
+     * @covers ::isDebug
+     */
+    public function testIsDebug() {
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->setContainer($container);
+        $container->expects($this->once())
+            ->method('getParameter')
+            ->with($this->equalTo('debug'))
+            ->will($this->returnValue(true));
+
+        $this->assertTrue($application->isDebug());
+    }
+
+    public function testListModules() {
+
+    }
+
+    public function testGetModules() {
+
+    }
+
+    public function testHasModule() {
+
+    }
+
+    public function testGetModule() {
+
+    }
+
+    public function testGettingClass() {
+        $this->assertEquals('Splot\\Framework\\Tests\\Application\\Fixtures\\TestApplication', TestApplication::__class());
     }
 
 }

@@ -14,25 +14,30 @@
  */
 namespace Splot\Framework;
 
-use Psr\Log\LoggerInterface;
+use Whoops\Run as WhoopsRun;
+use Whoops\Handler\PrettyPageHandler as WhoopsPrettyPageHandler;
 
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Debug\Debugger;
-use MD\Foundation\Utils\ArrayUtils;
+use MD\Foundation\Exceptions\InvalidArgumentException;
 use MD\Foundation\Utils\StringUtils;
-
-use MD\Clog\Writers\MemoryLogger;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
 use Splot\Framework\Config\Config;
 use Splot\Framework\DependencyInjection\ServiceContainer;
+
+use Splot\Framework\ErrorHandlers\EventErrorHandler;
+use Splot\Framework\ErrorHandlers\LogErrorHandler;
+use Splot\Framework\ErrorHandlers\NullErrorHandler;
+
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
 use Splot\Framework\HTTP\Exceptions\HTTPExceptionInterface;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
-use Splot\Framework\Log\Clog;
+
+use Splot\Framework\Log\LoggerProviderInterface;
 
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -40,240 +45,217 @@ use Symfony\Component\Console\Input\ArgvInput;
 class Framework
 {
 
-    const ENV_PRODUCTION    = 'production';
-    const ENV_STAGING       = 'staging';
-    const ENV_DEV           = 'dev';
-    const ENV_TEST          = 'test';
-
-    private static $_framework;
-
-    private $_rootDir;
-    private $_frameworkDir;
-    private $_vendorDir;
-
-    protected $options = array();
-
-    private $_console = false;
+    const MODE_WEB = 'web';
+    const MODE_CONSOLE = 'console';
+    const MODE_COMMAND = 'command';
+    const MODE_TEST = 'test';
 
     /**
-     * Global framework logger.
+     * Application run by the framework.
      * 
-     * @var LoggerInterface
+     * @var AbstractApplication
      */
-    protected $logger;
-    private $_timer;
+    protected $application;
 
-    private $_application;
-
-    /*****************************************
-     * ENTRY POINTS
-     *****************************************/
     /**
-     * Initialize application for web and handle default HTTP requests.
+     * Environment name in which the framework is ran.
      * 
-     * @param AbstractApplication $application Application to boot.
-     * @param array $options [optional] Options for framework and application.
-     * 
-     * @codeCoverageIgnore
+     * @var string
      */
-    final public static function web(AbstractApplication $application, array $options = array()) {
-        // Splot Framework and application initialization
-        $splot = static::init($options);
-
-        try {
-            $application = $splot->bootApplication($application, $options);
-
-            // handling the request
-            $request = Request::createFromGlobals();
-            $response = $application->handleRequest($request);
-
-            // rendering the response
-            $application->sendResponse($response, $request);
-        } catch (\Exception $e) {
-            // set a valid response code
-            $httpResponseCode = 500;
-            if ($e instanceof HTTPExceptionInterface) {
-                $httpResponseCode = $e->getCode();
-            }
-
-            $options = $splot->getOptions();
-            $messages = array();
-            if (isset($options['services']) && isset($options['services']['clog.writer.memory'])) {
-                $messages = $options['services']['clog.writer.memory']->getMessages();
-            }
-
-            Debugger::handleException($e, $messages, $httpResponseCode);
-        }
-    }
+    protected $env;
 
     /**
-     * Initialize application for testing.
+     * Is debug mode on?
      * 
-     * @param AbstractApplication $application Application to be tested.
-     * @param array $options [optional] Options for framework and application.
-     * 
-     * @codeCoverageIgnore
+     * @var boolean
      */
-    final public static function test(AbstractApplication $application, array $options = array()) {
-        $options['env'] = self::ENV_TEST;
-
-        $splot = static::init($options);
-        $application = $splot->bootApplication($application, $options);
-    }
+    protected $debug;
 
     /**
-     * Initialize application for command line interface (console) and handle the comand.
+     * Mode in which the framework is ran.
+     *
+     * One of the Framework::MODE_* constants.
      * 
-     * @param AbstractApplication $application Application to boot.
-     * @param array $options [optional] Options for framework and application.
-     * @param bool $suppressInput [optional] For internal use. Default: false.
-     * 
-     * @codeCoverageIgnore
+     * @var string
      */
-    final public static function console(AbstractApplication $application, array $options = array(), $suppressInput = false) {
-        // remove time limit for console
-        set_time_limit(0);
-
-        // Splot Framework and application initialization
-        $splot = static::init($options, true);
-        $application = $splot->bootApplication($application, $options);
-
-        $console = $application->getContainer()->get('console');
-        if (!$suppressInput) {
-            $console->run();
-        }
-    }
+    protected $mode;
 
     /**
-     * Initialize application for single command app comman line interface (console) and run the command.
+     * Benchmark timer.
      * 
-     * @param string $commandClass [optional] Command class. Default: '\App'.
-     * @param array $config [optional] Application config.
-     * @param array $options [optional] Options for framework and application.
-     * @param bool $suppressInput [optional] For internal use. Default: false.
-     * 
-     * @codeCoverageIgnore
+     * @var Timer
      */
-    final public static function command($commandClass = '\App', array $config = array(), $options = array(), $suppressInput = false) {
-        // remove time limit for console
-        set_time_limit(0);
+    protected $timer;
 
-        $options['env'] = self::ENV_DEV;
-        $options['applicationDir'] = dirname(Debugger::getClassFile($commandClass));
-
-        // Splot Framework and application initialization
-        $splot = static::init($options, true);
-
-        // if a config was set then use it
-        if (!empty($config)) {
-            $options['config'] = $config;
-        }
-
-        $application = $splot->bootApplication(new CommandApplication($commandClass), $options);
-
-        if ($suppressInput) {
-            return;
-        }
-
-        $console = $application->getContainer()->get('console');
-        $console->addCommand('app', $commandClass);
-
-        $argv = new ArgvInput();
-        $console->call('app', (string)$argv);
-    }
-
-    /*****************************************
-     * BOOTING
-     *****************************************/
     /**
-     * Initialize the framework as a singleton.
+     * Runs the framework. Main entry point.
      * 
-     * @param array $options [optional] Array of options.
-     * @param bool $console [optional] Running in console mode? Default: false.
+     * @param  AbstractApplication $application Application to be run in the framework.
+     * @param  string              $env         [optional] Name of the environment in 
+     *                                          which it should run. Default: 'dev'.
+     * @param  boolean             $debug       [optional] Should debug be on? Default: true.
+     * @param  string              $mode        [optional] Mode in which in should run.
+     *                                          One of the Framework::MODE_* constants. Default: Framework::MODE_WEB.
      * @return Framework
      */
-    final public static function init(array $options = array(), $console = false) {
-        if (static::$_framework) {
-            return static::$_framework;
+    public static function run(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
+        ini_set('default_charset', 'utf8');
+
+        /*****************************************************
+         * BOOTSTRAP PHASE
+         *****************************************************/
+        $framework = new static($application, $env, $debug, $mode);
+        $container = $application->getContainer();
+
+        // add default Whoops error handlers
+        $whoops = $container->get('whoops');
+        $whoops->pushHandler($container->get('whoops.handler.log'));
+        $whoops->pushHandler($container->get('whoops.handler.event'));
+        
+        // @codeCoverageIgnoreStart
+        // don't register Whoops when testing
+        if ($mode !== self::MODE_TEST) {
+            $whoops->register();
         }
 
-        // init the benchmark timer as early as possible
-        $timer = new Timer();
+        // if in debug mode and web mode then also add pretty page handler
+        if ($debug && $mode === self::MODE_WEB) {
+            $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
+        }
+        // @codeCoverageIgnoreEnd
 
-        // use Clog everywhere with a default memory writer
-        $clog = new Clog();
-        $memoryLogger = new MemoryLogger();
-        $clog->addWriter($memoryLogger);
+        $logger = $container->get('splot.logger');
+        $timer = $container->get('splot.timer');
 
-        $options = ArrayUtils::merge(array(
-            'logger' => null,
-            'timezone' => 'Europe/London',
-            'services' => array(
-                'clog' => $clog,
-                'clog.writer.memory' => $memoryLogger,
-                'logger_provider' => $clog
-            ),
-            'timer' => $timer
-        ), $options);
+        // now load all modules
+        $loadingModules = array();
+        $moduleLoader = function(array $loadedModules, $self, array $allModules = array()) use (&$loadingModules) {
+            foreach($loadedModules as $module) {
+                if (in_array($module->getName(), $loadingModules)) {
+                    continue;
+                }
 
-        // set default timezone from options, for now
-        date_default_timezone_set($options['timezone']);
+                $loadingModules[] = $module->getName();
 
-        static::$_framework = new static(
-            $options,
-            $clog->provide('Splot'),
-            $console
-        );
-        return static::$_framework;
+                $allModules = $self($module->loadModules(), $self, $allModules);
+                $allModules[] = $module;
+            }
+            return $allModules;
+        };
+        $modules = $moduleLoader($application->loadModules(), $moduleLoader);
+
+        foreach($modules as $module) {
+            $application->addModule($module);
+
+            $logger->debug('Added module {name} ({class}) to the application.', array(
+                'name' => $module->getName(),
+                'class' => $module->getClass(),
+                '_time' => $timer->step('Module "'. $module->getName() .'" loaded')
+            ));
+        }
+
+        // mark the bootstrap phase as finished
+        $application->finishBootstrap();
+
+        /*****************************************************
+         * CONFIG PHASE
+         *****************************************************/
+        // default framework config first (to make sure all required settings are there)
+        $config = new Config(include dirname(__FILE__) . DS .'Config'. DS .'default.php');
+        $container->set('config', $config);
+
+        // inject container to the config in order to have access to parameters
+        $config->setContainer($container);
+
+        // read application config
+        $config->extend(Config::read($container->getParameter('config_dir'), $container->getParameter('env')));
+
+        // read modules' configs
+        foreach($application->getModules() as $module) {
+            $moduleConfig = Config::read($module->getConfigDir(), $container->getParameter('env'));
+            $moduleConfig->apply($config->getNamespace($module->getName()));
+            $module->setConfig($moduleConfig);
+        }
+
+        // set the timezone based on config
+        date_default_timezone_set($config->get('timezone'));
+
+        // run application's and modules configure hooks
+        $application->configure();
+        foreach($application->getModules() as $module) {
+            $module->configure();
+        }
+
+        /*****************************************************
+         * RUN PHASE
+         *****************************************************/
+        $application->run();
+        foreach($application->getModules() as $module) {
+            $module->run();
+        }
+
+        // perform some actions depending on the run mode
+        switch($mode) {
+            case self::MODE_CONSOLE:
+                set_time_limit(0);
+
+                $console = $application->getContainer()->get('console');
+                $console->run();
+            break;
+
+            case self::MODE_COMMAND:
+                set_time_limit(0);
+
+                if (!$application instanceof CommandApplication) {
+                    throw new InvalidArgumentException('instance of Splot\Framework\Application\CommandApplication', $application);
+                }
+
+                $console = $application->getContainer()->get('console');
+                $console->addCommand('app', $application->getCommand());
+
+                $argv = new ArgvInput();
+                $console->call('app', (string)$argv);
+            break;
+            
+            case self::MODE_TEST:
+            break;
+
+            case self::MODE_WEB:
+            default:
+                // add nice error handler to whoops if in debug mode
+                if (!$debug) {
+                    // @todo register a http response code error handler (is it needed?)
+                }
+
+                $request = Request::createFromGlobals();
+                $response = $application->handleRequest($request);
+                $application->sendResponse($response, $request);
+        }
+
+        return $framework;
     }
 
     /**
      * Constructor.
      * 
-     * @param array $options [optional] Array of options.
-     * @param LoggerInterface $logger [optional] Global logger.
-     * @param bool $console [optional] Running in console mode? Default: false.
-     */ 
-    final private function __construct(array $options = array(), LoggerInterface $logger = null, $console = false) {
-        $this->_timer = $options['timer'];
-        $this->logger = $logger;
-        $this->_console = $console;
-
-        ini_set('default_charset', 'utf8');
-
-        if (!$console) {
-            $this->_registerErrorHandlers();
-        }
-
-        $this->_rootDir = @$options['rootDir'] ?: dirname(__FILE__) .'/../../../../../../';
-        $this->_rootDir = rtrim($this->_rootDir, '/') .'/';
-        $this->_frameworkDir = @$options['frameworkDir'] ?: dirname(__FILE__) .'/';
-        $this->_frameworkDir = rtrim($this->_frameworkDir, '/') .'/';
-        $this->_webDir = @$options['webDir'] ?: $this->_rootDir .'web/';
-        $this->_webDir = rtrim($this->_webDir, '/') .'/';
-        $this->_vendorDir = @$options['vendorDir'] ?: $this->_rootDir .'vendor/';
-        $this->_vendorDir = rtrim($this->_vendorDir, '/') .'/';
-
-        $this->options = $options;
-
-        $this->logger->debug('Splot Framework successfully initialized.', array(
-            'rootDir' => $this->_rootDir,
-            'frameworkDir' => $this->_frameworkDir,
-            'webDir' => $this->_webDir,
-            'vendorDir' => $this->_vendorDir,
-            '_timer' => $this->_timer->step('Initialization')
-        ));
-    }
-
-    /**
-     * Boots the passed application.
-     * 
-     * @param AbstractApplication $application Application to boot into the framework.
-     * @param array $options [optional] Array of optional options that will be passed to the application's boot function.
-     * @return AbstractApplication The booted application.
+     * @param  AbstractApplication $application Application to be run in the framework.
+     * @param  string              $env         [optional] Name of the environment in 
+     *                                          which it should run. Default: 'dev'.
+     * @param  boolean             $debug       [optional] Should debug be on? Default: true.
+     * @param  string              $mode        [optional] Mode in which in should run.
+     *                                          One of the Framework::MODE_* constants. Default: Framework::MODE_WEB.
+     * @return Framework
      */
-    public function bootApplication(AbstractApplication $application, array $options = array()) {
-        // get and verify application name
+    protected function __construct(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
+        $this->timer = new Timer();
+        $this->application = $application;
+        $this->env = $env;
+        $this->debug = $debug;
+        $this->mode = $mode;
+
+        /*****************************************************
+         * VERIFY APPLICATION
+         *****************************************************/
         $applicationName = $application->getName();
         if (!is_string($applicationName) || empty($applicationName)) {
             throw new \RuntimeException('You have to specify an application name inside the Application class by defining protected property "$name".');
@@ -286,342 +268,90 @@ class Framework
         // get application's class name for some debugging and logging
         $applicationClass = Debugger::getClass($application);
 
-        // figure out the application directory exactly
-        $applicationDir = (isset($options['applicationDir']))
-            ? rtrim($options['applicationDir'], DS) . DS
-            : dirname(Debugger::getClassFile($application)) . DS;
-        $cacheDir = (isset($options['cacheDir']))
-            ? rtrim($options['cacheDir'], DS) . DS
-            : $applicationDir .'cache'. DS;
-        $configDir = (isset($options['configDir']))
-            ? rtrim($options['configDir'], DS) . DS
-            : $applicationDir .'config'. DS;
-
-        /*****************************************
-         * DECIDE ON ENVIRONMENT
-         *****************************************/
-        $env = @$options['env'] ?: self::envFromConfigs($configDir);
-
-        /*****************************************
-         * READ CONFIG FOR THE APPLICATON
-         *****************************************/
-        // default framework config first (to make sure all required settings are there)
-        $defaultConfigFile = $this->_frameworkDir .'Config'. DS .'default.php';
-        $config = new Config(include $defaultConfigFile);
-        $config->extend(Config::read($configDir, $env));
-
-        if (isset($options['config'])) {
-            $config->apply($options['config']);
-        }
-
-        // set the timezone based on config
-        date_default_timezone_set($config->get('timezone'));
-
-        /*****************************************
+        /*****************************************************
          * INITIALIZE DEPENDENCY INJECTION CONTAINER
-         *****************************************/
-        // create dependency injection container and reference itself as a service
-        $serviceContainer = new ServiceContainer();
-        $serviceContainer->set('container', function($container) use ($serviceContainer) {
-            return $serviceContainer;
-        }, true);
+         *****************************************************/
+        $container = new ServiceContainer();
+        $container->set('container', $container);
+        $container->set('application', $application);
+        $container->set('splot.timer', $this->timer);
+        $container->setParameter('env', $env);
+        $container->setParameter('debug', $debug);
+        $container->setParameter('mode', $mode);
 
-        // set some parameters
-        $serviceContainer->setParameter('root_dir', $this->_rootDir);
-        $serviceContainer->setParameter('framework_dir', $this->_frameworkDir);
-        $serviceContainer->setParameter('web_dir', $this->_webDir);
-        $serviceContainer->setParameter('vendor_dir', $this->_vendorDir);
-        $serviceContainer->setParameter('application_dir', $applicationDir);
-        $serviceContainer->setParameter('cache_dir', $cacheDir);
-
-        // define filesystem service
-        $serviceContainer->set('filesystem', function($c) {
-            return new Filesystem();
-        }, true, true);
-
-        // now register all custom services that may have been sent in framework options
-        foreach($this->options['services'] as $name => $service) {
-            $serviceContainer->set($name, $service);
-        }
-
-        /*****************************************
-         * INITIALIZE & BOOT APPLICATION
-         *****************************************/
-        // inject the config, dependency injection container and environment to it
-        $applicationLogger = isset($this->options['applicationLogger'])
-            ? $this->options['applicationLogger']
-            : $serviceContainer->get('logger_provider')->provide('Application');
-        $application->init($config, $serviceContainer, $env, $applicationDir, $this->_timer, $applicationLogger, $serviceContainer->get('logger_provider'));
-
-        // also define the application as a read-only service
-        $serviceContainer->set('application', function($container) use ($application) {
-            return $application;
-        }, true, true);
-
-        $this->logger->debug('Started application "{applicationClass}".', array(
-            'applicationClass' => $applicationClass,
-            'env' => $env,
-            'configFiles' => $config->getReadFiles(),
-            'applicationDir' => $applicationDir,
-            'cacheDir' => $cacheDir,
-            '_timer' => $this->_timer->step('Application Start')
-        ));
-
-        // boot the application
-        $application->boot($options);
-        $this->logger->debug('Booted application "{applicationClass}".', array(
-            'applicationClass' => $applicationClass,
-            'options' => $options,
-            '_timer' => $this->_timer->step('Application Boot')
-        ));
-
-        /*****************************************
-         * LOAD APPLICATION MODULES
-         *****************************************/
-        $modules = $application->loadModules();
-        foreach($modules as $module) {
-            $application->bootModule($module);
-
-            $this->logger->debug('Module "{name}" loaded.', array(
-                'name' => $module->getName(),
-                'class' => $module->getClass(),
-                'dir' => $module->getModuleDir(),
-                '_timer' => $this->_timer->step('Module "'. $module->getName() .'" loaded'),
-                '_tags' => 'module, boot'
-            ));
-        }
-
-        /*****************************************
-         * LOAD APPLICATION CONTROLLERS
-         *****************************************/
-        // read application routes
-        $routes = $application->getRouter()->getRoutes();
-        $routesLog = array();
-        foreach($routes as $route) {
-            $routesLog[$route->getName()] = $route->getUrlPattern();
-        }
-        $this->logger->debug('Registered {count} routes to controllers.', array(
-            'count' => count($routes),
-            'routes' => $routesLog,
-            '_timer' => $this->_timer->step('Routes loaded.'),
-            '_tags' => 'routing, boot'
-        ));
-
-        /*****************************************
-         * INITIALIZE MODULES
-         *****************************************/
-        foreach($modules as $module) {
-            $application->initModule($module);
-        }
-
-        $this->_application = $application;
-        return $this->_application;
-    }
-
-    /*****************************************************
-     * HELPERS
-     *****************************************************/
-    /**
-     * Tries to determine in what environement the application should run based on available configs in application's /config/ dir.
-     * 
-     * If no specific configs available it will return Production environment.
-     * The order of checking is: dev, staging, production.
-     * 
-     * @param string $configDir Path to directory with application configs.
-     * @return string The guessed environment.
-     */
-    public static function envFromConfigs($configDir) {
-        $configDir = rtrim($configDir, '/') .'/';
-
-        // check for development
-        if (file_exists($configDir .'config.dev.php')) {
-            return self::ENV_DEV;
-        }
-
-        // check for staging
-        if (file_exists($configDir .'config.staging.php')) {
-            return self::ENV_STAGING;
-        }
-
-        // check for production
-        if (file_exists($configDir .'config.production.php')) {
-            return self::ENV_PRODUCTION;
-        }
-
-        // return production environment by default to prevent accidental display of various debug stuff (debug should be turned off for production)
-        return self::ENV_PRODUCTION;
-    }
-
-    /**
-     * Resets the framework singleton.
-     */
-    public static function reset() {
-        self::$_framework = null;
-    }
-
-    /**
-     * Registers error handles that trigger ErrorDidOccur and FatalErrorDidOccur events if application has been already booted.
-     * 
-     * @codeCoverageIgnore
-     */
-    protected function _registerErrorHandlers() {
-        $self = $this;
-
-        // register standard error handler
-        set_error_handler(function($code, $message, $file, $line, $context) use ($self) {
-            // if application is already booted then handle error using event manager
-            if ($self->getApplication()) {
-                // log it
-                $self->getApplication()->getLogger()->critical($message .' - in {file} on line {line}', array(
-                    'code' => $code,
-                    'file' => $file,
-                    'line' => $line
-                ));
-
-                // also run it through event manager
-                $eventManager = $self->getApplication()->getEventManager();
-                $errorEvent = new ErrorDidOccur($code, $message, $file, $line, $context);
-                $eventManager->trigger($errorEvent);
-
-                if ($errorEvent->isDefaultPrevented() || $errorEvent->isHandled()) {
-                    return true;
-                }
-            }
-
-            // if there was no error event or if the error wasn't properly handled by it,
-            // then do standard error handling by Foundation framework
-            return Debugger::handleError($code, $message, $file, $line, $context);
+        $container->set('whoops', function() {
+            return new WhoopsRun();
         });
 
-        // register fatal error handler
-        register_shutdown_function(function() use ($self) {
-            // if application is already booted then handle error using event manager
-            if ($self->getApplication()) {
-                $error = error_get_last();
-
-                if ($error !== null) {
-                    // log it
-                    $self->getApplication()->getLogger()->critical($error['message'] .' - {type} in {file} on line {line}', array(
-                        'type' => $error['type'],
-                        'file' => $error['file'],
-                        'line' => $error['line']
-                    ));
-
-                    // also run it through event manager
-                    $eventManager = $self->getApplication()->getEventManager();
-                    $fatalErrorEvent = new FatalErrorDidOccur($error['type'], $error['message'], $error['file'], $error['line']);
-                    $eventManager->trigger($fatalErrorEvent);
-
-                    if ($fatalErrorEvent->isDefaultPrevented() || $fatalErrorEvent->isHandled()) {
-                        return true;
-                    }
-                }
-            }
-
-            // if there was no error event or if the error wasn't properly handled by it,
-            // then do standard error handling by Foundation framework
-            return Debugger::handleFatalError();
+        $container->set('whoops.handler.null', function() {
+            return new NullErrorHandler();
         });
-    }
 
-    /*****************************************************
-     * SETTERS AND GETTERS
-     *****************************************************/
-    /**
-     * Returns the root directory of the application.
-     * 
-     * @return string
-     */
-    public function getRootDir() {
-        return $this->_rootDir;
-    }
+        $container->set('whoops.handler.pretty_page', function() {
+            return new WhoopsPrettyPageHandler();
+        });
 
-    /**
-     * Returns the Splot Framework installation directory.
-     * 
-     * @return string
-     */
-    public function getFrameworkDir() {
-        return $this->_frameworkDir;
-    }
+        $container->set('whoops.handler.log', function($c) {
+            if (!$c->has('logger')) {
+                return $c->get('whoops.handler.null');
+            }
+            return new LogErrorHandler($c->get('logger'));
+        });
 
-    /**
-     * Returns the web directory.
-     * 
-     * @return string
-     */
-    public function getWebDir() {
-        return $this->_webDir;
-    }
+        $container->set('whoops.handler.event', function($c) {
+            if (!$c->has('event_manager')) {
+                return $c->get('whoops.handler.null');
+            }
+            return new EventErrorHandler($c->get('event_manager'));
+        });
 
-    /**
-     * Returns the vendor directory.
-     * 
-     * @return string
-     */
-    public function getVendorDir() {
-        return $this->_vendorDir;
-    }
+        /*****************************************************
+         * BOOTSTRAP THE APPLICATION
+         *****************************************************/
+        $application->setContainer($container);
+        $application->bootstrap();
 
-    /**
-     * Returns the initialization options.
-     * 
-     * @return array
-     */
-    public function getOptions() {
-        return $this->options;
-    }
+        // check if all required parameters have been registered
+        foreach(array(
+            'application_dir',
+            'config_dir',
+            'cache_dir',
+            'root_dir',
+            'web_dir'
+        ) as $parameterName) {
+            if (!$container->hasParameter($parameterName)) {
+                throw new \RuntimeException('Splot Framework requires a parameter "'. $parameterName .'" to be registered on application\'s bootstrap.');
+            }
+        }
 
-    /**
-     * Returns the application logger.
-     * 
-     * @return LoggerInterface
-     */
-    public function getLogger() {
-        return $this->logger;
-    }
+        // check if all required services have been registered
+        foreach(array(
+            'logger_provider',
+            'logger',
+            'event_manager',
+            'router',
+            'resource_finder',
+            'process',
+            'console'
+        ) as $serviceName) {
+            if (!$container->has($serviceName)) {
+                throw new \RuntimeException('Splot Framework requires a service "'. $serviceName .'" to be registered on application\'s bootstrap.');
+            }
+        }
 
-    /**
-     * Returns the application instance.
-     * 
-     * @return ApplicationInterface
-     */
-    public function getApplication() {
-        return $this->_application;
-    }
+        $loggerProvider = $container->get('logger_provider');
+        if (!$loggerProvider instanceof LoggerProviderInterface) {
+            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
+        }
 
-    /**
-     * Returns information if the framework has been initialized for Web Requests and therefore should handle HTTP requests.
-     * 
-     * @return bool
-     */
-    final public function isWeb() {
-        return !$this->_console;
-    }
+        $this->logger = $loggerProvider->provide('Splot');
+        $container->set('splot.logger', $this->logger);
 
-    /**
-     * Returns information if the framework has been initialized from shell.
-     * 
-     * @return bool
-     */
-    final public function isConsole() {
-        return $this->_console;
-    }
-
-    /**
-     * Returns the current instance of Framework.
-     * 
-     * @return Framework
-     */
-    final public static function getFramework() {
-        return self::$_framework;
-    }
-    
-    /**
-     * Prevent from creating instances of this class from the outside.
-     */
-    final public function __clone() {
-        throw new \RuntimeException(get_called_class() .' cannot be cloned (it\'s a singleton).');
+        $this->logger->debug('Splot Framework successfully bootstrapped with application "{application}".', array(
+            'application' => $application->getName(),
+            'parameters' => $container->getParameters(),
+            '_time' =>  $this->timer->step('Bootstrap')
+        ));
     }
 
 }

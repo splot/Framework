@@ -14,6 +14,8 @@
 namespace Splot\Framework\Application;
 
 use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\NullLogger;
 
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Debug\Timer;
@@ -23,12 +25,12 @@ use MD\Foundation\Exceptions\NotUniqueException;
 
 use MD\Clog\Writers\FileLogger;
 
+use Symfony\Component\Filesystem\Filesystem;
+
 use Splot\Cache\Store\FileStore;
 use Splot\Cache\CacheProvider;
 
 use Splot\EventManager\EventManager;
-
-use Splot\StatsTracker\NullStatsTracker;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
@@ -48,11 +50,11 @@ use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
-use Splot\Framework\Log\LoggerProviderInterface;
+use Splot\Framework\Log\Clog;
 use Splot\Framework\Process\Process;
 use Splot\Framework\Resources\Finder;
 
-abstract class AbstractApplication
+abstract class AbstractApplication implements LoggerAwareInterface
 {
 
     /**
@@ -70,13 +72,6 @@ abstract class AbstractApplication
     protected $version = 'dev';
 
     /**
-     * Application config.
-     * 
-     * @var Config
-     */
-    private $_config;
-
-    /**
      * Application's dependency injection service container.
      * 
      * @var ServiceContainer
@@ -84,239 +79,233 @@ abstract class AbstractApplication
     protected $container;
 
     /**
-     * Environment.
-     * 
-     * @var string
-     */
-    protected $_env;
-
-    /**
-     * Application directory path.
-     * 
-     * @var string
-     */
-    protected $_applicationDir;
-
-    /**
      * Application logger.
      * 
      * @var LoggerInterface
      */
-    protected $_logger;
-
-    /**
-     * Application timer.
-     * 
-     * @var Timer
-     */
-    protected $_timer;
-
-    /**
-     * Router.
-     * 
-     * @var Router
-     */
-    private $_router;
-
-    /**
-     * Event manager.
-     * 
-     * @var EventManager
-     */
-    private $_eventManager;
-
-    /**
-     * Resource finder.
-     * 
-     * @var Finder
-     */
-    private $_resourceFinder;
+    protected $logger;
 
     /**
      * Container for all application modules.
      * 
      * @var array
      */
-    private $_modules = array();
+    protected $modules = array();
 
     /**
-     * Container for all application modules meta data.
+     * Internal flag for marking that bootstrap phase has finished.
      * 
-     * @var array
+     * @var boolean
      */
-    private $_modulesMetaData = array();
+    protected $bootstrapped = false;
 
     /**
-     * Current HTTP Request that is being handled by the application.
-     * 
-     * @var Request
+     * Bootstrap the application.
+     *
+     * This method is called right at the beginning of the process (request) lifecycle.
+     * It's purpose is to register required services in the container. You can overwrite
+     * this method if you want to register your custom services, but you need to
+     * register specific services under specific names.
+     *
+     * If you overwrite it, it is recommended that you call the parent at one point.
+     *
+     * See documentation for more.
      */
-    private $_request;
-
-    /**
-     * Private flag for checking if application has been initialized.
-     * 
-     * @var bool
-     */
-    private $_initialized = false;
-
-    /**
-     * Initializator.
-     * 
-     * Should not ever be overwritten.
-     * 
-     * @param Config $config Application config.
-     * @param ServiceContainer $container Dependency Injection Service Container.
-     * @param string $env Current environment name.
-     * @param string $applicationDir Path to application directory.
-     * @param Timer $timer Global timer from the framework, for profiling.
-     * @param LoggerInterface $logger Main application logger.
-     * @param LoggerProviderInterface $loggerProvider Logger provider.
-     * 
-     * @throws \RuntimeException When trying to initialize the application for a second time.
-     */
-    final public function init(Config $config, ServiceContainer $container, $env, $applicationDir, Timer $timer, LoggerInterface $logger, LoggerProviderInterface $loggerProvider) {
-        if ($this->_initialized) {
-            throw new \RuntimeException('Application "'. Debugger::getClass($this) .'" has already been initialized.');
+    public function bootstrap() {
+        if ($this->bootstrapped) {
+            throw new \RuntimeException('Application has already been bootstrapped.');
         }
 
-        $app = $this;
+        // set required directories in parameters
+        $applicationDir = dirname(Debugger::getClassFile(get_called_class())) . DS;
+        $this->container->setParameter('application_dir', $applicationDir);
+        $this->container->setParameter('root_dir', $applicationDir . '..' . DS);
+        $this->container->setParameter('config_dir', $applicationDir . 'config' . DS);
+        $this->container->setParameter('cache_dir', $applicationDir . 'cache' . DS);
+        $this->container->setParameter('web_dir', $this->container->getParameter('root_dir') . 'web' . DS);
 
-        $this->_timer = $timer;
-        $this->_logger = $logger;
+        // load application's parameters
+        $parameters = array_merge($this->container->getParameters(), $this->loadParameters());
+        foreach($parameters as $key => $value) {
+            $this->container->setParameter($key, $value);
+        }
 
-        $this->_config = $config;
-        $this->container = $container;
-        $this->_env = $env;
-        $this->_applicationDir = $applicationDir;
-
-        // set file logger
-        $container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
-        $container->get('clog')->addWriter($container->get('clog.writer.file'));
-
-        $this->_router = $router = new Router(
-            $loggerProvider->provide('Router'),
-            $config->get('router.host'),
-            $config->get('router.protocol'),
-            $config->get('router.port')
-        );
-        $this->_eventManager = $eventManager = new EventManager($loggerProvider->provide('Event Manager'));
-        $this->_resourceFinder = $resourceFinder = new Finder($this);
-
-        // define all of the above as services as well
-        // config
-        $container->set('config', function($c) use ($config) {
-            return $config;
-        }, true);
-        // env
-        $container->setParameter('env', $env);
-        // application dir
-        $container->setParameter('application_dir', $applicationDir);
-        // router
-        $container->set('router', function($c) use ($router) {
-            return $router;
-        }, true);
-        // event manager
-        $container->set('event_manager', function($c) use ($eventManager) {
-            return $eventManager;
-        }, true);
-        // resource finder
-        $container->set('resource_finder', function($c) use ($resourceFinder) {
-            return $resourceFinder;
-        }, true);
-        // null stats tracker
-        $container->set('stats_tracker', function($c) {
-            return new NullStatsTracker();
+        $this->container->set('clog', function() {
+            return new Clog();
         });
-        // process
-        $container->set('process', function($c) {
+
+        // now register some required services
+        $this->container->set('logger_provider', function($c) {
+            return $c->get('clog');
+        });
+
+        $this->setLogger($this->container->get('logger_provider')->provide('Application')); // going through a setter for type hinting
+        $this->container->set('logger', $this->logger);
+
+        $this->container->set('event_manager', function($c) {
+            return new EventManager($c->get('logger_provider')->provide('Event Manager'));
+        });
+
+        $this->container->set('router', function($c) {
+            $config = $c->get('config');
+            return new Router(
+                $c->get('logger_provider')->provide('Router'),
+                $config->get('router.host'),
+                $config->get('router.protocol'),
+                $config->get('router.port')
+            );
+        });
+
+        $this->container->set('resource_finder', function($c) {
+            return new Finder($c->get('application'));
+        });
+
+        $this->container->set('process', function() {
             return new Process();
-        }, true, true);
-        // console
-        $container->set('console', function($c) use ($app, $loggerProvider) {
-            return new Console($app, $loggerProvider->provide('Console'));
-        }, true, true);
-        // cache
-        $this->registerCaches($container, $config);
-        // timer
-        $container->set('timer', function($c) use ($timer) {
-            return $timer;
         });
 
-        /*****************************************************
-         * REGISTER LISTENERS
-         *****************************************************/
-        // register some listeners that add some additional functionality
-        // these possibly should be a separate module in the future
-        
-        // get protocol, hostname and port number from request to use in router
-        // @todo move to FrameworkExtra
-        if ($config->get('router.use_request')) {
-            $eventManager->subscribe(DidReceiveRequest::getName(), function($event) use ($router) {
-                $request = $event->getRequest();
-                $protocol = $request->getScheme();
-                $host = $request->getHost();
-                $port = $request->getPort();
-
-                if (!empty($protocol)) {
-                    $router->setProtocol($protocol);
-                }
-
-                if (!empty($host)) {
-                    $router->setHost($host);
-                }
-
-                if (!empty($port)) {
-                    $router->setPort($port);
-                }
-            });
-        }
-        
-        // listener that will inject Request object to controller method arguments
-        // @todo Move to FrameworkExtra
-        $eventManager->subscribe(ControllerWillRespond::getName(), function($event) use ($router, $container) {
-            $route = $router->getRoute($event->getControllerName());
-            $arguments = $event->getArguments();
-            $methodName = $event->getMethod();
-
-            // find the method's meta data
-            $method = array();
-            foreach($route->getMethods() as $methodInfo) {
-                if ($methodInfo['method'] === $methodName) {
-                    $method = $methodInfo;
-                    break;
-                }
-            }
-
-            foreach($method['params'] as $i => $param) {
-                if ($param['class'] && Debugger::isExtending($param['class'], Request::__class(), true) && !($arguments[$i] instanceof Request)) {
-                    try {
-                        $arguments[$i] = $container->get('request');
-                    } catch(NotFoundException $e) {
-                        throw new \RuntimeException('Could not inject Request object into controller\'s method, because it is not executed in web request context.', 0, $e);
-                    }
-                // @codeCoverageIgnoreStart
-                }
-                // @codeCoverageIgnoreEnd
-            }
-
-            $event->setArguments($arguments);
+        $this->container->set('console', function($c) {
+            return new Console(
+                $c->get('application'),
+                $c->get('logger_provider')->provide('Console')
+            );
         });
-
-        $this->_initialized = true;
     }
 
     /**
-     * Boots an application - ie. performs any initialization, etc.
-     * 
-     * @param array $options [optional] Options that can be passed to the boot function via Splot Framework.
+     * This method should return an array of any custom parameters that you want to register
+     * in the dependency injection container.
+     *
+     * By default, it will search for a file "config/parameters.php" in the application dir and include it 
+     * if it exists and return the array this file should return.
+     *
+     * However, you can overwrite this method and load the parameters from whatever source you want.
+     *
+     * @return array
      */
-    abstract public function boot(array $options = array());
+    public function loadParameters() {
+        $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
+        if (is_file($parametersFile)) {
+            // load it here so that $parameters is available in that parameters file
+            $parameters = $this->container->getParameters();
+            return include $parametersFile;
+        }
+
+        return array();
+    }
 
     /**
      * Loads modules for the application.
+     *
+     * You must implement this method and it should return an array of module objects that you want
+     * loaded in your application.
+     *
+     * @return array
      */
     abstract public function loadModules();
+
+    /**
+     * Adds a module to the application.
+     * 
+     * @param AbstractModule $module Module to be added.
+     *
+     * @throws NotUniqueException When module name is not unique and its already been registered.
+     * @throws \RuntimeException When application has already been bootstrapped and its too late.
+     */
+    final public function addModule(AbstractModule $module) {
+        if ($this->bootstrapped) {
+            throw new \RuntimeException('Application has been already bootstrapped and it is too late to add new modules.');
+        }
+
+        $name = $module->getName();
+        if ($this->hasModule($name)) {
+            throw new NotUniqueException('Module with name "'. $name .'" is already registered in the application.');
+        }
+
+        $this->modules[$name] = $module;
+
+        // inject the container
+        $module->setContainer($this->container);
+    }
+
+    /**
+     * This method is called by Splot Framework during the configuration phase.
+     *
+     * At this point all modules have been added to the module list and all parameters and configs have
+     * been loaded. Therefore it is a good place to configure some behavior based on that
+     * information.
+     *
+     * The purpose of it is to perform any additional configuration on the application's part
+     * and register any application wide services. This is a better place to register
+     * your services than ::bootstrap() method as generally, bootstrap() method should not be
+     * overwritten unless you know what you're doing.
+     */
+    public function configure() {
+        $config = $this->getConfig();
+
+        // register filesystem service
+        $this->container->set('filesystem', function() {
+            return new Filesystem();
+        });
+
+        // set file writer in Clog
+        $this->container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
+        $this->container->get('clog')->addWriter($this->container->get('clog.writer.file'));
+
+        /*****************************************************
+         * REGISTER CACHES
+         *****************************************************/
+        $this->container->set('cache.store.file', function($c) {
+            return new FileStore(array(
+                'dir' => $c->getParameter('cache_dir')
+            ));
+        });
+
+        $this->container->set('cache_provider', function($c) {
+            return new CacheProvider($c->get('cache.store.file'), array(
+                'stores' => array(
+                    'file' => $c->get('cache.store.file')
+                ),
+                'global_namespace' => $c->getParameter('env')
+            ));
+        });
+
+        $this->container->set('cache', function($c) {
+            return $c->get('cache_provider')->provide('application');
+        });
+
+        // register other stores
+        foreach($config->get('cache.stores') as $name => $storeConfig) {
+            if (!isset($storeConfig['class'])) {
+                throw new \RuntimeException('Store config has to have a "class" key defined.');
+            }
+
+            $store = new $storeConfig['class']($storeConfig);
+
+            // register in cache provider and service
+            $this->container->get('cache_provider')->registerStore($name, $store);
+            $this->container->set('cache.store.'. $name, $store);
+        }
+
+        // add other defined caches
+        foreach($config->get('cache.caches') as $name => $storeName) {
+            $container->set('cache.'. $name, function($c) use ($name, $storeName) {
+                return $c->get('cache_provider')->provide($name, $storeName);
+            });
+        }
+    }
+
+    /**
+     * This method is called by Splot Framework during the run phase, so right before it will
+     * handle a request or a CLI command.
+     *
+     * This is a place where all services from all modules have been registered and the whole app
+     * is fully bootstrapped and fully configured so you can add some global application-wide
+     * logic or behavior here.
+     */
+    public function run() {
+
+    }
 
     /**
      * Handle the request that was sent to the application.
@@ -327,27 +316,25 @@ abstract class AbstractApplication
      * @throws NotFoundException When route has not been found and there wasn't any event listener to handle DidNotFindRouteForRequest event.
      */
     public function handleRequest(Request $request) {
-        try {
-            $this->_request = $request;
-            $this->container->set('request', function($c) use ($request) {
-                return $request;
-            }, true);
+        $eventManager = $this->container->get('event_manager');
 
-            $this->_logger->debug('Received request for {uri}', array(
+        try {
+            $this->container->set('request', $request);
+
+            $this->logger->debug('Received request for {uri}', array(
                 'uri' => $request->getRequestUri(),
                 'request' => $request,
-                '_timer' => $this->_timer->step('Received request'),
-                '_tags' => 'request'
+                '_timer' => $this->container->get('splot.timer')->step('Received request')
             ));
 
             // trigger DidReceiveRequest event
-            $this->_eventManager->trigger(new DidReceiveRequest($request));
+            $eventManager->trigger(new DidReceiveRequest($request));
 
             /** @var Route Meta information about the found route. */
-            $route = $this->getRouter()->getRouteForRequest($request);
+            $route = $this->container->get('router')->getRouteForRequest($request);
             if (!$route) {
                 $notFoundEvent = new DidNotFindRouteForRequest($request);
-                $this->_eventManager->trigger($notFoundEvent);
+                $eventManager->trigger($notFoundEvent);
 
                 if ($notFoundEvent->isHandled()) {
                     return $notFoundEvent->getResponse();
@@ -357,9 +344,9 @@ abstract class AbstractApplication
             }
 
             // trigger DidFindRouteForRequest event
-            if (!$this->_eventManager->trigger(new DidFindRouteForRequest($route, $request))) {
+            if (!$eventManager->trigger(new DidFindRouteForRequest($route, $request))) {
                 $notFoundEvent = new DidNotFindRouteForRequest($request);
-                $this->_eventManager->trigger($notFoundEvent);
+                $eventManager->trigger($notFoundEvent);
 
                 if ($notFoundEvent->isHandled()) {
                     return $notFoundEvent->getResponse();
@@ -380,7 +367,7 @@ abstract class AbstractApplication
             // catch any exceptions that might have occurred during handling of the request
             // and trigger ExceptionDidOccur event to potentially handle them with custom response
             $exceptionEvent = new ExceptionDidOccur($e);
-            $this->_eventManager->trigger($exceptionEvent);
+            $eventManager->trigger($exceptionEvent);
 
             // was the exception handled?
             if ($exceptionEvent->isHandled()) {
@@ -403,7 +390,7 @@ abstract class AbstractApplication
      * @return Response
      */
     public function render($name, array $arguments = array()) {
-        $route = $this->getRouter()->getRoute($name);
+        $route = $this->container->get('router')->getRoute($name);
 
         $response = $this->renderController(
             $route->getName(),
@@ -422,17 +409,15 @@ abstract class AbstractApplication
      * @param Request $request The original HTTP request for context.
      */
     public function sendResponse(Response $response, Request $request) {
-        $this->_logger->debug('Will send response', array(
-            'time' => $this->_timer->getDuration(),
-            'memory' => $this->_timer->getCurrentMemoryPeak(),
-            '_timer' => $this->_timer->step('Will send response'),
-            '_tags' => array(
-                'profiling', 'execution time', 'memory usage'
-            )
+        $timer = $this->container->get('splot.timer');
+        $this->logger->debug('Will send response', array(
+            'time' => $timer->getDuration(),
+            'memory' => $timer->getCurrentMemoryPeak(),
+            '_timer' => $timer->step('Will send response')
         ));
 
         // trigger WillSendResponse event for any last minute changes
-        $this->_eventManager->trigger(new WillSendResponse($response, $request));
+        $this->container->get('event_manager')->trigger(new WillSendResponse($response, $request));
 
         // and finally send out the response
         $response->send();
@@ -451,25 +436,26 @@ abstract class AbstractApplication
      * @return Response
      */
     protected function renderController($name, $class, $method, array $arguments = array(), Request $request = null) {
+        $eventManager = $this->container->get('event_manager');
+
         $controller = new $class($this->container);
 
         $willRespondEvent = new ControllerWillRespond($name, $controller, $method, $arguments);
-        $this->_eventManager->trigger($willRespondEvent);
+        $eventManager->trigger($willRespondEvent);
 
         $method = $willRespondEvent->getMethod();
         $arguments = $willRespondEvent->getArguments();
         
         $controllerResponse = new ControllerResponse(call_user_func_array(array($controller, $method), $arguments));
-        $this->_eventManager->trigger(new ControllerDidRespond($controllerResponse, $name, $controller, $method, $arguments, $request));
+        $eventManager->trigger(new ControllerDidRespond($controllerResponse, $name, $controller, $method, $arguments, $request));
 
         $response = $controllerResponse->getResponse();
 
-        $this->_logger->debug('Executed controller: "{name}"', array(
+        $this->logger->debug('Executed controller: "{name}"', array(
             'name' => $name,
             'function' => $class .'::'. $method,
             'arguments' => $arguments,
-            '_timer' => $this->_timer->step('Matched route'),
-            '_tags' => 'routing, request'
+            '_timer' => $this->container->get('splot.timer')->step('Matched route')
         ));
 
         // special case, if the response is a string then automatically convert it to HttpResponse
@@ -482,126 +468,7 @@ abstract class AbstractApplication
         }
 
         return $response;
-    }
-
-    /*****************************************************
-     * MODULES MANAGEMENT
-     *****************************************************/
-    /**
-     * Boots the given module.
-     * 
-     * @param AbstractModule $module
-     * @return AbstractModule The given module.
-     * 
-     * @throws NotUniqueException When the module name created from it's class name is a duplicate of previously registered module.
-     */
-    public function bootModule(AbstractModule $module) {
-        $name = $module->getName();
-        $class = $module->getClass();
-        $namespace = $module->getNamespace();
-
-        // but the name has to be unique
-        if (isset($this->_modules[$name])) {
-            throw new NotUniqueException('Module name "'. $name .'" for module "'. $class .'" is not unique in the application scope.');
-        }
-
-        // read config for this module
-        // also apply settings from the global config, if it contains any related to this module
-        $config = Config::read($module->getModuleDir() .'Resources/config/', $this->getEnv());
-        $config->apply($this->getConfig()->getNamespace($name));
-        $module->setConfig($config);
-
-        // inject application and the service container
-        $module->setApplication($this);
-        $module->setContainer($this->container);
-        
-        // finally add the module to the module registry
-        $this->_modules[$name] = $module;
-
-        // also read routes from this module
-        $this->getRouter()->readModuleRoutes($module);
-
-        // let the module boot itself as well
-        $module->boot();
-
-        return $module;
-    }
-
-    /**
-     * Initializes the given module.
-     * 
-     * @param AbstractModule $module
-     * 
-     * @throws \RuntimeException When trying to initialize a module that hasn't been previously booted.
-     */
-    public function initModule(AbstractModule $module) {
-        if (!isset($this->_modules[$module->getName()])) {
-            throw new \RuntimeException('Only previously booted modules can be initialized. Trying to init module called "'. $module->getName() .'".');
-        }
-
-        $module->init();
-    }
-
-    /*****************************************************
-     * HELPERS
-     *****************************************************/
-    /**
-     * Registers all cache related services based on app config.
-     * 
-     * @param ServiceContainer $container Service container on which the cache should be registered.
-     * @param Config $config Application config for cache.
-     */
-    protected function registerCaches(ServiceContainer $container, Config $config) {
-        $enabled = $config->get('cache.enabled', true);
-
-        /* register default file store */
-        $fileStore = new FileStore(array(
-            'dir' => $container->getParameter('cache_dir')
-        ));
-        // as a service as well
-        $container->set('cache.store.file', $fileStore, true, true);
-
-        /* register cache provider */
-        $cacheProvider = new CacheProvider($fileStore, array(
-            'stores' => array(
-                'file' => $fileStore
-            ),
-            'global_namespace' => $container->getParameter('env')
-        ));
-        // as a service as well
-        $container->set('cache_provider', $cacheProvider, true, true);
-
-        /* register default cache as a service */
-        $container->set('cache', function($c) {
-            return $c->get('cache_provider')->provide('global');
-        }, true, true);
-
-        /*****************************************************
-         * ADD OTHER STORES
-         *****************************************************/
-        foreach($config->get('cache.stores') as $name => $storeConfig) {
-            if (!isset($storeConfig['class'])) {
-                throw new \RuntimeException('Store config has to have a "class" key defined.');
-            }
-
-            $store = new $storeConfig['class']($storeConfig);
-
-            // register in cache provider
-            $cacheProvider->registerStore($name, $store);
-
-            // register as a service as well 
-            $container->set('cache.store.'. $name, $store, true);
-        }
-
-        /*****************************************************
-         * ADD OTHER CACHES
-         *****************************************************/
-        foreach($config->get('cache.caches') as $name => $storeName) {
-            $container->set('cache.'. $name, function($c) use ($name, $storeName) {
-                return $c->get('cache_provider')->provide($name, $storeName);
-            }, true, true);
-        }
-    }
+    }   
 
     /*****************************************************
      * SETTERS AND GETTERS
@@ -625,21 +492,12 @@ abstract class AbstractApplication
     }
 
     /**
-     * Returns class name of the application.
-     * 
-     * @return string
-     */
-    final public static function getClass() {
-        return get_called_class();
-    }
-
-    /**
      * Returns the application config.
      * 
      * @return Config
      */
-    final public function getConfig() {
-        return $this->_config;
+    public function getConfig() {
+        return $this->container->get('config');
     }
 
     /**
@@ -647,8 +505,23 @@ abstract class AbstractApplication
      * 
      * @return ServiceContainer
      */
-    final public function getContainer() {
+    public function getContainer() {
         return $this->container;
+    }
+
+    /**
+     * Sets the dependency injection service container.
+     * 
+     * @param ServiceContainer $container The container.
+     *
+     * @throws \RuntimeException When trying to override a previously set container.
+     */
+    final public function setContainer(ServiceContainer $container) {
+        if ($this->container) {
+            throw new \RuntimeException('Service container already set on the application, cannot overwrite it.');
+        }
+
+        $this->container = $container;
     }
 
     /**
@@ -656,8 +529,8 @@ abstract class AbstractApplication
      * 
      * @return string
      */
-    final public function getApplicationDir() {
-        return $this->_applicationDir;
+    public function getApplicationDir() {
+        return $this->container->getParameter('application_dir');
     }
 
     /**
@@ -665,26 +538,17 @@ abstract class AbstractApplication
      * 
      * @return string
      */
-    final public function getEnv() {
-        return $this->_env;
+    public function getEnv() {
+        return $this->container->getParameter('env');
     }
 
     /**
-     * Checks if the current environment is Dev.
+     * Returns information whether or not application is ran in debug mode.
      * 
-     * @return bool
+     * @return boolean
      */
-    final public function isDevEnv() {
-        return $this->getEnv() === Framework::ENV_DEV;
-    }
-
-    /**
-     * Returns registered modules.
-     * 
-     * @return array
-     */
-    final public function getModules() {
-        return $this->_modules;
+    public function isDebug() {
+        return $this->container->getParameter('debug');
     }
 
     /**
@@ -692,8 +556,17 @@ abstract class AbstractApplication
      * 
      * @return array
      */
-    final public function listModules() {
-        return array_keys($this->_modules);
+    public function listModules() {
+        return array_keys($this->modules);
+    }
+
+    /**
+     * Returns registered modules.
+     * 
+     * @return array
+     */
+    public function getModules() {
+        return $this->modules;
     }
 
     /**
@@ -701,8 +574,8 @@ abstract class AbstractApplication
      * 
      * @return bool
      */
-    final public function hasModule($name) {
-        return isset($this->_modules[$name]);
+    public function hasModule($name) {
+        return isset($this->modules[$name]);
     }
 
     /**
@@ -710,53 +583,44 @@ abstract class AbstractApplication
      * 
      * @return AbstractModule
      */
-    final public function getModule($name) {
-        return $this->_modules[$name];
-    }
-
-    /**
-     * Returns the router.
-     * 
-     * @return Router
-     */
-    final public function getRouter() {
-        return $this->_router;
-    }
-
-    /**
-     * Returns the application's benchmark timer.
-     * 
-     * @return Timer
-     */
-    final public function getTimer() {
-        return $this->_timer;
-    }
-
-    /**
-     * Returns the event manager.
-     * 
-     * @return EventManager
-     */
-    final public function getEventManager() {
-        return $this->_eventManager;
-    }
-
-    /**
-     * Returns the resources finder.
-     * 
-     * @return Finder
-     */
-    final public function getResourceFinder() {
-        return $this->_resourceFinder;
+    public function getModule($name) {
+        return $this->modules[$name];
     }
 
     /**
      * Returns the application logger.
-     *
+     * 
      * @return LoggerInterface
      */
-    final public function getLogger() {
-        return $this->_logger;
+    public function getLogger() {
+        return $this->logger;
+    }
+
+    /**
+     * Set the application logger.
+     * 
+     * @param LoggerInterface $logger Application logger.
+     */
+    public function setLogger(LoggerInterface $logger) {
+        $this->logger = $logger;
+    }
+
+    /**
+     * Mark the bootstrap phase as finished.
+     *
+     * For internal Splot use only.
+     */
+    final public function finishBootstrap() {
+        $this->bootstrapped = true;
+    }
+
+    /**
+     * Returns class name of the application.
+     * 
+     * @return string
+     */
+    final public static function __class() {
+        return get_called_class();
     }
 
 }

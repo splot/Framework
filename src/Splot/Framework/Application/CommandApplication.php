@@ -34,14 +34,6 @@ class CommandApplication extends AbstractApplication
     }
 
     /**
-     * Boots an application - ie. performs any initialization, etc.
-     * 
-     * @param array $options [optional] Options that can be passed to the boot function via Splot Framework.
-     */
-    public function boot(array $options = array()) {
-    }
-
-    /**
      * Loads modules for the application.
      */
     public function loadModules() {

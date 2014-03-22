@@ -21,39 +21,25 @@ abstract class AbstractModule
 {
 
     /**
+     * Prefix that will be added to all URL's from this module.
+     * 
+     * @var string|null
+     */
+    protected $urlPrefix;
+
+    /**
+     * Namespace for all commands that belong to this module
+     * 
+     * @var string|null
+     */
+    protected $commandNamespace;
+
+    /**
      * Module config.
      * 
      * @var Config
      */
-    private $_config;
-
-    /**
-     * Reference to parent application.
-     * 
-     * @var AbstractApplication
-     */
-    private $_application;
-
-    /**
-     * Class name for this module.
-     * 
-     * @var string
-     */
-    private $_class;
-
-    /**
-     * Namespace of this module.
-     * 
-     * @var string
-     */
-    private $_namespace;
-
-    /**
-     * Directory where this module is located.
-     * 
-     * @var string
-     */
-    private $_moduleDir;
+    protected $config;
 
     /**
      * Dependency injection service container.
@@ -63,35 +49,63 @@ abstract class AbstractModule
     protected $container;
 
     /**
+     * Class name for this module.
+     * 
+     * @var string
+     */
+    private $class;
+
+    /**
+     * Namespace of this module.
+     * 
+     * @var string
+     */
+    private $namespace;
+
+    /**
+     * Directory where this module is located.
+     * 
+     * @var string
+     */
+    private $moduleDir;
+
+    /**
      * Module name
      * 
      * @var string
      */
-    protected $_name;
+    protected $name;
 
     /**
-     * Prefix that will be added to all URL's from this module.
+     * If the module depends on other modules then return those dependencies from this method.
+     *
+     * It works exactly the same as application's ::loadModules().
      * 
-     * @var string|null
+     * @return array
      */
-    protected $_urlPrefix;
+    public function loadModules() {
+        return array();
+    }
 
     /**
-     * Namespace for all commands that belong to this module
-     * 
-     * @var string|null
+     * This method is called on the module during configuration phase so you can register any services,
+     * listeners etc here.
+     *
+     * It should not contain any logic, just wiring things together.
+     *
+     * If the module contains any routes they should be registered here.
      */
-    protected $_commandNamespace;
+    public function configure() {
+        $this->container->get('router')->readModuleRoutes($this);
+    }
 
     /**
-     * Boots the module.
+     * This method is called on the module during the run phase. If you need you can include any logic
+     * here.
      */
-    abstract public function boot();
+    public function run() {
 
-    /**
-     * Initializes the module after all other modules have been loaded.
-     */
-    public function init() {}
+    }
 
     /*****************************************
      * SETTERS AND GETTERS
@@ -102,12 +116,12 @@ abstract class AbstractModule
      * @return string
      */
     public function getName() {
-        if ($this->_name) {
-            return $this->_name;
+        if ($this->name) {
+            return $this->name;
         }
 
-        $this->_name = Debugger::getClass($this, true);
-        return $this->_name;
+        $this->name = Debugger::getClass($this, true);
+        return $this->name;
     }
 
     /**
@@ -116,7 +130,7 @@ abstract class AbstractModule
      * @param Config $config
      */
     public function setConfig(Config $config) {
-        $this->_config = $config;
+        $this->config = $config;
     }
 
     /**
@@ -125,34 +139,16 @@ abstract class AbstractModule
      * @return Config
      */
     public function getConfig() {
-        return $this->_config;
-    }
-
-    /**
-     * Sets a reference to the parent application.
-     * 
-     * @param AbstractApplication $application
-     */
-    final public function setApplication(AbstractApplication $application) {
-        $this->_application = $application;
-    }
-
-    /**
-     * Returns reference to the parent application.
-     * 
-     * @return AbstractApplication
-     */
-    final public function getApplication() {
-        return $this->_application;
+        return $this->config;
     }
 
     /**
      * Sets the dependency injection service container.
      * 
-     * @param ServiceContainer $serviceContainer
+     * @param ServiceContainer $container
      */
-    final public function setContainer(ServiceContainer $serviceContainer) {
-        $this->container = $serviceContainer;
+    final public function setContainer(ServiceContainer $container) {
+        $this->container = $container;
     }
 
     /**
@@ -170,7 +166,7 @@ abstract class AbstractModule
      * @return string|null
      */
     public function getUrlPrefix() {
-        return $this->_urlPrefix;
+        return $this->urlPrefix;
     }
 
     /**
@@ -179,7 +175,16 @@ abstract class AbstractModule
      * @return string|null
      */
     public function getCommandNamespace() {
-        return $this->_commandNamespace;
+        return $this->commandNamespace;
+    }
+
+    /**
+     * Returns location of the config directory for this module.
+     * 
+     * @return string
+     */
+    public function getConfigDir() {
+        return $this->getModuleDir() .'Resources'. DS .'config'. DS;
     }
 
     /**
@@ -188,12 +193,12 @@ abstract class AbstractModule
      * @return string
      */
     final public function getClass() {
-        if ($this->_class) {
-            return $this->_class;
+        if ($this->class) {
+            return $this->class;
         }
 
-        $this->_class = Debugger::getClass($this);
-        return $this->_class;
+        $this->class = Debugger::getClass($this);
+        return $this->class;
     }
 
     /**
@@ -202,12 +207,12 @@ abstract class AbstractModule
      * @return string
      */
     final public function getNamespace() {
-        if ($this->_namespace) {
-            return $this->_namespace;
+        if ($this->namespace) {
+            return $this->namespace;
         }
 
-        $this->_namespace = Debugger::getNamespace($this);
-        return $this->_namespace;
+        $this->namespace = Debugger::getNamespace($this);
+        return $this->namespace;
     }
 
     /**
@@ -216,13 +221,13 @@ abstract class AbstractModule
      * @return string
      */
     final public function getModuleDir() {
-        if ($this->_moduleDir) {
-            return $this->_moduleDir;
+        if ($this->moduleDir) {
+            return $this->moduleDir;
         }
 
         $file = Debugger::getClassFile($this);
-        $this->_moduleDir = dirname($file) .'/';
-        return $this->_moduleDir;
+        $this->moduleDir = dirname($file) . DS;
+        return $this->moduleDir;
     }
 
 }

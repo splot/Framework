@@ -31,7 +31,7 @@ class ApplicationTestCaseTest extends ApplicationTestCase
     }
 
     public function testGetController() {
-        $this->_application->getRouter()->addRoute('stub_controller', 'Splot\Framework\Tests\Testing\Stubs\StubController');
+        $this->_application->getContainer()->get('router')->addRoute('stub_controller', 'Splot\Framework\Tests\Testing\Stubs\StubController');
 
         $controller = $this->getController('stub_controller');
         $this->assertTrue($controller instanceof StubController);

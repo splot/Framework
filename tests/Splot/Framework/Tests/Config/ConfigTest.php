@@ -5,6 +5,9 @@ use Splot\Framework\Config\Config;
 
 use MD\Foundation\Exceptions\NotFoundException;
 
+/**
+ * @coversDefaultClass Splot\Framework\Config\Config
+ */
 class ConfigTest extends \PHPUnit_Framework_TestCase
 {
 
@@ -59,6 +62,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->configFixturesDir = realpath(dirname(__FILE__) .'/fixtures') .'/';
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::getReadFiles
+     */
     public function testEmptyConfigInstance() {
         $config = new Config(array());
 
@@ -66,6 +73,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty($config->getReadFiles());
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::getNamespace
+     */
     public function testSimpleGetNamespace() {
         $config = new Config(array(
             'setting1' => true,
@@ -80,6 +91,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         ), $configData);
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::getNamespace
+     */
     public function testGetNamespace() {
         $config = new Config($this->basicConfigArray);
 
@@ -88,6 +103,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEmpty($config->getNamespace('undefined'));
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::get
+     */
     public function testGet() {
         $config = new Config($this->basicConfigArray);
 
@@ -100,6 +119,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(123, $config->get('group.subgroup.lipsum'));
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::get
+     */
     public function testGetDefaultValue() {
         $config = new Config(array());
         $this->assertEquals('lipsum', $config->get('undefined.item', 'lipsum'));
@@ -107,18 +130,30 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     * @covers ::__construct
+     * @covers ::get
      */
     public function testGetInvalid() {
         $config = new Config($this->basicConfigArray);
         $config->get('group.invalid_setting');
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::apply
+     * @covers ::getNamespace
+     */
     public function testApply() {
         $config = new Config($this->basicConfigArray);
         $config->apply($this->extendingConfigArray);
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::extend
+     * @covers ::getNamespace
+     */
     public function testExtend() {
         $config = new Config($this->basicConfigArray);
         $anotherConfig = new Config($this->extendingConfigArray);
@@ -127,6 +162,12 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::read
+     * @covers ::getReadFiles
+     * @covers ::getNamespace
+     */
     public function testRead() {
         $config = Config::read($this->configFixturesDir, 'test');
 
@@ -139,7 +180,25 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::getParameter
+     * @covers ::setContainer
+     */
+    public function testGetParameter() {
+        $dir = dirname(__FILE__);
+        $config = new Config($this->basicConfigArray);
+        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container->expects($this->once())
+            ->method('getParameter')
+            ->with($this->equalTo('application_dir'))
+            ->will($this->returnValue($dir));
+        $config->setContainer($container);
+
+        $this->assertEquals($dir, $config->getParameter('application_dir'));
+    }
+
+    /**
      * @expectedException \MD\Foundation\Exceptions\InvalidFileException
+     * @covers ::read
      */
     public function testReadInvalidBase() {
         $config = Config::read($this->configFixturesDir .'invalid_base', 'test');
@@ -147,6 +206,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidFileException
+     * @covers ::read
      */
     public function testReadInvalidEnv() {
         $config = Config::read($this->configFixturesDir .'invalid_env', 'test');

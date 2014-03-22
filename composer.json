@@ -1,7 +1,7 @@
 {
     "name": "splot/framework",
-    "description": "Splot Framework.",
-    "keywords": ["php", "framework", "splot"],
+    "description": "Splot Framework. Lightweight, fully featured framework for rapid web development.",
+    "keywords": ["rapid", "fast", "lightweight", "web", "event", "di", "dependency injection", "mvc"],
     "license": "MIT",
     "authors": [
         {
@@ -12,18 +12,23 @@
     "require": {
         "php": ">=5.3.3",
         "psr/log": "1.0.*",
-        "symfony/http-foundation": "2.1.*",
-        "symfony/filesystem": "dev-master",
-        "symfony/console": "dev-master",
-        "symfony/process": "dev-master",
+        "filp/whoops": "1.*",
+        "symfony/http-foundation": ">=2.1,<2.5",
+        "symfony/filesystem": ">=2.1,<2.5",
+        "symfony/console": ">=2.1,<2.5",
+        "symfony/process": ">=2.1,<2.5",
         "michaldudek/foundation": "dev-master",
         "michaldudek/clog": "dev-master",
         "splot/event-manager": "dev-master",
-        "splot/cache": "dev-master",
-        "splot/stats-tracker": "dev-master"
+        "splot/cache": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "3.7.*"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.6.x-dev"
+        }
     },
     "minimum-stability": "dev",
     "autoload": {
