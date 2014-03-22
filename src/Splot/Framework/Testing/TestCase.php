@@ -28,8 +28,6 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     protected $_application;
 
-    protected $_options = array();
-
     /**
      * Sets up the application before every test.
      * 
