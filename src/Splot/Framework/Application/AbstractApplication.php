@@ -24,6 +24,7 @@ use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
 use MD\Clog\Writers\FileLogger;
+use MD\Clog\Writers\MemoryLogger;
 
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -250,7 +251,9 @@ abstract class AbstractApplication implements LoggerAwareInterface
 
         // set file writer in Clog
         $this->container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
+        $this->container->set('clog.writer.memory', new MemoryLogger());
         $this->container->get('clog')->addWriter($this->container->get('clog.writer.file'));
+        $this->container->get('clog')->addWriter($this->container->get('clog.writer.memory'));
 
         /*****************************************************
          * REGISTER CACHES
