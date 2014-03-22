@@ -42,8 +42,17 @@ abstract class AbstractScriptHandler
         $appEntryPoint = (isset($composer['extra']) && isset($composer['extra']['splot-console'])) ? $composer['extra']['splot-console'] : 'app/console';
         require_once dirname(__FILE__) .'/../../../../../../../'. $appEntryPoint;
 
-        self::$_application = Framework::getFramework()->getApplication();
+        // the console above should automatically inject the application here
         return self::$_application;
+    }
+
+    /**
+     * Set the application.
+     * 
+     * @param AbstractApplication $application Application.
+     */
+    public static function setApplication(AbstractApplication $application) {
+        self::$_application = $application;
     }
 
 }

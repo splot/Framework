@@ -24,7 +24,11 @@ use MD\Foundation\Utils\StringUtils;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
+
 use Splot\Framework\Config\Config;
+
+use Splot\Framework\Composer\AbstractScriptHandler;
+
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Splot\Framework\ErrorHandlers\EventErrorHandler;
@@ -198,6 +202,9 @@ class Framework
         switch($mode) {
             case self::MODE_CONSOLE:
                 set_time_limit(0);
+
+                // in case we're gonna run Composer script, inject the application there
+                AbstractScriptHandler::setApplication($application);
 
                 $console = $application->getContainer()->get('console');
                 $console->run();
