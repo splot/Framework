@@ -292,7 +292,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
 
         // add other defined caches
         foreach($config->get('cache.caches') as $name => $storeName) {
-            $container->set('cache.'. $name, function($c) use ($name, $storeName) {
+            $this->container->set('cache.'. $name, function($c) use ($name, $storeName) {
                 return $c->get('cache_provider')->provide($name, $storeName);
             });
         }

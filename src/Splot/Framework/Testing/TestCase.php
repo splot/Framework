@@ -35,7 +35,7 @@ class TestCase extends \PHPUnit_Framework_TestCase
      */
     public function setUp() {
         $this->_application = new TestApplication();
-        Framework::run($this->_application, 'dev', true, Framework::MODE_TEST);
+        Framework::run($this->_application, 'test', true, Framework::MODE_TEST);
     }
 
     /**

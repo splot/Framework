@@ -39,7 +39,7 @@ class ApplicationTestCase extends TestCase
 
         $appClass = static::$_applicationClass;
         $this->_application = new $appClass();
-        Framework::run($this->_application, 'dev', true, Framework::MODE_TEST);
+        Framework::run($this->_application, 'test', true, Framework::MODE_TEST);
     }
 
     /**
