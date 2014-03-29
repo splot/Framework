@@ -253,7 +253,12 @@ abstract class AbstractApplication implements LoggerAwareInterface
         $this->container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
         $this->container->set('clog.writer.memory', new MemoryLogger());
         $this->container->get('clog')->addWriter($this->container->get('clog.writer.file'));
-        $this->container->get('clog')->addWriter($this->container->get('clog.writer.memory'));
+
+        // only register memory writer for web requests, otherwise it could easily fill up all memory
+        // (especially for long lasting processes, e.g. workers)
+        if ($this->container->getParameter('mode') === Framework::MODE_WEB) {
+            $this->container->get('clog')->addWriter($this->container->get('clog.writer.memory'));
+        }
 
         /*****************************************************
          * REGISTER CACHES
