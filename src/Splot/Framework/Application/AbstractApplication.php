@@ -126,8 +126,8 @@ abstract class AbstractApplication implements LoggerAwareInterface
         $this->container->setParameter('web_dir', $this->container->getParameter('root_dir') . 'web' . DS);
 
         // load application's parameters
-        $parameters = array_merge($this->container->getParameters(), $this->loadParameters());
-        foreach($parameters as $key => $value) {
+        $loadedParameters = $this->loadParameters();
+        foreach($loadedParameters as $key => $value) {
             $this->container->setParameter($key, $value);
         }
 
