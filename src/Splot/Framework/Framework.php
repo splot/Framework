@@ -110,6 +110,7 @@ class Framework
          *****************************************************/
         $framework = new static($application, $env, $debug, $mode);
         $container = $application->getContainer();
+        $debug = $container->getParameter('debug');
 
         // add default Whoops error handlers
         $whoops = $container->get('whoops');
