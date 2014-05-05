@@ -417,6 +417,9 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * @param Request $request The original HTTP request for context.
      */
     public function sendResponse(Response $response, Request $request) {
+        // prepare the response for sending (will tweak some headers based on the request)
+        $response->prepare($request);
+
         $timer = $this->container->get('splot.timer');
         $this->logger->debug('Will send response', array(
             'time' => $timer->getDuration(),
