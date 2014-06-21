@@ -110,21 +110,21 @@ class Framework
          *****************************************************/
         $framework = new static($application, $env, $debug, $mode);
         $container = $application->getContainer();
-
-        // add default Whoops error handlers
-        $whoops = $container->get('whoops');
-        $whoops->pushHandler($container->get('whoops.handler.log'));
-        $whoops->pushHandler($container->get('whoops.handler.event'));
         
         // @codeCoverageIgnoreStart
-        // don't register Whoops when testing
-        if ($mode !== self::MODE_TEST) {
-            $whoops->register();
-        }
+        // only use Whoops for web mode
+        if ($mode === self::MODE_WEB) {
+            // add default Whoops error handlers
+            $whoops = $container->get('whoops');
+            $whoops->pushHandler($container->get('whoops.handler.log'));
+            $whoops->pushHandler($container->get('whoops.handler.event'));
 
-        // if in debug mode and web mode then also add pretty page handler
-        if ($debug && $mode === self::MODE_WEB) {
-            $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
+            $whoops->register();
+
+            // and if in debug mode then also add pretty page handler
+            if ($debug) {
+                $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
+            }
         }
         // @codeCoverageIgnoreEnd
 
