@@ -110,6 +110,7 @@ class Framework
          *****************************************************/
         $framework = new static($application, $env, $debug, $mode);
         $container = $application->getContainer();
+        $debug = $container->getParameter('debug');
         
         // @codeCoverageIgnoreStart
         // only use Whoops for web mode
@@ -168,15 +169,20 @@ class Framework
         $config = new Config(include dirname(__FILE__) . DS .'Config'. DS .'default.php');
         $container->set('config', $config);
 
-        // inject container to the config in order to have access to parameters
-        $config->setContainer($container);
-
         // read application config
-        $config->extend(Config::read($container->getParameter('config_dir'), $container->getParameter('env')));
+        $config->extend(Config::read(
+            $container->getParameter('config_dir'),
+            $container->getParameter('env'),
+            $container->getParameters()
+        ));
 
         // read modules' configs
         foreach($application->getModules() as $module) {
-            $moduleConfig = Config::read($module->getConfigDir(), $container->getParameter('env'));
+            $moduleConfig = Config::read(
+                $module->getConfigDir(),
+                $container->getParameter('env'),
+                $container->getParameters()
+            );
             $moduleConfig->apply($config->getNamespace($module->getName()));
             $module->setConfig($moduleConfig);
         }

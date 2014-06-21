@@ -15,8 +15,6 @@ use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\InvalidFileException;
 use MD\Foundation\Utils\ArrayUtils;
 
-use Splot\Framework\DependencyInjection\ServiceContainer;
-
 class Config
 {
 
@@ -39,11 +37,12 @@ class Config
      * 
      * @param string $configDir Path to a directory where the configs are stored.
      * @param string $env Name of the environment.
+     * @param array $parameters [optional] Array of optional parameters.
      * @return Config
      * 
      * @throws InvalidFileException When any of the config files found in the $configDir return a config array.
      */
-    public static function read($configDir, $env) {
+    public static function read($configDir, $env, array $parameters = array()) {
         $configDir = rtrim($configDir, DS) . DS;
         $config = array();
         $files = array();
@@ -163,25 +162,6 @@ class Config
         }
 
         return $this->_config[$namespace];
-    }
-
-    /**
-     * Returns a parameter value from the service container.
-     * 
-     * @param  string $name Name of the parameter.
-     * @return mixed
-     */
-    public function getParameter($name) {
-        return $this->container->getParameter($name);
-    }
-
-    /**
-     * Inject the service container.
-     * 
-     * @param ServiceContainer $container The service container.
-     */
-    public function setContainer(ServiceContainer $container) {
-        $this->container = $container;
     }
 
     /**
