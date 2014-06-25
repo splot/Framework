@@ -11,8 +11,11 @@
  */
 namespace Splot\Framework\Console;
 
+use Psr\Log\LoggerInterface;
+
 use MD\Foundation\Exceptions\NotFoundException;
 
+use Splot\Framework\Console\ConsoleLogger;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Symfony\Component\Console\Helper\DialogHelper;
@@ -271,6 +274,15 @@ abstract class AbstractCommand
      */
     final public function getOutput() {
         return $this->output;
+    }
+
+    /**
+     * Returns a logger that logs into the console.
+     * 
+     * @return LoggerInterface
+     */
+    public function getLogger() {
+        return new ConsoleLogger($this->getOutput());
     }
 
     /**
