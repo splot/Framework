@@ -6,10 +6,12 @@
  * @subpackage Routes
  * @author Michał Dudek <michal@michaldudek.pl>
  * 
- * @copyright Copyright (c) 2013, Michał Dudek
+ * @copyright Copyright (c) 2013-2014, Michał Dudek
  * @license MIT
  */
 namespace Splot\Framework\Routes;
+
+use ReflectionClass;
 
 use Psr\Log\LoggerInterface;
 
@@ -85,6 +87,7 @@ class Router
         $router = $this;
 
         // register a closure so we can recursively scan the routes directory
+        // @todo refactor to use glob()
         $scan = function($dir, $namespace, $self) use ($name, $moduleNamespace, $module, $router) {
             $namespace = ($namespace) ? trim($namespace, NS) . NS : '';
             
@@ -104,9 +107,17 @@ class Router
                 $class = $moduleNamespace . $namespace . $rawClass;
 
                 // class_exists autoloads a file
-                if (class_exists($class)) {
-                    $router->addRoute($name .':'. $namespace . $rawClass, $class, $module->getName(), $module->getUrlPrefix() . $class::_getUrl());
+                if (!class_exists($class)) {
+                    continue;
                 }
+
+                // check if this class can be instantiated, if not, omit it
+                $reflection = new ReflectionClass($class);
+                if (!$reflection->isInstantiable()) {
+                    continue;
+                }
+
+                $router->addRoute($name .':'. $namespace . $rawClass, $class, $module->getName(), $module->getUrlPrefix() . $class::_getUrl());
             }
         };
 
