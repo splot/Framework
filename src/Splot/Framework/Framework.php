@@ -176,7 +176,13 @@ class Framework
             $container->getParameters()
         ));
 
-        // read modules' configs
+        // and configure the application
+        $application->configure();
+
+        // set the timezone based on config
+        date_default_timezone_set($config->get('timezone'));
+
+        // configure modules
         foreach($application->getModules() as $module) {
             $moduleConfig = Config::read(
                 $module->getConfigDir(),
@@ -185,14 +191,7 @@ class Framework
             );
             $moduleConfig->apply($config->getNamespace($module->getName()));
             $module->setConfig($moduleConfig);
-        }
 
-        // set the timezone based on config
-        date_default_timezone_set($config->get('timezone'));
-
-        // run application's and modules configure hooks
-        $application->configure();
-        foreach($application->getModules() as $module) {
             $module->configure();
         }
 
