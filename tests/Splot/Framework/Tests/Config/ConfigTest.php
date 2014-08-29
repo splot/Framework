@@ -180,23 +180,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::getParameter
-     * @covers ::setContainer
-     */
-    public function testGetParameter() {
-        $dir = dirname(__FILE__);
-        $config = new Config($this->basicConfigArray);
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
-        $container->expects($this->once())
-            ->method('getParameter')
-            ->with($this->equalTo('application_dir'))
-            ->will($this->returnValue($dir));
-        $config->setContainer($container);
-
-        $this->assertEquals($dir, $config->getParameter('application_dir'));
-    }
-
-    /**
      * @expectedException \MD\Foundation\Exceptions\InvalidFileException
      * @covers ::read
      */
