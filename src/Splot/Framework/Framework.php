@@ -173,7 +173,7 @@ class Framework
         $config->extend(Config::read(
             $container->getParameter('config_dir'),
             $container->getParameter('env'),
-            $container->getParameters()
+            $container->dumpParameters()
         ));
 
         // and configure the application
@@ -284,7 +284,6 @@ class Framework
          * INITIALIZE DEPENDENCY INJECTION CONTAINER
          *****************************************************/
         $container = new ServiceContainer();
-        $container->set('container', $container);
         $container->set('application', $application);
         $container->set('splot.timer', $this->timer);
         $container->setParameter('env', $env);
@@ -361,7 +360,7 @@ class Framework
 
         $this->logger->debug('Splot Framework successfully bootstrapped with application "{application}".', array(
             'application' => $application->getName(),
-            'parameters' => $container->getParameters(),
+            'parameters' => $container->dumpParameters(),
             '_time' =>  $this->timer->step('Bootstrap')
         ));
     }

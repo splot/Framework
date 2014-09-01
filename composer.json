@@ -20,7 +20,8 @@
         "michaldudek/foundation": ">=0.9",
         "michaldudek/clog": "dev-master",
         "splot/event-manager": "dev-master",
-        "splot/cache": "dev-master"
+        "splot/cache": "dev-master",
+        "splot/di": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "3.7.*"

@@ -33,7 +33,7 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Splot\Framework\DependencyInjection\Exceptions\ReadOnlyDefinitionException
+     * @expectedException \Splot\DependencyInjection\Exceptions\ReadOnlyException
      */
     public function testOverwritingReadOnlyService() {
         $container = new ServiceContainer();
@@ -119,69 +119,6 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
         $container->get('undefined');
     }
 
-    public function testExtending() {
-        $container = new ServiceContainer();
-        $phpunit = $this;
-
-        $testExtendCalled = false;
-        $testExtend2Called = false;
-        $container->set('test', function() {
-            return new TestService();
-        });
-
-        $container->set('test.not_extended', function() {
-            return new TestService();
-        });
-
-        $container->extend('test', function($s, $c) use ($container, $phpunit, &$testExtendCalled) {
-            // make sure arguments are correct
-            $phpunit->assertTrue($s instanceof TestService);
-            $phpunit->assertTrue($c instanceof ServiceContainer);
-            $phpunit->assertEquals($c, $container);
-
-            $testExtendCalled = true;
-
-            $s->setId($s->getId() + 1);
-        });
-
-        $container->extend('test', function($s, $c) use (&$testExtend2Called) {
-            $testExtend2Called = true;
-            $s->setId(($s->getId() + 2) * 10);
-        });
-
-        $test = $container->get('test');
-        $this->assertTrue($testExtendCalled);
-        $this->assertTrue($testExtend2Called);
-        $this->assertEquals(30, $test->getId());
-
-        $testNotExtended = $container->get('test.not_extended');
-        $this->assertEquals(0, $testNotExtended->getId());
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\NotFoundException
-     */
-    public function testExtendingNotExistingService() {
-        $container = new ServiceContainer();
-
-        $container->extend('undefined', function($s) {
-            $s->setId(6);
-        });
-    }
-
-    /**
-     * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
-     */
-    public function testExtendindWithInvalidCallable() {
-        $container = new ServiceContainer();
-
-        $container->set('test', function() {
-            return new TestService();
-        });
-
-        $container->extend('test', 123);
-    }
-
     public function testHas() {
         $container = new ServiceContainer();
         $container->set('test', function() {
@@ -190,52 +127,6 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($container->has('test'));
         $this->assertFalse($container->has('undefined'));
-    }
-
-    public function testRemove() {
-        $container = new ServiceContainer();
-
-        $container->set('test', function() {
-            return new TestService();
-        });
-        $this->assertTrue($container->has('test'));
-
-        $container->remove('test');
-        $this->assertFalse($container->has('test'));
-    }
-
-    /**
-     * @expectedException \Splot\Framework\DependencyInjection\Exceptions\ReadOnlyDefinitionException
-     */
-    public function testRemovingReadOnlyService() {
-        $container = new ServiceContainer();
-
-        $container->set('test', function() {
-            return new TestService();
-        }, true);
-        $this->assertTrue($container->has('test'));
-
-        $container->remove('test');
-    }
-
-    public function testListServices() {
-        $container = new ServiceContainer();
-
-        $services = array(
-            'test',
-            'defined',
-            'lorem.ipsum',
-            'dolor_sit_amet',
-            'lorem_ipsum.dolor.sit_amet'
-        );
-
-        foreach($services as $name) {
-            $container->set($name, function() {
-                return new TestService();
-            });
-        }
-
-        $this->assertEquals($services, $container->listServices());
     }
 
     public function testSettingAndGettingParameters() {
@@ -260,34 +151,6 @@ class ServiceContainerTest extends \PHPUnit_Framework_TestCase
         $container->setParameter('test', 'lorem ipsum');
         $this->assertTrue($container->hasParameter('test'));
         $this->assertFalse($container->hasParameter('undefined'));
-    }
-
-    public function testRemoveParameter() {
-        $container = new ServiceContainer();
-
-        $container->setParameter('test', 'lorem ipsum');
-        $this->assertTrue($container->hasParameter('test'));
-
-        $container->removeParameter('test');
-        $this->assertFalse($container->hasParameter('test'));
-    }
-
-    public function testListParameters() {
-        $container = new ServiceContainer();
-
-        $parameters = array(
-            'test' => 'lorem ipsum',
-            'lipsum' => 'lorem ipsum dolor sit amet',
-            'defined' => true,
-            'version' => 10,
-            'enable' => false
-        );
-
-        foreach($parameters as $key => $value) {
-            $container->setParameter($key, $value);
-        }
-
-        $this->assertEquals(array_keys($parameters), $container->listParameters());
     }
 
 }
