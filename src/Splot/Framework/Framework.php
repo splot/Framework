@@ -14,9 +14,6 @@
  */
 namespace Splot\Framework;
 
-use Whoops\Run as WhoopsRun;
-use Whoops\Handler\PrettyPageHandler as WhoopsPrettyPageHandler;
-
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\InvalidArgumentException;
@@ -30,10 +27,6 @@ use Splot\Framework\Config\Config;
 use Splot\Framework\Composer\AbstractScriptHandler;
 
 use Splot\Framework\DependencyInjection\ServiceContainer;
-
-use Splot\Framework\ErrorHandlers\EventErrorHandler;
-use Splot\Framework\ErrorHandlers\LogErrorHandler;
-use Splot\Framework\ErrorHandlers\NullErrorHandler;
 
 use Splot\Framework\Events\ErrorDidOccur;
 use Splot\Framework\Events\FatalErrorDidOccur;
@@ -103,18 +96,95 @@ class Framework
      * @return Framework
      */
     public static function run(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
+        return new static($application, $env, $debug, $mode);
+    }
+
+    /**
+     * Constructor.
+     *
+     * Responsible for the application flow - bootstrap, config and run phases.
+     * 
+     * @param  AbstractApplication $application Application to be run in the framework.
+     * @param  string              $env         [optional] Name of the environment in 
+     *                                          which it should run. Default: 'dev'.
+     * @param  boolean             $debug       [optional] Should debug be on? Default: true.
+     * @param  string              $mode        [optional] Mode in which in should run.
+     *                                          One of the Framework::MODE_* constants. Default: Framework::MODE_WEB.
+     * @return Framework
+     */
+    protected function __construct(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
+        $this->timer = new Timer();
+
         ini_set('default_charset', 'utf8');
+
+        /*****************************************************
+         * VERIFY APPLICATION
+         *****************************************************/
+        $applicationName = $application->getName();
+        if (!is_string($applicationName) || empty($applicationName)) {
+            throw new \RuntimeException('You have to specify an application name inside the Application class by defining protected property "$name".');
+        }
+
+        if (!StringUtils::isClassName($applicationName)) {
+            throw new \RuntimeException('Application name must conform to variable naming rules and therefore can only start with a letter and only contain letters, numbers and _, "'. $applicationName .'" given.');
+        }
+
+        // set everything we need
+        $this->application = $application;
+        $this->env = $env;
+        $this->debug = $debug;
+        $this->mode = $mode;
+
+        /*****************************************************
+         * INITIALIZE DEPENDENCY INJECTION CONTAINER
+         *****************************************************/
+        $container = new ServiceContainer();
+        // set two services already
+        $container->set('application', $application);
+        $container->set('splot.timer', $this->timer);
+
+        // load framework parameters and services definition from YML file
+        $container->loadFromFile(__DIR__ .'/framework.yml');
+
+        // set parameters to be what the framework has been initialized with
+        $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)) . DS);
+        $container->setParameter('env', $env);
+        $container->setParameter('debug', $debug);
+        $container->setParameter('mode', $mode);
+
+        $application->setContainer($container);
 
         /*****************************************************
          * BOOTSTRAP PHASE
          *****************************************************/
-        $framework = new static($application, $env, $debug, $mode);
+        $this->bootstrapApplication($application);
+
+        /*****************************************************
+         * CONFIG PHASE
+         *****************************************************/
+        $this->configureApplication($application);
+
+        /*****************************************************
+         * RUN PHASE
+         *****************************************************/
+        $this->runApplication($application);
+    }
+
+    protected function bootstrapApplication(AbstractApplication $application) {
         $container = $application->getContainer();
-        $debug = $container->getParameter('debug');
+        $application->bootstrap();
+
+        // verify the logger provider
+        $loggerProvider = $container->get('logger_provider');
+        if (!$loggerProvider instanceof LoggerProviderInterface) {
+            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
+        }
+
+        $this->logger = $container->get('logger.splot');
         
         // @codeCoverageIgnoreStart
         // only use Whoops for web mode
-        if ($mode === self::MODE_WEB) {
+        if ($this->mode === self::MODE_WEB) {
             // add default Whoops error handlers
             $whoops = $container->get('whoops');
             $whoops->pushHandler($container->get('whoops.handler.log'));
@@ -123,16 +193,15 @@ class Framework
             $whoops->register();
 
             // and if in debug mode then also add pretty page handler
-            if ($debug) {
+            if ($application->isDebug()) {
                 $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
             }
         }
         // @codeCoverageIgnoreEnd
 
-        $logger = $container->get('splot.logger');
-        $timer = $container->get('splot.timer');
-
-        // now load all modules
+        /*****************************************************
+         * LOAD MODULES
+         *****************************************************/
         $loadingModules = array();
         $moduleLoader = function(array $loadedModules, $self, array $allModules = array()) use (&$loadingModules) {
             foreach($loadedModules as $module) {
@@ -151,20 +220,27 @@ class Framework
 
         foreach($modules as $module) {
             $application->addModule($module);
-
-            $logger->debug('Added module {name} ({class}) to the application.', array(
-                'name' => $module->getName(),
-                'class' => $module->getClass(),
-                '_time' => $timer->step('Module "'. $module->getName() .'" loaded')
-            ));
         }
 
         // mark the bootstrap phase as finished
         $application->finishBootstrap();
 
-        /*****************************************************
-         * CONFIG PHASE
-         *****************************************************/
+        $this->logger->debug('Application "{application} has been successfully bootstrapped in {mode} {env} with debug {debug} and {modulesCount} modules.".', array(
+            'application' => $application->getName(),
+            'mode' => $container->getParameter('mode'),
+            'env' => $container->getParameter('env'),
+            'debug' => $container->getParameter('debug') ? 'on' : 'off',
+            'modulesCount' => count($modules),
+            'modules' => $application->listModules(),
+            '_time' =>  $this->timer->step('Bootstrap')
+        ));
+
+        return true;
+    }
+
+    protected function configureApplication(AbstractApplication $application) {
+        $container = $application->getContainer();
+
         // default framework config first (to make sure all required settings are there)
         $config = new Config(include dirname(__FILE__) . DS .'Config'. DS .'default.php');
         $container->set('config', $config);
@@ -195,16 +271,17 @@ class Framework
             $module->configure();
         }
 
-        /*****************************************************
-         * RUN PHASE
-         *****************************************************/
+        return true;
+    }
+
+    protected function runApplication(AbstractApplication $application) {
         $application->run();
         foreach($application->getModules() as $module) {
             $module->run();
         }
 
         // perform some actions depending on the run mode
-        switch($mode) {
+        switch($this->mode) {
             case self::MODE_CONSOLE:
                 set_time_limit(0);
 
@@ -234,8 +311,7 @@ class Framework
 
             case self::MODE_WEB:
             default:
-                // add nice error handler to whoops if in debug mode
-                if (!$debug) {
+                if (!$application->isDebug()) {
                     // @todo register a http response code error handler (is it needed?)
                 }
 
@@ -244,125 +320,7 @@ class Framework
                 $application->sendResponse($response, $request);
         }
 
-        return $framework;
-    }
-
-    /**
-     * Constructor.
-     * 
-     * @param  AbstractApplication $application Application to be run in the framework.
-     * @param  string              $env         [optional] Name of the environment in 
-     *                                          which it should run. Default: 'dev'.
-     * @param  boolean             $debug       [optional] Should debug be on? Default: true.
-     * @param  string              $mode        [optional] Mode in which in should run.
-     *                                          One of the Framework::MODE_* constants. Default: Framework::MODE_WEB.
-     * @return Framework
-     */
-    protected function __construct(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
-        $this->timer = new Timer();
-        $this->application = $application;
-        $this->env = $env;
-        $this->debug = $debug;
-        $this->mode = $mode;
-
-        /*****************************************************
-         * VERIFY APPLICATION
-         *****************************************************/
-        $applicationName = $application->getName();
-        if (!is_string($applicationName) || empty($applicationName)) {
-            throw new \RuntimeException('You have to specify an application name inside the Application class by defining protected property "$name".');
-        }
-
-        if (!StringUtils::isClassName($applicationName)) {
-            throw new \RuntimeException('Application name must conform to variable naming rules and therefore can only start with a letter and only contain letters, numbers and _, "'. $applicationName .'" given.');
-        }
-
-        // get application's class name for some debugging and logging
-        $applicationClass = Debugger::getClass($application);
-
-        /*****************************************************
-         * INITIALIZE DEPENDENCY INJECTION CONTAINER
-         *****************************************************/
-        $container = new ServiceContainer();
-        $container->set('application', $application);
-        $container->set('splot.timer', $this->timer);
-        $container->setParameter('env', $env);
-        $container->setParameter('debug', $debug);
-        $container->setParameter('mode', $mode);
-
-        $container->set('whoops', function() {
-            return new WhoopsRun();
-        });
-
-        $container->set('whoops.handler.null', function() {
-            return new NullErrorHandler();
-        });
-
-        $container->set('whoops.handler.pretty_page', function() {
-            return new WhoopsPrettyPageHandler();
-        });
-
-        $container->set('whoops.handler.log', function($c) {
-            if (!$c->has('logger')) {
-                return $c->get('whoops.handler.null');
-            }
-            return new LogErrorHandler($c->get('logger'));
-        });
-
-        $container->set('whoops.handler.event', function($c) {
-            if (!$c->has('event_manager')) {
-                return $c->get('whoops.handler.null');
-            }
-            return new EventErrorHandler($c->get('event_manager'));
-        });
-
-        /*****************************************************
-         * BOOTSTRAP THE APPLICATION
-         *****************************************************/
-        $application->setContainer($container);
-        $application->bootstrap();
-
-        // check if all required parameters have been registered
-        foreach(array(
-            'application_dir',
-            'config_dir',
-            'cache_dir',
-            'root_dir',
-            'web_dir'
-        ) as $parameterName) {
-            if (!$container->hasParameter($parameterName)) {
-                throw new \RuntimeException('Splot Framework requires a parameter "'. $parameterName .'" to be registered on application\'s bootstrap.');
-            }
-        }
-
-        // check if all required services have been registered
-        foreach(array(
-            'logger_provider',
-            'logger',
-            'event_manager',
-            'router',
-            'resource_finder',
-            'process',
-            'console'
-        ) as $serviceName) {
-            if (!$container->has($serviceName)) {
-                throw new \RuntimeException('Splot Framework requires a service "'. $serviceName .'" to be registered on application\'s bootstrap.');
-            }
-        }
-
-        $loggerProvider = $container->get('logger_provider');
-        if (!$loggerProvider instanceof LoggerProviderInterface) {
-            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
-        }
-
-        $this->logger = $loggerProvider->provide('Splot');
-        $container->set('splot.logger', $this->logger);
-
-        $this->logger->debug('Splot Framework successfully bootstrapped with application "{application}".', array(
-            'application' => $application->getName(),
-            'parameters' => $container->dumpParameters(),
-            '_time' =>  $this->timer->step('Bootstrap')
-        ));
+        return true;
     }
 
 }

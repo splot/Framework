@@ -16,8 +16,6 @@ use Splot\DependencyInjection\Container;
 class ServiceContainer extends Container
 {
 
-    public function getParameters() {
-        return $this->dumpParameters();
-    }
+    
     
 }

@@ -15,7 +15,6 @@ namespace Splot\Framework\Application;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerAwareInterface;
-use Psr\Log\NullLogger;
 
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Debug\Timer;
@@ -26,16 +25,11 @@ use MD\Foundation\Exceptions\NotUniqueException;
 use MD\Clog\Writers\FileLogger;
 use MD\Clog\Writers\MemoryLogger;
 
-use Symfony\Component\Filesystem\Filesystem;
-
 use Splot\Cache\Store\FileStore;
 use Splot\Cache\CacheProvider;
 
-use Splot\EventManager\EventManager;
-
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
-use Splot\Framework\Console\Console;
 use Splot\Framework\Controller\ControllerResponse;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
@@ -43,7 +37,6 @@ use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\Exceptions\RouteNotFoundException;
 use Splot\Framework\Routes\Route;
-use Splot\Framework\Routes\Router;
 use Splot\Framework\Events\ControllerDidRespond;
 use Splot\Framework\Events\ControllerWillRespond;
 use Splot\Framework\Events\DidReceiveRequest;
@@ -51,9 +44,6 @@ use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\DidFindRouteForRequest;
 use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
-use Splot\Framework\Log\Clog;
-use Splot\Framework\Process\Process;
-use Splot\Framework\Resources\Finder;
 
 abstract class AbstractApplication implements LoggerAwareInterface
 {
@@ -117,60 +107,13 @@ abstract class AbstractApplication implements LoggerAwareInterface
             throw new \RuntimeException('Application has already been bootstrapped.');
         }
 
-        // set required directories in parameters
-        $applicationDir = dirname(Debugger::getClassFile(get_called_class())) . DS;
-        $this->container->setParameter('application_dir', $applicationDir);
-        $this->container->setParameter('root_dir', $applicationDir . '..' . DS);
-        $this->container->setParameter('config_dir', $applicationDir . 'config' . DS);
-        $this->container->setParameter('cache_dir', $applicationDir . 'cache' . DS);
-        $this->container->setParameter('web_dir', $this->container->getParameter('root_dir') . 'web' . DS);
-
         // load application's parameters
         $loadedParameters = $this->loadParameters();
         foreach($loadedParameters as $key => $value) {
             $this->container->setParameter($key, $value);
         }
 
-        $this->container->set('clog', function() {
-            return new Clog();
-        });
-
-        // now register some required services
-        $this->container->set('logger_provider', function($c) {
-            return $c->get('clog');
-        });
-
-        $this->setLogger($this->container->get('logger_provider')->provide('Application')); // going through a setter for type hinting
-        $this->container->set('logger', $this->logger);
-
-        $this->container->set('event_manager', function($c) {
-            return new EventManager($c->get('logger_provider')->provide('Event Manager'));
-        });
-
-        $this->container->set('router', function($c) {
-            $config = $c->get('config');
-            return new Router(
-                $c->get('logger_provider')->provide('Router'),
-                $config->get('router.host'),
-                $config->get('router.protocol'),
-                $config->get('router.port')
-            );
-        });
-
-        $this->container->set('resource_finder', function($c) {
-            return new Finder($c->get('application'));
-        });
-
-        $this->container->set('process', function() {
-            return new Process();
-        });
-
-        $this->container->set('console', function($c) {
-            return new Console(
-                $c->get('application'),
-                $c->get('logger_provider')->provide('Console')
-            );
-        });
+        $this->setLogger($this->container->get('logger'));
     }
 
     /**
@@ -188,7 +131,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
         $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
         if (is_file($parametersFile)) {
             // load it here so that $parameters is available in that parameters file
-            $parameters = $this->container->getParameters();
+            $parameters = $this->container->dumpParameters();
             return include $parametersFile;
         }
 
@@ -243,11 +186,6 @@ abstract class AbstractApplication implements LoggerAwareInterface
      */
     public function configure() {
         $config = $this->getConfig();
-
-        // register filesystem service
-        $this->container->set('filesystem', function() {
-            return new Filesystem();
-        });
 
         // set file writer in Clog
         $this->container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));

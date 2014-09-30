@@ -1,0 +1,76 @@
+parameters:
+    # directories
+    application_dir: ./ # this is overwritten in code
+    config_dir: %application_dir%config/
+    cache_dir: %application_dir%cache/
+    root_dir: %application_dir%../
+    web_dir: %root_dir%web/
+
+    # router parameters
+    router.host: localhost
+    router.protocol: "http://"
+    router.port: 80
+
+services:
+    # logger providers
+    clog: Splot\Framework\Log\Clog
+
+    logger_provider:
+        alias: clog
+
+    # various loggers
+    logger: 
+        factory: ["@logger_provider", "provide", ["Application"]]
+        aliases: ["logger.app", "logger.application"]
+    logger.splot:
+        factory: ["@logger_provider", "provide", ["Splot"]]
+        aliases: ["splot.logger"]
+    logger.console: ["@logger_provider", "provide", ["Console"]]
+    logger.event_manager: ["@logger_provider", "provide", ["Event Manager"]]
+    logger.router: ["@logger_provider", "provide", ["Router"]]
+
+    # event manager
+    event_manager:
+        class: Splot\EventManager\EventManager
+        arguments:
+            - @logger.event_manager
+
+    # resource finder
+    resource_finder:
+        class: Splot\Framework\Resources\Finder
+        arguments:
+            - @application
+
+    # router
+    router:
+        class: Splot\Framework\Routes\Router
+        arguments:
+            - @logger.router
+            - %router.host%
+            - %router.protocol%
+            - %router.port%
+
+    # console
+    console:
+        class: Splot\Framework\Console\Console
+        arguments:
+            - @application
+            - @logger.console
+
+    # other helper services
+    filesystem: Symfony\Component\Filesystem\Filesystem
+    process: Splot\Framework\Process\Process
+
+    # whoops for error handling
+    whoops: Whoops\Run
+    whoops.handler.pretty_page: Whoops\Handler\PrettyPageHandler
+    whoops.handler.null: Splot\Framework\ErrorHandlers\NullErrorHandler
+    whoops.handler.log:
+        class: Splot\Framework\ErrorHandlers\LogErrorHandler
+        arguments:
+            - @logger
+
+    whoops.handler.event:
+        class: Splot\Framework\ErrorHandlers\EventErrorHandler
+        arguments:
+            - @event_manager
