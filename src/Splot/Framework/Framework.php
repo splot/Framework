@@ -138,21 +138,7 @@ class Framework
         /*****************************************************
          * INITIALIZE DEPENDENCY INJECTION CONTAINER
          *****************************************************/
-        $container = new ServiceContainer();
-        // set two services already
-        $container->set('application', $application);
-        $container->set('splot.timer', $this->timer);
-
-        // load framework parameters and services definition from YML file
-        $container->loadFromFile(__DIR__ .'/framework.yml');
-
-        // set parameters to be what the framework has been initialized with
-        $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)) . DS);
-        $container->setParameter('env', $env);
-        $container->setParameter('debug', $debug);
-        $container->setParameter('mode', $mode);
-
-        $application->setContainer($container);
+        $container = $this->initContainer($application);
 
         /*****************************************************
          * BOOTSTRAP PHASE
@@ -168,6 +154,26 @@ class Framework
          * RUN PHASE
          *****************************************************/
         $this->runApplication($application);
+    }
+
+    protected function initContainer(AbstractApplication $application) {
+        $container = new ServiceContainer();
+        // set two services already
+        $container->set('application', $application);
+        $container->set('splot.timer', $this->timer);
+
+        // load framework parameters and services definition from YML file
+        $container->loadFromFile(__DIR__ .'/framework.yml');
+
+        // set parameters to be what the framework has been initialized with
+        $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)) . DS);
+        $container->setParameter('env', $this->env);
+        $container->setParameter('debug', $this->debug);
+        $container->setParameter('mode', $this->mode);
+
+        $application->setContainer($container);
+
+        return $container;
     }
 
     protected function bootstrapApplication(AbstractApplication $application) {
@@ -225,7 +231,7 @@ class Framework
         // mark the bootstrap phase as finished
         $application->finishBootstrap();
 
-        $this->logger->debug('Application "{application} has been successfully bootstrapped in {mode} {env} with debug {debug} and {modulesCount} modules.".', array(
+        $this->logger->debug('Application "{application}" has been successfully bootstrapped in {mode} {env} and {modulesCount} modules with debug {debug}.".', array(
             'application' => $application->getName(),
             'mode' => $container->getParameter('mode'),
             'env' => $container->getParameter('env'),
@@ -270,6 +276,10 @@ class Framework
 
             $module->configure();
         }
+
+        $this->logger->debug('Configuration phase successfully finished.".', array(
+            '_time' =>  $this->timer->step('Configure')
+        ));
 
         return true;
     }
