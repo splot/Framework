@@ -209,6 +209,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidReturnValueException
      * @covers ::render
+     * @covers ::renderController
      */
     public function testRenderingControllerWithInvalidReturnValue() {
         $this->_application->getContainer()->get('router')->addRoute('invalid', InvalidReturnValueController::__class());

@@ -15,6 +15,7 @@ namespace Splot\Framework\Application;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerAwareInterface;
+use Psr\Log\NullLogger;
 
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Debug\Timer;
@@ -107,13 +108,27 @@ abstract class AbstractApplication implements LoggerAwareInterface
             throw new \RuntimeException('Application has already been bootstrapped.');
         }
 
-        // load application's parameters
-        $loadedParameters = $this->loadParameters();
-        foreach($loadedParameters as $key => $value) {
-            $this->container->setParameter($key, $value);
+        // failsafe
+        if (!$this->logger) {
+            $this->logger = new NullLogger();
         }
 
-        $this->setLogger($this->container->get('logger'));
+        // load application's parameters
+        $this->container->loadFromArray(array(
+            'parameters' => $this->loadParameters()
+        ));
+
+        // also load other potential files into the container
+        $configDir = $this->container->getParameter('config_dir');
+        foreach(array(
+            'parameters.yml',
+            'parameters.'. $this->container->getParameter('env') . '.yml',
+            'services.yml'
+        ) as $file) {
+            try {
+                $this->container->loadFromFile($configDir . $file);
+            } catch(NotFoundException $e) {}
+        }
     }
 
     /**
@@ -187,6 +202,8 @@ abstract class AbstractApplication implements LoggerAwareInterface
                 return $c->get('cache_provider')->provide($name, $storeName);
             });
         }
+
+        $this->setLogger($this->container->get('logger'));
     }
 
     /**
@@ -205,7 +222,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * This method should return an array of any custom parameters that you want to register
      * in the dependency injection container.
      *
-     * By default, it will search for a file "config/parameters.php" in the application dir and include it 
+     * By default, it will search for a file `parameters.php` in the config dir and include it 
      * if it exists and return the array this file should return.
      *
      * However, you can overwrite this method and load the parameters from whatever source you want.
@@ -214,13 +231,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      */
     public function loadParameters() {
         $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
-        if (is_file($parametersFile)) {
-            // load it here so that $parameters is available in that parameters file
-            $parameters = $this->container->dumpParameters();
-            return include $parametersFile;
-        }
-
-        return array();
+        return is_file($parametersFile) ? include $parametersFile : array();
     }
 
     /**

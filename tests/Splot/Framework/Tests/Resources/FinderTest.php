@@ -18,17 +18,27 @@ use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Splot\Log\Provider\LogProvider;
 
+/**
+ * @coversDefaultClass \Splot\Framework\Resources\Finder
+ */
 class FinderTest extends ApplicationTestCase
 {
 
     public static $_applicationClass = 'Splot\Framework\Tests\Resources\Fixtures\TestApplication';
 
+    /**
+     * @covers ::__construct
+     * @covers ::getApplication
+     */
     public function testInitializing() {
         $finder = new Finder($this->_application);
 
         $this->assertSame($this->_application, $finder->getApplication());
     }
 
+    /**
+     * @covers ::find
+     */
     public function testFindingInApplication() {
         $finder = new Finder($this->_application);
 
@@ -41,6 +51,9 @@ class FinderTest extends ApplicationTestCase
             $finder->find('::index.js', 'public/js'));
     }
 
+    /**
+     * @covers ::find
+     */
     public function testFindingSingleInApplication() {
         $finder = new Finder($this->_application);
 
@@ -53,6 +66,9 @@ class FinderTest extends ApplicationTestCase
             $finder->findResource('::index.js', 'public/js'));
     }
 
+    /**
+     * @covers ::find
+     */
     public function testFindingInModule() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
 
@@ -64,6 +80,9 @@ class FinderTest extends ApplicationTestCase
             $finder->find('SplotResourcesTestModule:test:config.php', 'config'));
     }
 
+    /**
+     * @covers ::find
+     */
     public function testFindingOverwrittenInApplication() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
 
@@ -81,6 +100,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @dataProvider provideGlobPatterns
+     * @covers ::expand
      */
     public function testExpandingGlobPatterns($pattern, array $result) {
         $this->_application->addTestModule(new SplotResourcesTestModule());
@@ -153,6 +173,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
      */
     public function testFindingInNotExistingModule() {
         $finder = new Finder($this->_application);
@@ -161,6 +182,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
      */
     public function testFindingNotExistingFile() {
         $finder = new Finder($this->_application);
@@ -169,6 +191,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
      */
     public function testFindingNotExistingFileInModule() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
@@ -179,6 +202,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::find
      */
     public function testFindingInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -187,6 +211,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::findInApplicationDir
      */
     public function testFindingInApplicationInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -195,6 +220,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::findInApplicationDir
      */
     public function testFindingInApplicationInvalidModule() {
         $finder = new Finder($this->_application);
@@ -203,6 +229,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::findInModuleDir
      */
     public function testFindingInModuleInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -211,6 +238,7 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::findInModuleDir
      */
     public function testFindingInModuleInvalidModule() {
         $finder = new Finder($this->_application);
