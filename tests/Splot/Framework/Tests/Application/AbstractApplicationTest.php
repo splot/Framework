@@ -9,18 +9,6 @@ use Splot\Framework\Tests\Application\Fixtures\TestApplication;
 class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
 
-    /**
-     * @expectedException \RuntimeException
-     * @covers ::bootstrap
-     * @covers ::finishBootstrap
-     */
-    public function testBootstrappingAfterBootstrapFinished() {
-        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
-        $application->finishBootstrap();
-        
-        $application->bootstrap();
-    }
-
     public function testLoadParameters() {
 
     }

@@ -1,0 +1,15 @@
+timezone: Europe/London
+
+log_file: false
+log_threshold: debug
+
+cache:
+    enabled: true
+    stores: []
+    caches: []
+
+router:
+    host: localhost
+    protocol: http://
+    port: 80
+    use_request: true

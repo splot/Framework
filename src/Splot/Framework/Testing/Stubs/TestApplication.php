@@ -1,6 +1,7 @@
 <?php
 namespace Splot\Framework\Testing\Stubs;
 
+use Splot\Framework\Framework;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Modules\AbstractModule;
@@ -22,14 +23,19 @@ class TestApplication extends AbstractApplication
      * @param array $config [optional] Module config you may want to pass?
      */
     public function addTestModule(AbstractModule $module, array $config = array()) {
-        $this->bootstrapped = false;
+        $this->setPhase(Framework::PHASE_BOOTSTRAP);
         $this->addModule($module);
 
-        $module->setConfig(new Config($config));
-        $module->configure();
-        $module->run();
+        // set the module config
+        $moduleConfig = new Config($this->getContainer());
+        $moduleConfig->apply($config);
+        $module->setConfig($moduleConfig);
 
-        $this->bootstrapped = true;
+        $this->setPhase(Framework::PHASE_CONFIGURE);
+        $module->configure();
+
+        $this->setPhase(Framework::PHASE_RUN);
+        $module->run();
     }
 
 }

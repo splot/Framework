@@ -47,6 +47,11 @@ class Framework
     const MODE_COMMAND = 'command';
     const MODE_TEST = 'test';
 
+    const PHASE_INIT = -1;
+    const PHASE_BOOTSTRAP = 0;
+    const PHASE_CONFIGURE = 1;
+    const PHASE_RUN = 2;
+
     /**
      * Application run by the framework.
      * 
@@ -156,6 +161,12 @@ class Framework
         $this->runApplication($application);
     }
 
+    /**
+     * Initialize the dependency injection container.
+     * 
+     * @param  AbstractApplication $application Application for which to initialize the container.
+     * @return ServiceContainer
+     */
     protected function initContainer(AbstractApplication $application) {
         $container = new ServiceContainer();
         // set two services already
@@ -176,7 +187,15 @@ class Framework
         return $container;
     }
 
+    /**
+     * Bootstrap the application.
+     * 
+     * @param  AbstractApplication $application Application to be bootstrapped.
+     * @return bool
+     */
     protected function bootstrapApplication(AbstractApplication $application) {
+        $application->setPhase(self::PHASE_BOOTSTRAP);
+
         $container = $application->getContainer();
         $application->bootstrap();
 
@@ -228,9 +247,6 @@ class Framework
             $application->addModule($module);
         }
 
-        // mark the bootstrap phase as finished
-        $application->finishBootstrap();
-
         $this->logger->debug('Application "{application}" has been successfully bootstrapped in {mode} {env} and {modulesCount} modules with debug {debug}.".', array(
             'application' => $application->getName(),
             'mode' => $container->getParameter('mode'),
@@ -244,18 +260,28 @@ class Framework
         return true;
     }
 
+    /**
+     * Configure the application.
+     * 
+     * @param  AbstractApplication $application Application to be configured.
+     * @return bool
+     */
     protected function configureApplication(AbstractApplication $application) {
+        $application->setPhase(self::PHASE_CONFIGURE);
+
         $container = $application->getContainer();
 
         // default framework config first (to make sure all required settings are there)
-        $config = new Config(include dirname(__FILE__) . DS .'Config'. DS .'default.php');
+        $config = new Config($container, __DIR__ .'/config.yml');
         $container->set('config', $config);
 
+        $env = $container->getParameter('env');
+
         // read application config
-        $config->extend(Config::read(
+        $config->extend(Config::readFromDir(
+            $container,
             $container->getParameter('config_dir'),
-            $container->getParameter('env'),
-            $container->dumpParameters()
+            $env
         ));
 
         // and configure the application
@@ -266,10 +292,10 @@ class Framework
 
         // configure modules
         foreach($application->getModules() as $module) {
-            $moduleConfig = Config::read(
+            $moduleConfig = Config::readFromDir(
+                $container,
                 $module->getConfigDir(),
-                $container->getParameter('env'),
-                $container->getParameters()
+                $env
             );
             $moduleConfig->apply($config->getNamespace($module->getName()));
             $module->setConfig($moduleConfig);
@@ -284,7 +310,15 @@ class Framework
         return true;
     }
 
+    /**
+     * Run the application.
+     * 
+     * @param  AbstractApplication $application Application to be run.
+     * @return bool
+     */
     protected function runApplication(AbstractApplication $application) {
+        $application->setPhase(self::PHASE_RUN);
+
         $application->run();
         foreach($application->getModules() as $module) {
             $module->run();

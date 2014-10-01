@@ -59,18 +59,19 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     );
 
     public function setUp() {
-        $this->configFixturesDir = realpath(dirname(__FILE__) .'/fixtures') .'/';
+        $this->configFixturesDir = __DIR__ .'/fixtures/';
     }
 
     /**
      * @covers ::__construct
-     * @covers ::getReadFiles
+     * @covers ::getLoadedFiles
      */
     public function testEmptyConfigInstance() {
-        $config = new Config(array());
+        $mocks = $this->provideMocks();
+        $config = new Config($mocks['container']);
 
-        $this->assertInternalType('array', $config->getReadFiles());
-        $this->assertEmpty($config->getReadFiles());
+        $this->assertInternalType('array', $config->getLoadedFiles());
+        $this->assertEmpty($config->getLoadedFiles());
     }
 
     /**
@@ -78,7 +79,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::getNamespace
      */
     public function testSimpleGetNamespace() {
-        $config = new Config(array(
+        $config = $this->provideConfig(array(
             'setting1' => true,
             'setting2' => false
         ));
@@ -96,7 +97,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::getNamespace
      */
     public function testGetNamespace() {
-        $config = new Config($this->basicConfigArray);
+        $config = $this->provideConfig($this->basicConfigArray);
 
         $this->assertEquals($this->basicConfigArray['group'], $config->getNamespace('group'));
         $this->assertInternalType('array', $config->getNamespace('undefined'));
@@ -108,7 +109,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::get
      */
     public function testGet() {
-        $config = new Config($this->basicConfigArray);
+        $config = $this->provideConfig($this->basicConfigArray);
 
         $this->assertEquals(true, $config->get('setting1'));
         $this->assertEquals('ipsum', $config->get('group.lorem'));
@@ -124,7 +125,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::get
      */
     public function testGetDefaultValue() {
-        $config = new Config(array());
+        $config = $this->provideConfig();
         $this->assertEquals('lipsum', $config->get('undefined.item', 'lipsum'));
     }
 
@@ -134,7 +135,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::get
      */
     public function testGetInvalid() {
-        $config = new Config($this->basicConfigArray);
+        $config = $this->provideConfig($this->basicConfigArray);
         $config->get('group.invalid_setting');
     }
 
@@ -144,7 +145,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::getNamespace
      */
     public function testApply() {
-        $config = new Config($this->basicConfigArray);
+        $config = $this->provideConfig($this->basicConfigArray);
         $config->apply($this->extendingConfigArray);
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
     }
@@ -155,44 +156,111 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      * @covers ::getNamespace
      */
     public function testExtend() {
-        $config = new Config($this->basicConfigArray);
-        $anotherConfig = new Config($this->extendingConfigArray);
+        $config = $this->provideConfig($this->basicConfigArray);
+        $anotherConfig = $this->provideConfig($this->extendingConfigArray);
         $config->extend($anotherConfig);
 
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
     }
 
     /**
+     * @covers ::loadFromFile
+     */
+    public function testLoadingYamlFile() {
+        $config = $this->provideConfig();
+        $config->loadFromFile($this->configFixturesDir .'config.load.yml');
+
+        $this->assertEquals(true, $config->get('setting'));
+        $this->assertEquals(false, $config->get('group.setting1'));
+        $this->assertEquals('ipsum', $config->get('group.lorem'));
+    }
+
+    /**
+     * @covers ::loadFromFile
+     */
+    public function testLoadingPhpFile() {
+        $config = $this->provideConfig();
+        $config->loadFromFile($this->configFixturesDir .'config.php');
+
+        $this->assertEquals(true, $config->get('setting1'));
+        $this->assertEquals(false, $config->get('group.setting1'));
+        $this->assertEquals('ipsum', $config->get('group.lorem'));
+    }
+
+    /**
+     * @expectedException \MD\Foundation\Exceptions\InvalidFileException
+     * @covers ::loadFromFile
+     */
+    public function testLoadingInvalidPhpFile() {
+        $config = $this->provideConfig();
+        $config->loadFromFile($this->configFixturesDir .'config.invalid.php');
+    }
+
+    /**
+     * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     */
+    public function testLoadingFromInexistentFile() {
+        $config = $this->provideConfig();
+        $config->loadFromFile($this->configFixturesDir .'inexistent.yml');
+    }
+
+    /**
+     * @covers ::loadFromFile
+     */
+    public function testLoadingTwiceFromFile() {
+        $mocks = $this->provideMocks();
+        $config = $this->getMockBuilder('Splot\Framework\Config\Config')
+            ->setConstructorArgs(array($mocks['container']))
+            ->setMethods(array('apply'))
+            ->getMock();
+        $config->expects($this->once())
+            ->method('apply');
+        
+        $config->loadFromFile($this->configFixturesDir .'config.php');
+        $config->loadFromFile($this->configFixturesDir .'config.php');
+    }
+
+    /**
+     * @expectedException \MD\Foundation\Exceptions\InvalidFileException
+     * @covers ::loadFromFile
+     */
+    public function testLoadingUnsupportedFile() {
+        $config = $this->provideConfig();
+        $config->loadFromFile($this->configFixturesDir .'config.ini');
+    }
+
+    /**
      * @covers ::__construct
-     * @covers ::read
-     * @covers ::getReadFiles
+     * @covers ::readFromDir
+     * @covers ::getLoadedFiles
      * @covers ::getNamespace
      */
-    public function testRead() {
-        $config = Config::read($this->configFixturesDir, 'test');
+    public function testReadFromDir() {
+        $mocks = $this->provideMocks();
+        $config = Config::readFromDir($mocks['container'], $this->configFixturesDir, 'test');
 
         $this->assertEquals(array(
             $this->configFixturesDir .'config.php',
             $this->configFixturesDir .'config.test.php'
-        ), $config->getReadFiles());
+        ), $config->getLoadedFiles());
 
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
     }
 
-    /**
-     * @expectedException \MD\Foundation\Exceptions\InvalidFileException
-     * @covers ::read
-     */
-    public function testReadInvalidBase() {
-        $config = Config::read($this->configFixturesDir .'invalid_base', 'test');
+    protected function provideMocks() {
+        $mocks = array();
+        $mocks['container'] = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $mocks['container']->expects($this->any())
+            ->method('resolveParameters')
+            ->will($this->returnArgument(0));
+        return $mocks;
     }
 
-    /**
-     * @expectedException \MD\Foundation\Exceptions\InvalidFileException
-     * @covers ::read
-     */
-    public function testReadInvalidEnv() {
-        $config = Config::read($this->configFixturesDir .'invalid_env', 'test');
+    protected function provideConfig(array $options = array(), array $mocks = array()) {
+        $mocks = !empty($mocks) ? $mocks : $this->provideMocks();
+        $config = new Config($mocks['container']);
+        $config->apply($options);
+        return $config;
     }
 
 }

@@ -84,11 +84,11 @@ abstract class AbstractApplication implements LoggerAwareInterface
     protected $modules = array();
 
     /**
-     * Internal flag for marking that bootstrap phase has finished.
+     * Current application phase.
      * 
-     * @var boolean
+     * @var int
      */
-    protected $bootstrapped = false;
+    private $phase = Framework::PHASE_INIT;
 
     /**
      * Bootstrap the application.
@@ -103,7 +103,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * See documentation for more.
      */
     public function bootstrap() {
-        if ($this->bootstrapped) {
+        if ($this->phase > Framework::PHASE_BOOTSTRAP) {
             throw new \RuntimeException('Application has already been bootstrapped.');
         }
 
@@ -114,62 +114,6 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
 
         $this->setLogger($this->container->get('logger'));
-    }
-
-    /**
-     * This method should return an array of any custom parameters that you want to register
-     * in the dependency injection container.
-     *
-     * By default, it will search for a file "config/parameters.php" in the application dir and include it 
-     * if it exists and return the array this file should return.
-     *
-     * However, you can overwrite this method and load the parameters from whatever source you want.
-     *
-     * @return array
-     */
-    public function loadParameters() {
-        $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
-        if (is_file($parametersFile)) {
-            // load it here so that $parameters is available in that parameters file
-            $parameters = $this->container->dumpParameters();
-            return include $parametersFile;
-        }
-
-        return array();
-    }
-
-    /**
-     * Loads modules for the application.
-     *
-     * You must implement this method and it should return an array of module objects that you want
-     * loaded in your application.
-     *
-     * @return array
-     */
-    abstract public function loadModules();
-
-    /**
-     * Adds a module to the application.
-     * 
-     * @param AbstractModule $module Module to be added.
-     *
-     * @throws NotUniqueException When module name is not unique and its already been registered.
-     * @throws \RuntimeException When application has already been bootstrapped and its too late.
-     */
-    final public function addModule(AbstractModule $module) {
-        if ($this->bootstrapped) {
-            throw new \RuntimeException('Application has been already bootstrapped and it is too late to add new modules.');
-        }
-
-        $name = $module->getName();
-        if ($this->hasModule($name)) {
-            throw new NotUniqueException('Module with name "'. $name .'" is already registered in the application.');
-        }
-
-        $this->modules[$name] = $module;
-
-        // inject the container
-        $module->setContainer($this->container);
     }
 
     /**
@@ -185,6 +129,10 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * overwritten unless you know what you're doing.
      */
     public function configure() {
+        if ($this->phase > Framework::PHASE_CONFIGURE) {
+            throw new \RuntimeException('Application has already been configured.');
+        }
+
         $config = $this->getConfig();
 
         // set file writer in Clog
@@ -250,7 +198,63 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * logic or behavior here.
      */
     public function run() {
+        
+    }
 
+    /**
+     * This method should return an array of any custom parameters that you want to register
+     * in the dependency injection container.
+     *
+     * By default, it will search for a file "config/parameters.php" in the application dir and include it 
+     * if it exists and return the array this file should return.
+     *
+     * However, you can overwrite this method and load the parameters from whatever source you want.
+     *
+     * @return array
+     */
+    public function loadParameters() {
+        $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
+        if (is_file($parametersFile)) {
+            // load it here so that $parameters is available in that parameters file
+            $parameters = $this->container->dumpParameters();
+            return include $parametersFile;
+        }
+
+        return array();
+    }
+
+    /**
+     * Loads modules for the application.
+     *
+     * You must implement this method and it should return an array of module objects that you want
+     * loaded in your application.
+     *
+     * @return array
+     */
+    abstract public function loadModules();
+
+    /**
+     * Adds a module to the application.
+     * 
+     * @param AbstractModule $module Module to be added.
+     *
+     * @throws NotUniqueException When module name is not unique and its already been registered.
+     * @throws \RuntimeException When application has already been bootstrapped and its too late.
+     */
+    final public function addModule(AbstractModule $module) {
+        if ($this->phase > Framework::PHASE_BOOTSTRAP) {
+            throw new \RuntimeException('Application has been already bootstrapped and it is too late to add new modules.');
+        }
+
+        $name = $module->getName();
+        if ($this->hasModule($name)) {
+            throw new NotUniqueException('Module with name "'. $name .'" is already registered in the application.');
+        }
+
+        $this->modules[$name] = $module;
+
+        // inject the container
+        $module->setContainer($this->container);
     }
 
     /**
@@ -555,12 +559,23 @@ abstract class AbstractApplication implements LoggerAwareInterface
     }
 
     /**
-     * Mark the bootstrap phase as finished.
+     * Returns the current application phase.
      *
-     * For internal Splot use only.
+     * One of `Framework::PHASE_*` constants.
+     * 
+     * @return int
      */
-    final public function finishBootstrap() {
-        $this->bootstrapped = true;
+    final public function getPhase() {
+        return $this->phase;
+    }
+
+    /**
+     * Sets the current application phase.
+     * 
+     * @param int $phase One of `Framework::PHASE_*` constants.
+     */
+    final public function setPhase($phase) {
+        $this->phase = $phase;
     }
 
     /**

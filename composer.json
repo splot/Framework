@@ -17,11 +17,12 @@
         "symfony/filesystem": ">=2.1,<3.0",
         "symfony/console": ">=2.1,<3.0",
         "symfony/process": ">=2.1,<3.0",
+        "symfony/yaml": ">=2.1,<3.0",
         "michaldudek/foundation": ">=0.9",
         "michaldudek/clog": "dev-master",
+        "splot/di": ">=0.7",
         "splot/event-manager": "dev-master",
-        "splot/cache": "dev-master",
-        "splot/di": "dev-master"
+        "splot/cache": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "3.7.*"
