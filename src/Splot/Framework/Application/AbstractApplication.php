@@ -23,12 +23,6 @@ use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 
-use MD\Clog\Writers\FileLogger;
-use MD\Clog\Writers\MemoryLogger;
-
-use Splot\Cache\Store\FileStore;
-use Splot\Cache\CacheProvider;
-
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Controller\ControllerResponse;
@@ -150,59 +144,9 @@ abstract class AbstractApplication implements LoggerAwareInterface
 
         $config = $this->getConfig();
 
-        // set file writer in Clog
-        $this->container->set('clog.writer.file', new FileLogger($config->get('log_file'), $config->get('log_threshold')));
-        $this->container->set('clog.writer.memory', new MemoryLogger());
-        $this->container->get('clog')->addWriter($this->container->get('clog.writer.file'));
-
-        // only register memory writer for web requests, otherwise it could easily fill up all memory
-        // (especially for long lasting processes, e.g. workers)
-        if ($this->container->getParameter('mode') === Framework::MODE_WEB) {
-            $this->container->get('clog')->addWriter($this->container->get('clog.writer.memory'));
-        }
-
-        /*****************************************************
-         * REGISTER CACHES
-         *****************************************************/
-        $this->container->set('cache.store.file', function($c) {
-            return new FileStore(array(
-                'dir' => $c->getParameter('cache_dir')
-            ));
-        });
-
-        $this->container->set('cache_provider', function($c) {
-            return new CacheProvider($c->get('cache.store.file'), array(
-                'stores' => array(
-                    'file' => $c->get('cache.store.file')
-                ),
-                'global_namespace' => $c->getParameter('env')
-            ));
-        });
-
-        $this->container->set('cache', function($c) {
-            return $c->get('cache_provider')->provide('application');
-        });
-
-        // register other stores
-        foreach($config->get('cache.stores') as $name => $storeConfig) {
-            if (!isset($storeConfig['class'])) {
-                throw new \RuntimeException('Store config has to have a "class" key defined.');
-            }
-
-            $store = new $storeConfig['class']($storeConfig);
-
-            // register in cache provider and service
-            $this->container->get('cache_provider')->registerStore($name, $store);
-            $this->container->set('cache.store.'. $name, $store);
-        }
-
-        // add other defined caches
-        foreach($config->get('cache.caches') as $name => $storeName) {
-            $this->container->set('cache.'. $name, function($c) use ($name, $storeName) {
-                return $c->get('cache_provider')->provide($name, $storeName);
-            });
-        }
-
+        $this->container->setParameter('log_file', $config->get('log_file'));
+        $this->container->setParameter('log_threshold', $config->get('log_threshold'));
+        
         $this->setLogger($this->container->get('logger'));
     }
 

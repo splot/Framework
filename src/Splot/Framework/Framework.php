@@ -198,18 +198,11 @@ class Framework
 
         $container = $application->getContainer();
         $application->bootstrap();
-
-        // verify the logger provider
-        $loggerProvider = $container->get('logger_provider');
-        if (!$loggerProvider instanceof LoggerProviderInterface) {
-            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
-        }
-
-        $this->logger = $container->get('logger.splot');
         
         // @codeCoverageIgnoreStart
-        // only use Whoops for web mode
+        // configure some stuff only for web requests
         if ($this->mode === self::MODE_WEB) {
+            // use Whoops to display errors
             // add default Whoops error handlers
             $whoops = $container->get('whoops');
             $whoops->pushHandler($container->get('whoops.handler.log'));
@@ -221,8 +214,27 @@ class Framework
             if ($application->isDebug()) {
                 $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
             }
+
+            // only register memory writer for web requests, otherwise it could easily fill up all memory
+            // (especially for long lasting processes, e.g. workers)
+            if ($this->mode === Framework::MODE_WEB) {
+                $container->register('clog.writer.memory', array(
+                    'class' => 'MD\Clog\Writers\MemoryLogger',
+                    'notify' => array(
+                        array('clog', 'addWriter', array('@'))
+                    )
+                ));
+            }
         }
         // @codeCoverageIgnoreEnd
+        
+        // verify the logger provider
+        $loggerProvider = $container->get('logger_provider');
+        if (!$loggerProvider instanceof LoggerProviderInterface) {
+            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
+        }
+
+        $this->logger = $container->get('logger.splot');
 
         /*****************************************************
          * LOAD MODULES

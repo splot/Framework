@@ -15,6 +15,16 @@ services:
     # logger providers
     clog: Splot\Framework\Log\Clog
 
+    clog.writer.file:
+        class: MD\Clog\Writers\FileLogger
+        arguments:
+            - %log_file%
+            - %log_threshold%
+        notify:
+            - ["@clog", "addWriter", ["@"]]
+
+    clog.writer.memory: MD\Clog\Writers\MemoryLogger
+
     logger_provider:
         alias: clog
 
@@ -28,6 +38,25 @@ services:
     logger.console: ["@logger_provider", "provide", ["Console"]]
     logger.event_manager: ["@logger_provider", "provide", ["Event Manager"]]
     logger.router: ["@logger_provider", "provide", ["Router"]]
+
+    # cache
+    cache:
+        factory: ["@cache_provider", "provide", ["application"]]
+
+    cache_provider:
+        class: Splot\Cache\CacheProvider
+        arguments:
+            - @cache.store.file
+            - global_namespace: %env%
+
+    # cache stores
+    cache.store.file:
+        class: Splot\Cache\Store\FileStore
+        arguments:
+            - dir: %cache_dir%
+        notify:
+            - ["@cache_provider", "registerStore", ["file", "@"]]     
+
 
     # event manager
     event_manager:
