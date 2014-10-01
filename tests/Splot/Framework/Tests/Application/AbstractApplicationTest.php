@@ -124,8 +124,18 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 
     }
 
+    /**
+     * @covers ::getApplicationDir
+     */
     public function testGetApplicationDir() {
+        $mocks = $this->provideMocks();
+        $application = $this->provideApplication($mocks);
+        $mocks['container']->expects($this->once())
+            ->method('getParameter')
+            ->with($this->equalTo('application_dir'))
+            ->will($this->returnValue(__DIR__));
 
+        $this->assertEquals(__DIR__, $application->getApplicationDir());
     }
 
     /**
