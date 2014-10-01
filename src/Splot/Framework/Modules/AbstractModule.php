@@ -12,6 +12,7 @@
 namespace Splot\Framework\Modules;
 
 use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Exceptions\NotFoundException;
 
 use Splot\Framework\Config\Config;
 use Splot\Framework\Application\AbstractApplication;
@@ -97,6 +98,10 @@ abstract class AbstractModule
      */
     public function configure() {
         $this->container->get('router')->readModuleRoutes($this);
+
+        try {
+            $this->container->loadFromFile($this->getConfigDir() .'services.yml');
+        } catch(NotFoundException $e) {}
     }
 
     /**
