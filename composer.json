@@ -34,9 +34,9 @@
     },
     "minimum-stability": "dev",
     "autoload": {
-    	"psr-0": {
-            "Splot\\Framework\\Tests": "tests/",
-            "Splot\\Framework": "src/"
+    	"psr-4": {
+            "Splot\\Framework\\Tests\\": "tests/",
+            "Splot\\Framework\\": "src/"
         }
     }
 }
