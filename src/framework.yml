@@ -60,9 +60,10 @@ services:
 
     # event manager
     event_manager:
-        class: Splot\EventManager\EventManager
+        class: Splot\Framework\EventManager\EventManager
         arguments:
-            - @logger.event_manager
+            - @container
+            - @logger.event_manager?
 
     # resource finder
     resource_finder:
