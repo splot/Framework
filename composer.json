@@ -21,7 +21,7 @@
         "michaldudek/foundation": ">=0.9",
         "michaldudek/clog": "dev-master",
         "splot/di": ">=0.7",
-        "splot/event-manager": "dev-master",
+        "splot/event-manager": "1.0.*@dev",
         "splot/cache": "dev-master"
     },
     "require-dev": {
