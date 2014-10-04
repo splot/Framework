@@ -198,43 +198,6 @@ class Framework
 
         $container = $application->getContainer();
         $application->bootstrap();
-        
-        // @codeCoverageIgnoreStart
-        // configure some stuff only for web requests
-        if ($this->mode === self::MODE_WEB) {
-            // use Whoops to display errors
-            // add default Whoops error handlers
-            $whoops = $container->get('whoops');
-            $whoops->pushHandler($container->get('whoops.handler.log'));
-            $whoops->pushHandler($container->get('whoops.handler.event'));
-
-            $whoops->register();
-
-            // and if in debug mode then also add pretty page handler
-            if ($application->isDebug()) {
-                $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
-            }
-
-            // only register memory writer for web requests, otherwise it could easily fill up all memory
-            // (especially for long lasting processes, e.g. workers)
-            if ($this->mode === Framework::MODE_WEB) {
-                $container->register('clog.writer.memory', array(
-                    'class' => 'MD\Clog\Writers\MemoryLogger',
-                    'notify' => array(
-                        array('clog', 'addWriter', array('@'))
-                    )
-                ));
-            }
-        }
-        // @codeCoverageIgnoreEnd
-        
-        // verify the logger provider
-        $loggerProvider = $container->get('logger_provider');
-        if (!$loggerProvider instanceof LoggerProviderInterface) {
-            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
-        }
-
-        $this->logger = $container->get('logger.splot');
 
         /*****************************************************
          * LOAD MODULES
@@ -259,15 +222,16 @@ class Framework
             $application->addModule($module);
         }
 
-        $this->logger->debug('Application "{application}" has been successfully bootstrapped in {mode} {env} and {modulesCount} modules with debug {debug}.".', array(
-            'application' => $application->getName(),
-            'mode' => $container->getParameter('mode'),
-            'env' => $container->getParameter('env'),
-            'debug' => $container->getParameter('debug') ? 'on' : 'off',
-            'modulesCount' => count($modules),
-            'modules' => $application->listModules(),
-            '_time' =>  $this->timer->step('Bootstrap')
-        ));
+        // only register memory writer for web requests, otherwise it could easily fill up all memory
+        // (especially for long lasting processes, e.g. workers)
+        if ($this->mode === self::MODE_WEB) {
+            $container->register('clog.writer.memory', array(
+                'class' => 'MD\Clog\Writers\MemoryLogger',
+                'notify' => array(
+                    array('clog', 'addWriter', array('@'))
+                )
+            ));
+        }
 
         return true;
     }
@@ -315,8 +279,26 @@ class Framework
             $module->configure();
         }
 
-        $this->logger->debug('Configuration phase successfully finished.".', array(
-            '_time' =>  $this->timer->step('Configure')
+        /*****************************************************
+         * VERIFY CONFIGURATION
+         *****************************************************/
+        // verify the logger provider
+        $loggerProvider = $container->get('logger_provider');
+        if (!$loggerProvider instanceof LoggerProviderInterface) {
+            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
+        }
+
+        // set the framework logger
+        $this->logger = $container->get('logger.splot');
+
+        $this->logger->debug('Application "{application}" has been successfully configured in mode "{mode}" and env "{env}" with {modulesCount} modules with debug "{debug}".', array(
+            'application' => $application->getName(),
+            'mode' => $container->getParameter('mode'),
+            'env' => $container->getParameter('env'),
+            'debug' => $container->getParameter('debug') ? 'on' : 'off',
+            'modulesCount' => count($application->getModules()),
+            'modules' => $application->listModules(),
+            '_time' =>  $this->timer->step('Configuration')
         ));
 
         return true;
@@ -329,6 +311,26 @@ class Framework
      * @return bool
      */
     protected function runApplication(AbstractApplication $application) {
+        $container = $application->getContainer();
+        
+        // @codeCoverageIgnoreStart
+        // configure some stuff only for web requests
+        if ($this->mode === self::MODE_WEB) {
+            // use Whoops to display errors
+            // add default Whoops error handlers
+            $whoops = $container->get('whoops');
+            $whoops->pushHandler($container->get('whoops.handler.log'));
+            $whoops->pushHandler($container->get('whoops.handler.event'));
+
+            $whoops->register();
+
+            // and if in debug mode then also add pretty page handler
+            if ($application->isDebug()) {
+                $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
+            }
+        }
+        // @codeCoverageIgnoreEnd
+
         $application->setPhase(self::PHASE_RUN);
 
         $application->run();
