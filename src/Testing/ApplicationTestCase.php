@@ -25,7 +25,7 @@ class ApplicationTestCase extends TestCase
      * 
      * @var string
      */
-    public static $_applicationClass = 'Application';
+    public static $_applicationClass = 'Splot\Framework\Testing\Stubs\TestApplication';
 
     /**
      * Sets up the application before every test.
