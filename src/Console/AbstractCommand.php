@@ -246,6 +246,20 @@ abstract class AbstractCommand
         return $options[$selected];
     }
 
+    /**
+     * Prints an array in a nicely formated ASCII table.
+     * 
+     * @param  array  $data Data to be printed. First row should be headers and all next rows should contain
+     *                      the same number of fields.
+     */
+    public function printTable(array $data) {
+        $headers = array_shift($data);
+        $table = $this->helperSet->get('table');
+        $table->setHeaders($headers);
+        $table->setRows($data);
+        $table->render($this->output);
+    }
+
     /*****************************************
      * SETTERS AND GETTERS
      *****************************************/
