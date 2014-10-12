@@ -249,13 +249,15 @@ abstract class AbstractCommand
     /**
      * Prints an array in a nicely formated ASCII table.
      * 
-     * @param  array  $data Data to be printed. First row should be headers and all next rows should contain
-     *                      the same number of fields.
+     * @param  array  $data Data to be printed. All rows should contain the same number of fields.
+     * @param  array  $headers [optional] Array of headers for the table. Should have the same amount of rows
+     *                         as `$data`. Default: `array()`.
      */
-    public function printTable(array $data) {
-        $headers = array_shift($data);
+    public function writeTable(array $data, array $headers = array()) {
         $table = $this->helperSet->get('table');
-        $table->setHeaders($headers);
+        if (!empty($headers)) {
+            $table->setHeaders($headers);
+        }
         $table->setRows($data);
         $table->render($this->output);
     }
