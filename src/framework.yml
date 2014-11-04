@@ -37,7 +37,6 @@ services:
         aliases: ["splot.logger"]
     logger.console: ["@logger_provider", "provide", ["Console"]]
     logger.event_manager: ["@logger_provider", "provide", ["Event Manager"]]
-    logger.router: ["@logger_provider", "provide", ["Router"]]
 
     # cache
     cache:
@@ -75,7 +74,6 @@ services:
     router:
         class: Splot\Framework\Routes\Router
         arguments:
-            - @logger.router
             - %router.host%
             - %router.protocol%
             - %router.port%

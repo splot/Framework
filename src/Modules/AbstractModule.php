@@ -15,7 +15,6 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\NotFoundException;
 
 use Splot\Framework\Config\Config;
-use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
 abstract class AbstractModule

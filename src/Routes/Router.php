@@ -13,8 +13,6 @@ namespace Splot\Framework\Routes;
 
 use ReflectionClass;
 
-use Psr\Log\LoggerInterface;
-
 use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
@@ -25,13 +23,6 @@ use Splot\Framework\Routes\Exceptions\InvalidRouteException;
 
 class Router
 {
-
-    /**
-     * Router's logger.
-     * 
-     * @var LoggerInterface
-     */
-    private $_logger;
 
     /**
      * Routes container.
@@ -45,7 +36,7 @@ class Router
      * 
      * @var string
      */
-    private $_scheme = 'http://';
+    private $_protocol = 'http://';
 
     /**
      * Host to use when generating full URL's.
@@ -63,9 +54,12 @@ class Router
 
     /**
      * Constructor.
+     *
+     * @param string $host [optional] Host to use when generating full URL's. Default: `localhost`.
+     * @param string $protocol [optional] Protocol to use when generating full URL's. Default: `http://`.
+     * @param int $port [optional] Port to use when generating full URL's. Default: `80`.
      */
-    public function __construct(LoggerInterface $logger, $host = 'localhost', $protocol = 'http://', $port = 80) {
-        $this->_logger = $logger;
+    public function __construct($host = 'localhost', $protocol = 'http://', $port = 80) {
         $this->setHost($host);
         $this->setProtocol($protocol);
         $this->setPort($port);

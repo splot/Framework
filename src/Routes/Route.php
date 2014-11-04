@@ -11,11 +11,9 @@
  */
 namespace Splot\Framework\Routes;
 
-use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Utils\ArrayUtils;
 
-use Splot\Framework\HTTP\Request;
 use Splot\Framework\Routes\Exceptions\InvalidControllerException;
 use Splot\Framework\Routes\Exceptions\RouteParameterNotFoundException;
 

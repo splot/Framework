@@ -18,7 +18,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
     protected function provideRouter() {
-        return new Router($this->getMock('Psr\Log\LoggerInterface'));
+        return new Router();
     }
 
     /**

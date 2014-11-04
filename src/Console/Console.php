@@ -11,6 +11,8 @@
  */
 namespace Splot\Framework\Console;
 
+use InvalidArgumentException;
+
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\NotFoundException;
 

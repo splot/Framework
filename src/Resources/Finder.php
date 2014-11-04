@@ -16,7 +16,6 @@ use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\FilesystemUtils;
 
 use Splot\Framework\Application\AbstractApplication;
-use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Resources\Exceptions\ResourceNotFoundException;
 
 class Finder
@@ -71,8 +70,6 @@ class Finder
             return $this->_cache[$cacheKey];
         }
 
-        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
-
         $expanded = $this->expand($resource, $type);
 
         if (empty($expanded)) {
@@ -103,7 +100,7 @@ class Finder
             return $this->_resourceCache[$cacheKey];
         }
 
-        list($moduleName, $subDir, $resourceFile) = $this->parseResourceName($resource);
+        list($moduleName) = $this->parseResourceName($resource);
 
         // at first try application resources dir
         // we do it always because some module resources may be overwritten in app resources dir

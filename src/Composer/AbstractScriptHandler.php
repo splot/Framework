@@ -11,7 +11,6 @@
  */
 namespace Splot\Framework\Composer;
 
-use Splot\Framework\Framework;
 use Splot\Framework\Application\AbstractApplication;
 
 abstract class AbstractScriptHandler

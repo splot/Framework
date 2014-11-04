@@ -28,15 +28,10 @@ use Splot\Framework\Composer\AbstractScriptHandler;
 
 use Splot\Framework\DependencyInjection\ServiceContainer;
 
-use Splot\Framework\Events\ErrorDidOccur;
-use Splot\Framework\Events\FatalErrorDidOccur;
-use Splot\Framework\HTTP\Exceptions\HTTPExceptionInterface;
 use Splot\Framework\HTTP\Request;
-use Splot\Framework\HTTP\Response;
 
 use Splot\Framework\Log\LoggerProviderInterface;
 
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Console\Input\ArgvInput;
 
 class Framework
@@ -143,7 +138,7 @@ class Framework
         /*****************************************************
          * INITIALIZE DEPENDENCY INJECTION CONTAINER
          *****************************************************/
-        $container = $this->initContainer($application);
+        $this->initContainer($application);
 
         /*****************************************************
          * BOOTSTRAP PHASE
