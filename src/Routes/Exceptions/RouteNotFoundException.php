@@ -16,6 +16,4 @@ use Splot\Framework\HTTP\Exceptions\NotFoundException;
 class RouteNotFoundException extends NotFoundException
 {
 
-
-
 }

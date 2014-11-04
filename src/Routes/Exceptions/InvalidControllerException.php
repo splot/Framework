@@ -16,6 +16,4 @@ use MD\Foundation\Exceptions\Exception;
 class InvalidControllerException extends Exception
 {
 
-
-
 }

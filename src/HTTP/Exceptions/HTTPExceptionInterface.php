@@ -12,8 +12,6 @@
 namespace Splot\Framework\HTTP\Exceptions;
 
 interface HTTPExceptionInterface
-{
-
-    
+{    
 
 }
