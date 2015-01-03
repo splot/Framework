@@ -6,5 +6,3 @@ log_threshold: debug
 cache:
     enabled: true
 
-router:
-    use_request: true
