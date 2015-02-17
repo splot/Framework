@@ -15,13 +15,13 @@ services:
     # logger providers
     clog: Splot\Framework\Log\Clog
 
-    clog.writer.file:
-        class: MD\Clog\Writers\FileLogger
-        arguments:
-            - %log_file%
-            - %log_threshold%
-        notify:
-            - ["@clog", "addWriter", ["@"]]
+    #clog.writer.file:
+    #    class: MD\Clog\Writers\FileLogger
+    #    arguments:
+    #        - %log_file%
+    #        - %log_threshold%
+    #    notify:
+    #        - ["@clog", "addWriter", ["@"]]
 
     clog.writer.memory: MD\Clog\Writers\MemoryLogger
 
@@ -88,6 +88,10 @@ services:
     # other helper services
     filesystem: Symfony\Component\Filesystem\Filesystem
     process: Splot\Framework\Process\Process
+
+    timer:
+        class: MD\Foundation\Debug\Timer
+        singleton: false
 
     # whoops for error handling
     whoops: Whoops\Run

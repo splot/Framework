@@ -21,6 +21,7 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\InvalidReturnValueException;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
+use MD\Foundation\Utils\StringUtils;
 
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
@@ -225,10 +226,11 @@ abstract class AbstractApplication implements LoggerAwareInterface
         try {
             $this->container->set('request', $request);
 
-            $this->logger->debug('Received request for {uri}', array(
+            $this->logger->debug('Received request for {method} {uri}', array(
                 'uri' => $request->getRequestUri(),
+                'method' => $request->getMethod(),
                 'request' => $request,
-                '_timer' => $this->container->get('splot.timer')->step('Received request')
+                '@stat' => 'splot.request'
             ));
 
             // trigger DidReceiveRequest event
@@ -316,15 +318,23 @@ abstract class AbstractApplication implements LoggerAwareInterface
         // prepare the response for sending (will tweak some headers based on the request)
         $response->prepare($request);
 
-        $timer = $this->container->get('splot.timer');
-        $this->logger->debug('Will send response', array(
-            'time' => $timer->getDuration(),
-            'memory' => $timer->getCurrentMemoryPeak(),
-            '_timer' => $timer->step('Will send response')
-        ));
-
         // trigger WillSendResponse event for any last minute changes
         $this->container->get('event_manager')->trigger(new WillSendResponse($response, $request));
+
+        $timer = $this->container->get('splot.timer');
+        $time = $timer->getDuration();
+        $memory = $timer->getCurrentMemoryPeak();
+        $memoryString = StringUtils::bytesToString($memory);
+
+        $this->logger->debug('Rendering response for {method} {uri} took {time} ms and used {memory} memory.', array(
+            'method' => $request->getMethod(),
+            'uri' => $request->getRequestUri(),
+            'memory' => $memoryString,
+            'time' => $time,
+            '@stat' => 'splot.render',
+            '@time' => $time,
+            '@memory' => $memory
+        ));
 
         // and finally send out the response
         $response->send();

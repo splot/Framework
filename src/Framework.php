@@ -187,9 +187,11 @@ class Framework
      * @return bool
      */
     protected function bootstrapApplication(AbstractApplication $application) {
-        $application->setPhase(self::PHASE_BOOTSTRAP);
-
         $container = $application->getContainer();
+
+        $timer = $container->get('timer');
+
+        $application->setPhase(self::PHASE_BOOTSTRAP);
         $application->bootstrap();
 
         /*****************************************************
@@ -226,6 +228,17 @@ class Framework
             ));
         }
 
+        $time = $timer->stop(3);
+        $memory = $timer->getMemoryUsage();
+        $memoryString = StringUtils::bytesToString($memory);
+        $container->get('splot.logger')->debug('Application bootstrap phase finished in {time} ms and used {memory} memory.', array(
+            'time' => $time,
+            'memory' => $memoryString,
+            '@stat' => 'splot.bootstrap',
+            '@time' => $time,
+            '@memory' => $memory
+        ));
+
         return true;
     }
 
@@ -236,9 +249,11 @@ class Framework
      * @return bool
      */
     protected function configureApplication(AbstractApplication $application) {
-        $application->setPhase(self::PHASE_CONFIGURE);
-
         $container = $application->getContainer();
+
+        $timer = $container->get('timer');
+
+        $application->setPhase(self::PHASE_CONFIGURE);
 
         // default framework config first (to make sure all required settings are there)
         $config = new Config($container, __DIR__ .'/config.yml');
@@ -278,17 +293,21 @@ class Framework
             throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
         }
 
-        // set the framework logger
-        $this->logger = $container->get('logger.splot');
-
-        $this->logger->debug('Application "{application}" has been successfully configured in mode "{mode}" and env "{env}" with {modulesCount} modules with debug "{debug}".', array(
+        $time = $timer->stop(3);
+        $memory = $timer->getMemoryUsage();
+        $memoryString = StringUtils::bytesToString($memory);
+        $container->get('splot.logger')->debug('Application configuration phase in mode {mode} and env {env} with {modulesCount} modules and debug {debug} finished in {time} ms and used {memory} memory.', array(
             'application' => $application->getName(),
             'mode' => $container->getParameter('mode'),
             'env' => $container->getParameter('env'),
             'debug' => $container->getParameter('debug') ? 'on' : 'off',
             'modulesCount' => count($application->getModules()),
             'modules' => $application->listModules(),
-            '_time' =>  $this->timer->step('Configuration')
+            'time' => $time,
+            'memory' => $memoryString,
+            '@stat' => 'splot.configure',
+            '@time' => $time,
+            '@memory' => $memory
         ));
 
         return true;
@@ -302,6 +321,7 @@ class Framework
      */
     protected function runApplication(AbstractApplication $application) {
         $container = $application->getContainer();
+        $timer = $container->get('timer');
         
         // @codeCoverageIgnoreStart
         // configure some stuff only for web requests
@@ -338,6 +358,17 @@ class Framework
 
                 $console = $application->getContainer()->get('console');
                 $console->run();
+
+                $time = $timer->stop(3);
+                $memory = $timer->getMemoryUsage();
+                $memoryString = StringUtils::bytesToString($memory);
+                $container->get('splot.logger')->debug('Application run phase in console mode finished in {time} ms and used {memory} memory.', array(
+                    'time' => $time,
+                    'memory' => $memoryString,
+                    '@stat' => 'splot.run.console',
+                    '@time' => $time,
+                    '@memory' => $memory
+                ));
             break;
 
             case self::MODE_COMMAND:
@@ -352,6 +383,17 @@ class Framework
 
                 $argv = new ArgvInput();
                 $console->call('app', (string)$argv);
+
+                $time = $timer->stop(3);
+                $memory = $timer->getMemoryUsage();
+                $memoryString = StringUtils::bytesToString($memory);
+                $container->get('splot.logger')->debug('Application run phase in command mode finished in {time} ms and used {memory} memory.', array(
+                    'time' => $time,
+                    'memory' => $memoryString,
+                    '@stat' => 'splot.run.command',
+                    '@time' => $time,
+                    '@memory' => $memory
+                ));
             break;
             
             case self::MODE_TEST:
@@ -366,6 +408,17 @@ class Framework
                 $request = Request::createFromGlobals();
                 $response = $application->handleRequest($request);
                 $application->sendResponse($response, $request);
+
+                $time = $timer->stop(3);
+                $memory = $timer->getMemoryUsage();
+                $memoryString = StringUtils::bytesToString($memory);
+                $container->get('splot.logger')->debug('Application run phase in web mode finished in {time} ms and used {memory} memory.', array(
+                    'time' => $time,
+                    'memory' => $memoryString,
+                    '@stat' => 'splot.run.web',
+                    '@time' => $time,
+                    '@memory' => $memory
+                ));
         }
 
         return true;
