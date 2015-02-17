@@ -115,8 +115,6 @@ class Framework
     protected function __construct(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
         $this->timer = new Timer();
 
-        ini_set('default_charset', 'utf8');
-
         /*****************************************************
          * VERIFY APPLICATION
          *****************************************************/
@@ -257,9 +255,6 @@ class Framework
 
         // and configure the application
         $application->configure();
-
-        // set the timezone based on config
-        date_default_timezone_set($config->get('timezone'));
 
         // configure modules
         foreach($application->getModules() as $module) {
