@@ -23,12 +23,18 @@ use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Exceptions\NotUniqueException;
 use MD\Foundation\Utils\StringUtils;
 
+use Splot\Cache\Store\FileStore;
+use Splot\Cache\Cache;
+
+use Splot\DependencyInjection\ContainerCacheInterface;
+use Splot\DependencyInjection\ContainerInterface;
+
 use Splot\Framework\Framework;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Controller\ControllerResponse;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
-use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\Framework\DependencyInjection\ContainerCache;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Routes\Exceptions\RouteNotFoundException;
 use Splot\Framework\Routes\Route;
@@ -60,7 +66,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
     /**
      * Application's dependency injection service container.
      * 
-     * @var ServiceContainer
+     * @var ContainerInterface
      */
     protected $container;
 
@@ -83,36 +89,48 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * 
      * @var int
      */
-    private $phase = Framework::PHASE_INIT;
+    private $phase = Framework::PHASE_BOOTSTRAP;
 
     /**
-     * Bootstrap the application.
+     * Loads modules for the application.
      *
-     * This method is called right at the beginning of the process (request) lifecycle.
-     * It's purpose is to register required services in the container. You can overwrite
-     * this method if you want to register your custom services, but you need to
-     * register specific services under specific names.
+     * You must implement this method and it should return an array of module objects that you want
+     * loaded in your application.
      *
-     * If you overwrite it, it is recommended that you call the parent at one point.
-     *
-     * See documentation for more.
+     * @return array
      */
-    public function bootstrap() {
-        if ($this->phase > Framework::PHASE_BOOTSTRAP) {
-            throw new \RuntimeException('Application has already been bootstrapped.');
-        }
+    abstract public function loadModules();
 
-        // failsafe
-        if (!$this->logger) {
-            $this->logger = new NullLogger();
-        }
+    /**
+     * Configures and provides the cache object that should be used for container cache.
+     *
+     * This method is called by the framework on the very first step of configuration phase
+     * at which point the container doesn't exist yet.
+     *
+     * @param string $env Application environment.
+     * @param boolean $debug Debug on or off.
+     * @return ContainerCacheInterface
+     */
+    public function provideContainerCache($env, $debug) {
+        $containerCacheDir = dirname(Debugger::getClassFile($this)) .'/cache/container/'. $env;
+        return new ContainerCache(new FileStore($containerCacheDir));
+    }
 
-        // load application's parameters
-        $this->container->loadFromArray(array(
-            'parameters' => $this->loadParameters()
-        ));
+    /**
+     * This method should return an array of any custom parameters that you want to register
+     * in the dependency injection container when it is being configured.
+     *
+     * They are loaded before any other parameters or services.
+     *
+     * @param string $env Application environment.
+     * @param boolean $debug Debug on or off.
+     * @return array
+     */
+    public function loadParameters($env, $debug) {
+        return array();
+    }
 
-        // also load other potential files into the container
+    public function configure() {
         $configDir = $this->container->getParameter('config_dir');
         foreach(array(
             'parameters.yml',
@@ -125,68 +143,9 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
     }
 
-    /**
-     * This method is called by Splot Framework during the configuration phase.
-     *
-     * At this point all modules have been added to the module list and all parameters and configs have
-     * been loaded. Therefore it is a good place to configure some behavior based on that
-     * information.
-     *
-     * The purpose of it is to perform any additional configuration on the application's part
-     * and register any application wide services. This is a better place to register
-     * your services than ::bootstrap() method as generally, bootstrap() method should not be
-     * overwritten unless you know what you're doing.
-     */
-    public function configure() {
-        if ($this->phase > Framework::PHASE_CONFIGURE) {
-            throw new \RuntimeException('Application has already been configured.');
-        }
-
-        $config = $this->getConfig();
-
-        $this->container->setParameter('log_file', $config->get('log_file'));
-        $this->container->setParameter('log_threshold', $config->get('log_threshold'));
-        
-        $this->setLogger($this->container->get('logger'));
-    }
-
-    /**
-     * This method is called by Splot Framework during the run phase, so right before it will
-     * handle a request or a CLI command.
-     *
-     * This is a place where all services from all modules have been registered and the whole app
-     * is fully bootstrapped and fully configured so you can add some global application-wide
-     * logic or behavior here.
-     */
     public function run() {
         
     }
-
-    /**
-     * This method should return an array of any custom parameters that you want to register
-     * in the dependency injection container.
-     *
-     * By default, it will search for a file `parameters.php` in the config dir and include it 
-     * if it exists and return the array this file should return.
-     *
-     * However, you can overwrite this method and load the parameters from whatever source you want.
-     *
-     * @return array
-     */
-    public function loadParameters() {
-        $parametersFile = $this->container->getParameter('config_dir') .'parameters.php';
-        return is_file($parametersFile) ? include $parametersFile : array();
-    }
-
-    /**
-     * Loads modules for the application.
-     *
-     * You must implement this method and it should return an array of module objects that you want
-     * loaded in your application.
-     *
-     * @return array
-     */
-    abstract public function loadModules();
 
     /**
      * Adds a module to the application.
@@ -207,9 +166,6 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
 
         $this->modules[$name] = $module;
-
-        // inject the container
-        $module->setContainer($this->container);
     }
 
     /**
@@ -420,7 +376,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
     /**
      * Returns the dependency injection service container.
      * 
-     * @return ServiceContainer
+     * @return ContainerInterface
      */
     public function getContainer() {
         return $this->container;
@@ -429,11 +385,11 @@ abstract class AbstractApplication implements LoggerAwareInterface
     /**
      * Sets the dependency injection service container.
      * 
-     * @param ServiceContainer $container The container.
+     * @param ContainerInterface $container The container.
      *
      * @throws \RuntimeException When trying to override a previously set container.
      */
-    final public function setContainer(ServiceContainer $container) {
+    final public function setContainer(ContainerInterface $container) {
         if ($this->container) {
             throw new \RuntimeException('Service container already set on the application, cannot overwrite it.');
         }

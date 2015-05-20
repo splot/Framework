@@ -16,7 +16,7 @@ use Psr\Log\LoggerInterface;
 
 use Splot\EventManager\EventManager as Base_EventManager;
 
-use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\DependencyInjection\ContainerInterface;
 
 class EventManager extends Base_EventManager
 {
@@ -24,17 +24,17 @@ class EventManager extends Base_EventManager
     /**
      * Splot DI Container.
      * 
-     * @var ServiceContainer
+     * @var ContainerInterface
      */
     protected $container;
 
     /**
      * Constructor.
      *
-     * @param ServiceContainer $container Splot DI Container for retrieving subscriber services.
+     * @param ContainerInterface $container Splot DI Container for retrieving subscriber services.
      * @param LoggerInterface  $logger    [optional] Logger into which info about called events will be sent. Default: `null`.
      */
-    public function __construct(ServiceContainer $container, LoggerInterface $logger = null) {
+    public function __construct(ContainerInterface $container, LoggerInterface $logger = null) {
         parent::__construct($logger);
         $this->container = $container;
     }

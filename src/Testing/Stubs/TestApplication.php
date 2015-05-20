@@ -1,9 +1,12 @@
 <?php
 namespace Splot\Framework\Testing\Stubs;
 
+use Splot\Cache\Store\MemoryStore;
+
 use Splot\Framework\Framework;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Config\Config;
+use Splot\Framework\DependencyInjection\ContainerCache;
 use Splot\Framework\Modules\AbstractModule;
 
 class TestApplication extends AbstractApplication
@@ -16,6 +19,10 @@ class TestApplication extends AbstractApplication
         return array();
     }
 
+    public function provideContainerCache($env, $debug) {
+        return new ContainerCache(new MemoryStore());
+    }
+
     /**
      * Helper function for quickly adding a test module from the outside.
      * 
@@ -25,11 +32,12 @@ class TestApplication extends AbstractApplication
     public function addTestModule(AbstractModule $module, array $config = array()) {
         $this->setPhase(Framework::PHASE_BOOTSTRAP);
         $this->addModule($module);
+        $module->setContainer($this->getContainer());
 
         // set the module config
-        $moduleConfig = new Config($this->getContainer());
+        $moduleConfig = new Config();
         $moduleConfig->apply($config);
-        $module->setConfig($moduleConfig);
+        $this->getContainer()->set('config.'. $module->getName(), $moduleConfig);
 
         $this->setPhase(Framework::PHASE_CONFIGURE);
         $module->configure();

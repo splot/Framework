@@ -24,7 +24,18 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      * @covers ::configure
      */
     public function testConfigure() {
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
+        $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
+        $module->setContainer($container);
+
+        $module->configure();
+    }
+
+    /**
+     * @covers ::run
+     */
+    public function testRun() {
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
         $module->setContainer($container);
 
@@ -39,17 +50,6 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
             ->method('get')
             ->with($this->equalTo('router'))
             ->will($this->returnValue($router));
-
-        $module->configure();
-    }
-
-    /**
-     * @covers ::run
-     */
-    public function testRun() {
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
-        $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
-        $module->setContainer($container);
 
         $module->run();
     }
@@ -66,17 +66,21 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::setConfig
      * @covers ::getConfig
      */
-    public function testSettingAndGettingConfig() {
+    public function testGettingConfig() {
+        $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
+
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $config = $this->getMockBuilder('Splot\Framework\Config\Config')
             ->disableOriginalConstructor()
             ->getMock();
+        $container->expects($this->once())
+            ->method('get')
+            ->with($this->equalTo('config.'. $module->getName()))
+            ->will($this->returnValue($config));
+        $module->setContainer($container);
 
-        $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
-
-        $module->setConfig($config);
         $this->assertSame($config, $module->getConfig());
     }
 
@@ -85,7 +89,7 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      * @covers ::getContainer
      */
     public function testSettingAndGettingContainer() {
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
         $module->setContainer($container);
 

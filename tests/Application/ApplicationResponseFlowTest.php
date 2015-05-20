@@ -18,7 +18,7 @@ use Psr\Log\NullLogger;
 use MD\Foundation\Debug\Timer;
 use MD\Clog\Clog;
 use Splot\Framework\Config\Config;
-use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\DependencyInjection\ContainerInterface;
 use Splot\Framework\Routes\Router;
 use Splot\EventManager\EventManager;
 use Splot\Framework\Resources\Finder;

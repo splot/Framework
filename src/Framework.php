@@ -17,7 +17,12 @@ namespace Splot\Framework;
 use MD\Foundation\Debug\Timer;
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\InvalidArgumentException;
+use MD\Foundation\Utils\FilesystemUtils;
 use MD\Foundation\Utils\StringUtils;
+
+use Splot\DependencyInjection\Exceptions\CacheDataNotFoundException;
+use Splot\DependencyInjection\CachedContainer;
+use Splot\DependencyInjection\ContainerInterface;
 
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
@@ -25,8 +30,6 @@ use Splot\Framework\Application\CommandApplication;
 use Splot\Framework\Config\Config;
 
 use Splot\Framework\Composer\AbstractScriptHandler;
-
-use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Splot\Framework\HTTP\Request;
 
@@ -42,7 +45,6 @@ class Framework
     const MODE_COMMAND = 'command';
     const MODE_TEST = 'test';
 
-    const PHASE_INIT = -1;
     const PHASE_BOOTSTRAP = 0;
     const PHASE_CONFIGURE = 1;
     const PHASE_RUN = 2;
@@ -85,7 +87,9 @@ class Framework
     protected $timer;
 
     /**
-     * Runs the framework. Main entry point.
+     * Runs the framework with the given application.
+     *
+     * Main entry point.
      * 
      * @param  AbstractApplication $application Application to be run in the framework.
      * @param  string              $env         [optional] Name of the environment in 
@@ -127,76 +131,16 @@ class Framework
             throw new \RuntimeException('Application name must conform to variable naming rules and therefore can only start with a letter and only contain letters, numbers and _, "'. $applicationName .'" given.');
         }
 
+        /*****************************************************
+         * BOOTSTRAP PHASE
+         *****************************************************/
         // set everything we need
         $this->application = $application;
         $this->env = $env;
         $this->debug = $debug;
         $this->mode = $mode;
 
-        /*****************************************************
-         * INITIALIZE DEPENDENCY INJECTION CONTAINER
-         *****************************************************/
-        $this->initContainer($application);
-
-        /*****************************************************
-         * BOOTSTRAP PHASE
-         *****************************************************/
-        $this->bootstrapApplication($application);
-
-        /*****************************************************
-         * CONFIG PHASE
-         *****************************************************/
-        $this->configureApplication($application);
-
-        /*****************************************************
-         * RUN PHASE
-         *****************************************************/
-        $this->runApplication($application);
-    }
-
-    /**
-     * Initialize the dependency injection container.
-     * 
-     * @param  AbstractApplication $application Application for which to initialize the container.
-     * @return ServiceContainer
-     */
-    protected function initContainer(AbstractApplication $application) {
-        $container = new ServiceContainer();
-        // set two services already
-        $container->set('application', $application);
-        $container->set('splot.timer', $this->timer);
-
-        // load framework parameters and services definition from YML file
-        $container->loadFromFile(__DIR__ .'/framework.yml');
-
-        // set parameters to be what the framework has been initialized with
-        $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)) . DS);
-        $container->setParameter('env', $this->env);
-        $container->setParameter('debug', $this->debug);
-        $container->setParameter('mode', $this->mode);
-
-        $application->setContainer($container);
-
-        return $container;
-    }
-
-    /**
-     * Bootstrap the application.
-     * 
-     * @param  AbstractApplication $application Application to be bootstrapped.
-     * @return bool
-     */
-    protected function bootstrapApplication(AbstractApplication $application) {
-        $container = $application->getContainer();
-
-        $timer = $container->get('timer');
-
-        $application->setPhase(self::PHASE_BOOTSTRAP);
-        $application->bootstrap();
-
-        /*****************************************************
-         * LOAD MODULES
-         *****************************************************/
+        // LOAD MODULES
         $loadingModules = array();
         $moduleLoader = function(array $loadedModules, $self, array $allModules = array()) use (&$loadingModules) {
             foreach($loadedModules as $module) {
@@ -217,90 +161,138 @@ class Framework
             $application->addModule($module);
         }
 
-        // only register memory writer for web requests, otherwise it could easily fill up all memory
-        // (especially for long lasting processes, e.g. workers)
-        if ($this->mode === self::MODE_WEB) {
-            $container->register('clog.writer.memory', array(
-                'class' => 'MD\Clog\Writers\MemoryLogger',
-                'notify' => array(
-                    array('clog', 'addWriter', array('@'))
-                )
-            ));
-        }
+        /*****************************************************
+         * CONFIGURATION PHASE
+         *****************************************************/
+        $configTimer = new Timer();
+        $application->setPhase(self::PHASE_CONFIGURE);
+        $this->configureApplication($application);
 
-        $time = $timer->stop(3);
-        $memory = $timer->getMemoryUsage();
-        $memoryString = StringUtils::bytesToString($memory);
-        $container->get('splot.logger')->debug('Application bootstrap phase finished in {time} ms and used {memory} memory.', array(
-            'time' => $time,
-            'memory' => $memoryString,
-            '@stat' => 'splot.bootstrap',
-            '@time' => $time,
-            '@memory' => $memory
-        ));
-
-        return true;
+        /*****************************************************
+         * RUN PHASE
+         *****************************************************/
+        $application->setPhase(self::PHASE_RUN);
+        $this->runApplication($application);
     }
 
     /**
      * Configure the application.
+     *
+     * Creates a dependency injection container and passes it for configuration to the application.
      * 
      * @param  AbstractApplication $application Application to be configured.
-     * @return bool
+     * @return ContainerInterface
      */
     protected function configureApplication(AbstractApplication $application) {
-        $container = $application->getContainer();
+        $timer = new Timer();
 
-        $timer = $container->get('timer');
+        $container = new CachedContainer($application->provideContainerCache($this->env, $this->debug));
 
-        $application->setPhase(self::PHASE_CONFIGURE);
-
-        // default framework config first (to make sure all required settings are there)
-        $config = new Config($container, __DIR__ .'/config.yml');
-        $container->set('config', $config);
-
-        $env = $container->getParameter('env');
-
-        // read application config
-        $config->extend(Config::readFromDir(
-            $container,
-            $container->getParameter('config_dir'),
-            $env
-        ));
-
-        // and configure the application
-        $application->configure();
-
-        // configure modules
+        // inject the container to the app and all modules
+        $application->setContainer($container);
         foreach($application->getModules() as $module) {
-            $moduleConfig = Config::readFromDir(
-                $container,
-                $module->getConfigDir(),
-                $env
-            );
-            $moduleConfig->apply($config->getNamespace($module->getName()));
-            $module->setConfig($moduleConfig);
-
-            $module->configure();
+            $module->setContainer($container);
         }
 
-        /*****************************************************
-         * VERIFY CONFIGURATION
-         *****************************************************/
-        // verify the logger provider
-        $loggerProvider = $container->get('logger_provider');
-        if (!$loggerProvider instanceof LoggerProviderInterface) {
-            throw new \RuntimeException('Splot Framework requires the service "logger_provider" to implement Splot\Framework\Log\LoggerProviderInterface.');
+        // just try to read the configuration from cache, but if it fails, configure and cache the container
+        try {
+            $container->loadFromCache();
+
+            // @codeCoverageIgnoreStart
+            // for web mode also make sure that Whoops is handling errors
+            if ($this->mode === self::MODE_WEB) {
+                $container->get('whoops')->register();
+            }
+            // @codeCoverageIgnoreEnd
+        } catch(CacheDataNotFoundException $e) {
+            // load framework parameters and services definition from YML file
+            $container->loadFromFile(__DIR__ .'/framework.yml');
+
+            // set parameters to be what the framework has been initialized with
+            $container->setParameter('framework_dir', __DIR__);
+            $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)));
+            $container->setParameter('env', $this->env);
+            $container->setParameter('debug', $this->debug);
+
+            // @codeCoverageIgnoreStart
+            // configure Whoops error handler only for web mode
+            if ($this->mode === self::MODE_WEB) {
+                // if in debug mode also use the pretty page handler
+                if ($this->debug) {
+                    $whoopsDefinition = $container->getDefinition('whoops');
+                    $whoopsDefinition->addMethodCall('pushHandler', array('@whoops.handler.pretty_page'));
+                }
+
+                // already register Whoops to handle errors, so it also works during config
+                $container->get('whoops')->register();
+            }
+            // @codeCoverageIgnoreEnd
+
+            // maybe application wants to provide some high-priority parameters as well?
+            $container->loadFromArray(array(
+                'parameters' => $application->loadParameters($this->env, $this->debug)
+            ));
+
+            // we're gonna stick to the config dir defined at this point
+            $configDir = rtrim($container->getParameter('config_dir'), DS) . DS;
+
+            // prepare the config, but make it reusable in the cached container as well
+            // so we're gonna modify the definition to include existing files when needed
+            $configDefinition = $container->getDefinition('config');
+            $configFiles = FilesystemUtils::glob($configDir .'config{,.'. $this->env .'}.{yml,yaml,php}', GLOB_BRACE);
+            foreach($configFiles as $file) {
+                $configDefinition->addMethodCall('loadFromFile', array($file));
+            }
+
+            // now that we have the config built, let's get it
+            $config = $container->get('config');
+
+            // pass some necessary parameters from the config
+            $container->setParameter('log_file', $config->get('log_file'));
+            $container->setParameter('log_level', $config->get('log_level'));
+
+            // configure modules one by one
+            foreach($application->getModules() as $module) {
+                // define config for the module
+                $container->register('config.'. $module->getName(), array(
+                    'extends' => 'config_module.abstract'
+                ));
+
+                // add method calls to load appropriate config files to the definition
+                $moduleConfigDefinition = $container->getDefinition('config.'. $module->getName());
+                $moduleConfigFiles = FilesystemUtils::glob($module->getConfigDir() .'config{,.'. $this->env .'}.{yml,yaml,php}', GLOB_BRACE);
+                foreach($moduleConfigFiles as $file) {
+                    $moduleConfigDefinition->addMethodCall('loadFromFile', array($file));
+                }
+
+                // add method call to apply the config from the application config
+                $moduleConfigDefinition->addMethodCall('apply', array($config->getNamespace($module->getName())));
+
+                // run configuration for each module
+                $module->configure();
+            }
+
+            // configure the application
+            $application->configure();
+            
+            // in the end, write the current state to cache
+            $container->cacheCurrentState();
         }
 
+        // and after reading from cache / writing to cache, just set some additional services
+        // that can't be cached
+        $container->set('application', $application);
+        $container->set('splot.timer', $this->timer);
+
+        // log benchmark data
         $time = $timer->stop(3);
         $memory = $timer->getMemoryUsage();
         $memoryString = StringUtils::bytesToString($memory);
         $container->get('splot.logger')->debug('Application configuration phase in mode {mode} and env {env} with {modulesCount} modules and debug {debug} finished in {time} ms and used {memory} memory.', array(
             'application' => $application->getName(),
-            'mode' => $container->getParameter('mode'),
-            'env' => $container->getParameter('env'),
-            'debug' => $container->getParameter('debug') ? 'on' : 'off',
+            'mode' => $this->mode,
+            'env' => $this->env,
+            'debug' => $this->debug ? 'on' : 'off',
             'modulesCount' => count($application->getModules()),
             'modules' => $application->listModules(),
             'time' => $time,
@@ -310,43 +302,27 @@ class Framework
             '@memory' => $memory
         ));
 
-        return true;
+        return $container;
     }
 
     /**
      * Run the application.
      * 
      * @param  AbstractApplication $application Application to be run.
-     * @return bool
      */
     protected function runApplication(AbstractApplication $application) {
+        $timer = new Timer();
+        $benchmarkLogInfo = array();
+
         $container = $application->getContainer();
-        $timer = $container->get('timer');
-        
-        // @codeCoverageIgnoreStart
-        // configure some stuff only for web requests
-        if ($this->mode === self::MODE_WEB) {
-            // use Whoops to display errors
-            // add default Whoops error handlers
-            $whoops = $container->get('whoops');
-            $whoops->pushHandler($container->get('whoops.handler.log'));
-            $whoops->pushHandler($container->get('whoops.handler.event'));
 
-            $whoops->register();
+        // set the application's logger
+        $application->setLogger($container->get('logger'));
 
-            // and if in debug mode then also add pretty page handler
-            if ($application->isDebug()) {
-                $whoops->pushHandler($container->get('whoops.handler.pretty_page'));
-            }
-        }
-        // @codeCoverageIgnoreEnd
-
-        $application->setPhase(self::PHASE_RUN);
-
-        $application->run();
         foreach($application->getModules() as $module) {
             $module->run();
         }
+        $application->run();
 
         // perform some actions depending on the run mode
         switch($this->mode) {
@@ -356,19 +332,10 @@ class Framework
                 // in case we're gonna run Composer script, inject the application there
                 AbstractScriptHandler::setApplication($application);
 
-                $console = $application->getContainer()->get('console');
+                $console = $container->get('console');
                 $console->run();
 
-                $time = $timer->stop(3);
-                $memory = $timer->getMemoryUsage();
-                $memoryString = StringUtils::bytesToString($memory);
-                $container->get('splot.logger')->debug('Application run phase in console mode finished in {time} ms and used {memory} memory.', array(
-                    'time' => $time,
-                    'memory' => $memoryString,
-                    '@stat' => 'splot.run.console',
-                    '@time' => $time,
-                    '@memory' => $memory
-                ));
+                $benchmarkLogInfo['@stat'] = 'splot.run.console';
             break;
 
             case self::MODE_COMMAND:
@@ -384,19 +351,11 @@ class Framework
                 $argv = new ArgvInput();
                 $console->call('app', (string)$argv);
 
-                $time = $timer->stop(3);
-                $memory = $timer->getMemoryUsage();
-                $memoryString = StringUtils::bytesToString($memory);
-                $container->get('splot.logger')->debug('Application run phase in command mode finished in {time} ms and used {memory} memory.', array(
-                    'time' => $time,
-                    'memory' => $memoryString,
-                    '@stat' => 'splot.run.command',
-                    '@time' => $time,
-                    '@memory' => $memory
-                ));
+                $benchmarkLogInfo['@stat'] = 'splot.run.command';
             break;
             
             case self::MODE_TEST:
+                $benchmarkLogInfo['@stat'] = 'splot.run.test';
             break;
 
             case self::MODE_WEB:
@@ -409,19 +368,25 @@ class Framework
                 $response = $application->handleRequest($request);
                 $application->sendResponse($response, $request);
 
-                $time = $timer->stop(3);
-                $memory = $timer->getMemoryUsage();
-                $memoryString = StringUtils::bytesToString($memory);
-                $container->get('splot.logger')->debug('Application run phase in web mode finished in {time} ms and used {memory} memory.', array(
-                    'time' => $time,
-                    'memory' => $memoryString,
-                    '@stat' => 'splot.run.web',
-                    '@time' => $time,
-                    '@memory' => $memory
-                ));
+                $benchmarkLogInfo['@stat'] = 'splot.run.web';
         }
 
-        return true;
+        // log benchmark data
+        $time = $timer->stop();
+        $memory = $timer->getMemoryUsage();
+        $modeNames = array(
+            self::MODE_COMMAND => 'command',
+            self::MODE_CONSOLE => 'console',
+            self::MODE_TEST => 'test',
+            self::MODE_WEB => 'web'
+        );
+        $container->get('splot.logger')->debug('Application run phase in mode "{mode}" finished in {time} ms and used {memory} memory.', array_merge(array(
+            'mode' => $modeNames[$this->mode],
+            'time' => $time,
+            'memory' => StringUtils::bytesToString($memory),
+            '@time' => $time,
+            '@memory' => $memory
+        ), $benchmarkLogInfo));
     }
 
 }

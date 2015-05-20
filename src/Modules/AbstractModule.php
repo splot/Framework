@@ -14,8 +14,9 @@ namespace Splot\Framework\Modules;
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Exceptions\NotFoundException;
 
+use Splot\DependencyInjection\ContainerInterface;
+
 use Splot\Framework\Config\Config;
-use Splot\Framework\DependencyInjection\ServiceContainer;
 
 abstract class AbstractModule
 {
@@ -33,13 +34,6 @@ abstract class AbstractModule
      * @var string|null
      */
     protected $commandNamespace;
-
-    /**
-     * Module config.
-     * 
-     * @var Config
-     */
-    protected $config;
 
     /**
      * Dependency injection service container.
@@ -87,28 +81,14 @@ abstract class AbstractModule
         return array();
     }
 
-    /**
-     * This method is called on the module during configuration phase so you can register any services,
-     * listeners etc here.
-     *
-     * It should not contain any logic, just wiring things together.
-     *
-     * If the module contains any routes they should be registered here.
-     */
     public function configure() {
-        $this->container->get('router')->readModuleRoutes($this);
-
         try {
             $this->container->loadFromFile($this->getConfigDir() .'services.yml');
         } catch(NotFoundException $e) {}
     }
 
-    /**
-     * This method is called on the module during the run phase. If you need you can include any logic
-     * here.
-     */
     public function run() {
-
+        $this->container->get('router')->readModuleRoutes($this);
     }
 
     /*****************************************
@@ -129,36 +109,27 @@ abstract class AbstractModule
     }
 
     /**
-     * Set the module's config.
-     * 
-     * @param Config $config
-     */
-    public function setConfig(Config $config) {
-        $this->config = $config;
-    }
-
-    /**
      * Returns the module's config.
      * 
      * @return Config
      */
     public function getConfig() {
-        return $this->config;
+        return $this->container->get('config.'. $this->getName());
     }
 
     /**
      * Sets the dependency injection service container.
      * 
-     * @param ServiceContainer $container
+     * @param ContainerInterface $container
      */
-    final public function setContainer(ServiceContainer $container) {
+    final public function setContainer(ContainerInterface $container) {
         $this->container = $container;
     }
 
     /**
      * Returns the dependency injection service container.
      * 
-     * @return ServiceContainer
+     * @return ContainerInterface
      */
     final public function getContainer() {
         return $this->container;
@@ -229,8 +200,7 @@ abstract class AbstractModule
             return $this->moduleDir;
         }
 
-        $file = Debugger::getClassFile($this);
-        $this->moduleDir = dirname($file) . DS;
+        $this->moduleDir = dirname(Debugger::getClassFile($this)) . DS;
         return $this->moduleDir;
     }
 

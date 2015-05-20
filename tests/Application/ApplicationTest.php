@@ -10,10 +10,9 @@ class ApplicationTest extends TestCase
 {
 
     /**
-     * @covers ::bootstrap
      * @covers ::configure
      */
-    public function testBootstrap() {
+    public function testConfigure() {
         $container = $this->_application->getContainer();
 
         $this->assertInstanceOf('Splot\Framework\Log\Clog', $container->get('clog'));

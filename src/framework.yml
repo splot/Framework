@@ -1,5 +1,6 @@
 parameters:
     # directories
+    framework_dir: ./ # this is overwritten in code
     application_dir: ./ # this is overwritten in code
     config_dir: %application_dir%config/
     cache_dir: %application_dir%cache/
@@ -11,7 +12,20 @@ parameters:
     router.protocol: "http://"
     router.port: 80
 
+    log_file: %root_dir%logs/debug.log
+    log_level: debug
+
 services:
+    
+    config:
+        class: Splot\Framework\Config\Config
+        call:
+            - [loadFromFile, ["%framework_dir%/config.yml"]]
+
+    config_module.abstract:
+        class: Splot\Framework\Config\Config
+        abstract: true
+
     # logger providers
     clog: Splot\Framework\Log\Clog
 
@@ -19,7 +33,7 @@ services:
     #    class: MD\Clog\Writers\FileLogger
     #    arguments:
     #        - %log_file%
-    #        - %log_threshold%
+    #        - %log_level%
     #    notify:
     #        - ["@clog", "addWriter", ["@"]]
 
@@ -52,7 +66,7 @@ services:
     cache.store.file:
         class: Splot\Cache\Store\FileStore
         arguments:
-            - dir: %cache_dir%
+            - %cache_dir%
         notify:
             - ["@cache_provider", "registerStore", ["file", "@"]]     
 
@@ -101,8 +115,12 @@ services:
         class: Splot\Framework\ErrorHandlers\LogErrorHandler
         arguments:
             - @logger
+        notify:
+            - ["@whoops", "pushHandler", ["@"]]
 
     whoops.handler.event:
         class: Splot\Framework\ErrorHandlers\EventErrorHandler
         arguments:
             - @event_manager
+        notify:
+            - ["@whoops", "pushHandler", ["@"]]

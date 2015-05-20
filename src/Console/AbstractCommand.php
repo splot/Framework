@@ -15,8 +15,9 @@ use Psr\Log\LoggerInterface;
 
 use MD\Foundation\Exceptions\NotFoundException;
 
+use Splot\DependencyInjection\ContainerInterface;
+
 use Splot\Framework\Console\ConsoleLogger;
-use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Symfony\Component\Console\Helper\DialogHelper;
 use Symfony\Component\Console\Helper\HelperSet;
@@ -64,7 +65,7 @@ abstract class AbstractCommand
     /**
      * Dependency injection service container.
      * 
-     * @var ServiceContainer
+     * @var ContainerInterface
      */
     protected $container;
 
@@ -99,12 +100,12 @@ abstract class AbstractCommand
     /**
      * Constructor.
      * 
-     * @param ServiceContainer $container Dependency injection service container.
+     * @param ContainerInterface $container Dependency injection service container.
      * @param InputInterface $input Input.
      * @param OutputInterface $output Output.
      * @param HelperSet $helperSet Helper set.
      */
-    public function __construct(ServiceContainer $container, InputInterface $input, OutputInterface $output, HelperSet $helperSet) {
+    public function __construct(ContainerInterface $container, InputInterface $input, OutputInterface $output, HelperSet $helperSet) {
         $this->container = $container;
         $this->input = $input;
         $this->output = $output;
@@ -268,7 +269,7 @@ abstract class AbstractCommand
     /**
      * Returns the dependency injection service container.
      * 
-     * @return ServiceContainer
+     * @return ContainerInterface
      */
     final public function getContainer() {
         return $this->container;

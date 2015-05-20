@@ -1,12 +1,12 @@
 <?php
 namespace Splot\Framework\Tests\Events;
 
+use Splot\DependencyInjection\ContainerInterface;
+use Splot\DependencyInjection\Container;
+
 use Splot\Framework\Events;
-
 use Splot\Framework\Tests\Events\Fixtures\TestController;
-
 use Splot\Framework\Controller\ControllerResponse;
-use Splot\Framework\DependencyInjection\ServiceContainer;
 use Splot\Framework\Routes\Route;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\HTTP\Response;
@@ -16,7 +16,7 @@ class EventsTest extends \PHPUnit_Framework_TestCase
 
     public function testControllerDidRespond() {
         $controllerResponse = new ControllerResponse('some response');
-        $controller = new TestController(new ServiceContainer());
+        $controller = new TestController(new Container());
         $arguments = array(
             'id' => 123
         );
@@ -33,7 +33,7 @@ class EventsTest extends \PHPUnit_Framework_TestCase
 
     public function testControllerDidRespondToRequest() {
         $controllerResponse = new ControllerResponse('some response');
-        $controller = new TestController(new ServiceContainer());
+        $controller = new TestController(new Container());
 
         $request = Request::create('/test/');
         
@@ -43,7 +43,7 @@ class EventsTest extends \PHPUnit_Framework_TestCase
     }
 
     public function testControllerWillRespond() {
-        $controller = new TestController(new ServiceContainer());
+        $controller = new TestController(new Container());
         $arguments = array(
             'id' => 123
         );

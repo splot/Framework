@@ -1,6 +1,5 @@
 log_file: false
-log_threshold: debug
+log_level: debug
 
 cache:
     enabled: true
-

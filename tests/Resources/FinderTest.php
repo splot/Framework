@@ -14,7 +14,6 @@ use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Debug\Timer;
 
 use Splot\Framework\Config\Config;
-use Splot\Framework\DependencyInjection\ServiceContainer;
 
 use Splot\Log\Provider\LogProvider;
 

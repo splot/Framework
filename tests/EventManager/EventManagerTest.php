@@ -16,7 +16,7 @@ class EventManagerTest extends \PHPUnit_Framework_TestCase
             ->method('on')
             ->with($this->equalTo($event));
 
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $container->expects($this->any())
             ->method('get')
             ->with($this->equalTo('subscriber'))

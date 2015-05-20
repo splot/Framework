@@ -18,17 +18,8 @@ use MD\Foundation\Utils\FilesystemUtils;
 
 use Symfony\Component\Yaml\Yaml;
 
-use Splot\Framework\DependencyInjection\ServiceContainer;
-
 class Config
 {
-
-    /**
-     * Splot Dependency Injection Container for resolving parameters inside config variables.
-     * 
-     * @var ServiceContainer
-     */
-    protected $container;
 
     /**
      * Config variables.
@@ -51,14 +42,13 @@ class Config
      *
      * PHP config files are loaded before the YML files.
      * 
-     * @param  ServiceContainer $container Splot DI Container for resolving parameters inside the config.
      * @param  string           $dir       Directory which should be searched for config files.
      * @param  string           $env       [optional] Environment for which to load additional files. Default: `null`.
      * @return Config
      */
-    public static function readFromDir(ServiceContainer $container, $dir, $env = null) {
+    public static function readFromDir($dir, $env = null) {
         $dir = rtrim($dir, DS) . DS;
-        $config = new static($container);
+        $config = new static();
 
         $files = FilesystemUtils::glob($dir .'config.{yml,yaml,php}', GLOB_BRACE);
         if ($env) {
@@ -75,11 +65,9 @@ class Config
     /**
      * Constructor.
      * 
-     * @param ServiceContainer $container Splot DI Container for resolving parameters inside the config.
      * @param string           $loadFile  [optional] Optional file to load into the config.
      */
-    public function __construct(ServiceContainer $container, $loadFile = null) {
-        $this->container = $container;
+    public function __construct($loadFile = null) {
         if ($loadFile) {
             $this->loadFromFile($loadFile);
         }
@@ -143,7 +131,7 @@ class Config
                 break;
 
             default:
-                throw new InvalidFileException('Unrecognized file type "'. $extension .'" could not be loaded into the container. Only supported file formats are YAML (.yml, .yaml) and PHP (.php that returns an array).');
+                throw new InvalidFileException('Unrecognized file type "'. $extension .'" could not be loaded into config. Only supported file formats are YAML (.yml, .yaml) and PHP (.php that returns an array).');
         }
 
         if (!is_array($settings)) {
@@ -189,7 +177,7 @@ class Config
             }
         }
 
-        return $this->container->resolveParameters($pointer);
+        return $pointer;
     }
 
     /**

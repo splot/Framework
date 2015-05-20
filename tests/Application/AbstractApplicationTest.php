@@ -10,34 +10,6 @@ use Splot\Framework\Framework;
 class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
 
-    public function testLoadParameters() {
-
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     * @covers ::bootstrap
-     */
-    public function testBootstrapCalledWrong() {
-        $application = $this->provideApplication();
-        $application->setPhase(Framework::PHASE_RUN);
-        $application->bootstrap();
-    }
-
-    public function testConfigure() {
-
-    }
-
-    /**
-     * @expectedException \RuntimeException
-     * @covers ::configure
-     */
-    public function testConfigureCalledWrong() {
-        $application = $this->provideApplication();
-        $application->setPhase(Framework::PHASE_RUN);
-        $application->configure();
-    }
-
     /**
      * @covers ::addModule
      * @covers ::hasModule
@@ -49,9 +21,6 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $module = $this->provideModule('TestModule');
 
         $application->addModule($module);
-
-        // check that container has been injected to the module
-        $this->assertSame($mocks['container'], $module->getContainer());
 
         // make sure that the module has been added
         $this->assertTrue($application->hasModule('TestModule'));
@@ -82,20 +51,12 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $application->addModule($module);
     }
 
-    public function testListModules() {
-
-    }
-
-    public function testGetModules() {
-
-    }
-
     /**
      * @covers ::setContainer
      * @expectedException \RuntimeException
      */
     public function testSettingContainerTwice() {
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
         $application->setContainer($container);
         $application->setContainer($container);
@@ -115,13 +76,6 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
     public function testGetVersion() {
         $app = new TestApplication();
         $this->assertAttributeEquals($app->getVersion(), 'version', $app);
-    }
-
-    /**
-     * @covers ::getConfig
-     */
-    public function testGetConfig() {
-
     }
 
     /**
@@ -196,7 +150,7 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 
     protected function provideMocks() {
         $mocks = array();
-        $mocks['container'] = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $mocks['container'] = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         return $mocks;
     }
 

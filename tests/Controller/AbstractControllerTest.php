@@ -1,10 +1,10 @@
 <?php
 namespace Splot\Framework\Tests\Controller;
 
-use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\DependencyInjection\Container;
 use Splot\Framework\Tests\Controller\Fixtures\TestController;
 use Splot\Framework\Tests\Controller\Fixtures\NonEmptyController;
-use Splot\Framework\Tests\DependencyInjection\Fixtures\TestService;
+use Splot\Framework\Tests\Controller\Fixtures\TestService;
 
 use Splot\Framework\Controller\AbstractController;
 
@@ -19,7 +19,7 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
     }
 
     public function testUsingContainer() {
-        $container = new ServiceContainer();
+        $container = new Container();
         $controller = new TestController($container);
         $this->assertSame($container, $controller->getContainer());
 
@@ -75,7 +75,7 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
             ->with($this->equalTo($view), $this->equalTo($data))
             ->will($this->returnValue($rendered));
 
-        $container = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
         $container->expects($this->once())
             ->method('get')
             ->with($this->equalTo('templating'))

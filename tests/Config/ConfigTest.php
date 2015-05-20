@@ -68,7 +68,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      */
     public function testEmptyConfigInstance() {
         $mocks = $this->provideMocks();
-        $config = new Config($mocks['container']);
+        $config = new Config();
 
         $this->assertInternalType('array', $config->getLoadedFiles());
         $this->assertEmpty($config->getLoadedFiles());
@@ -93,7 +93,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::__construct
      * @covers ::getNamespace
      */
     public function testGetNamespace() {
@@ -121,7 +120,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::__construct
      * @covers ::get
      */
     public function testGetDefaultValue() {
@@ -140,7 +138,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::__construct
      * @covers ::apply
      * @covers ::getNamespace
      */
@@ -151,7 +148,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::__construct
      * @covers ::extend
      * @covers ::getNamespace
      */
@@ -161,6 +157,17 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $config->extend($anotherConfig);
 
         $this->assertEquals($this->resultingConfigArray, $config->getNamespace());
+    }
+
+    /**
+     * @covers ::__construct
+     */
+    public function testLoadingFileInConstructor() {
+        $config = new Config($this->configFixturesDir .'config.load.yml');
+
+        $this->assertEquals(true, $config->get('setting'));
+        $this->assertEquals(false, $config->get('group.setting1'));
+        $this->assertEquals('ipsum', $config->get('group.lorem'));
     }
 
     /**
@@ -210,7 +217,6 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     public function testLoadingTwiceFromFile() {
         $mocks = $this->provideMocks();
         $config = $this->getMockBuilder('Splot\Framework\Config\Config')
-            ->setConstructorArgs(array($mocks['container']))
             ->setMethods(array('apply'))
             ->getMock();
         $config->expects($this->once())
@@ -237,7 +243,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
      */
     public function testReadFromDir() {
         $mocks = $this->provideMocks();
-        $config = Config::readFromDir($mocks['container'], $this->configFixturesDir, 'test');
+        $config = Config::readFromDir($this->configFixturesDir, 'test');
 
         $this->assertEquals(array(
             $this->configFixturesDir .'config.php',
@@ -249,16 +255,12 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     protected function provideMocks() {
         $mocks = array();
-        $mocks['container'] = $this->getMock('Splot\Framework\DependencyInjection\ServiceContainer');
-        $mocks['container']->expects($this->any())
-            ->method('resolveParameters')
-            ->will($this->returnArgument(0));
         return $mocks;
     }
 
     protected function provideConfig(array $options = array(), array $mocks = array()) {
         $mocks = !empty($mocks) ? $mocks : $this->provideMocks();
-        $config = new Config($mocks['container']);
+        $config = new Config();
         $config->apply($options);
         return $config;
     }

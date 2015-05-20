@@ -13,7 +13,7 @@
  */
 namespace Splot\Framework\Controller;
 
-use Splot\Framework\DependencyInjection\ServiceContainer;
+use Splot\DependencyInjection\ContainerInterface;
 
 abstract class AbstractController
 {
@@ -51,7 +51,7 @@ abstract class AbstractController
     /**
      * Dependency injection service container.
      * 
-     * @var ServiceContainer
+     * @var ContainerInterface
      */
     protected $container;
 
@@ -60,7 +60,7 @@ abstract class AbstractController
      * 
      * @param ServiceContainer $container Dependency injection service container.
      */
-    public function __construct(ServiceContainer $container) {
+    public function __construct(ContainerInterface $container) {
         $this->container = $container;
     }
 
@@ -159,7 +159,7 @@ abstract class AbstractController
     /**
      * Returns the dependency injection service container.
      * 
-     * @return ServiceContainer
+     * @return ContainerInterface
      */
     final public function getContainer() {
         return $this->container;
