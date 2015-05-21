@@ -11,6 +11,15 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
+     * @covers ::provideContainerCache
+     */
+    public function testProvideContainerCache() {
+        $application = $this->provideApplication();
+
+        $this->assertInstanceOf('Splot\DependencyInjection\ContainerCacheInterface', $application->provideContainerCache('test', true));
+    }
+
+    /**
      * @covers ::addModule
      * @covers ::hasModule
      * @covers ::getModule
@@ -60,6 +69,23 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
         $application->setContainer($container);
         $application->setContainer($container);
+    }
+
+    /**
+     * @covers ::getConfig
+     */
+    public function testGetConfig() {
+        $mocks = $this->provideMocks();
+        $application = $this->provideApplication($mocks);
+
+        $config = $this->getMock('Splot\Framework\Config\Config');
+
+        $mocks['container']->expects($this->once())
+            ->method('get')
+            ->with($this->equalTo('config'))
+            ->will($this->returnValue($config));
+
+        $this->assertSame($config, $application->getConfig());
     }
 
     /**
