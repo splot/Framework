@@ -81,12 +81,39 @@ abstract class AbstractModule
         return array();
     }
 
+    /**
+     * Configure the module, or more specifically the dependency injection container.
+     *
+     * This method is invoked during configuration phase, before the application's `::configure()`
+     * method (as a module should not know the context of the application in which it is being ran).
+     *
+     * Any configuration of services, parameters, etc. should be done in this method.
+     *
+     * Note, that after the application has been configured once and the container has been
+     * cached, this method will not be invoked until the cache is cleared. Therefore,
+     * any configuration to the container should be made in a way that is cacheable, ie.
+     * static definitions of services (no use of object or closure services).
+     *
+     * By default, this method will attempt to load `services.yml` file from the module's
+     * config dir (returned by `::getConfigDir()`). This file does not need to exist.
+     */
     public function configure() {
         try {
             $this->container->loadFromFile($this->getConfigDir() .'services.yml');
         } catch(NotFoundException $e) {}
     }
 
+    /**
+     * Run the module.
+     *
+     * This method is invoked during run phase, before the application's `::run()` method.
+     *
+     * This is a good place to perform any additional configuration that can only be done at
+     * runtime or cannot be cached.
+     *
+     * By default, this method will call the `router` service and make it load any routes
+     * contained in this module (note: this behavior will change in future releases of Splot).
+     */
     public function run() {
         $this->container->get('router')->readModuleRoutes($this);
     }

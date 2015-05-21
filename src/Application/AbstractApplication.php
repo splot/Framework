@@ -130,6 +130,32 @@ abstract class AbstractApplication implements LoggerAwareInterface
         return array();
     }
 
+    /**
+     * Configure the application, or more specifically the dependency injection container.
+     *
+     * This method is invoked during configuration phase after all `::configure()` methods of all
+     * modules have been invoked.
+     *
+     * Any configuration of services, parameters, etc. should be done in this method.
+     *
+     * Note, that after the application has been configured once and the container has been
+     * cached, this method will not be invoked until the cache is cleared. Therefore,
+     * any configuration to the container should be made in a way that is cacheable, ie.
+     * static definitions of services (no use of object or closure services).
+     *
+     * By default, this method will attempt to load three files from `%config_dir%`:
+     *
+     *  - `parameters.yml`,
+     *  - `parameters.{env}.yml`,
+     *  - `services.yml`;
+     *
+     * where `{env}` is the name of the current environment.
+     *
+     * None of these files needs to exist.
+     *
+     * If you are overwriting this method it is advisable to call the parent at one point,
+     * unless you are perfectly sure what you are doing.
+     */
     public function configure() {
         $configDir = $this->container->getParameter('config_dir');
         foreach(array(
@@ -143,6 +169,15 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
     }
 
+    /**
+     * Run the application.
+     *
+     * This method is invoked during run phase, after all `::run()` methods of all modules
+     * have been invoked.
+     *
+     * This is a good place to perform any additional configuration that can only be done at
+     * runtime or cannot be cached.
+     */
     public function run() {
         
     }
