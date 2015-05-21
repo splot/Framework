@@ -41,7 +41,7 @@ class Response extends Base_Response
      * 
      * @return string
      */
-    final public static function __class() {
+    public static function __class() {
         return get_called_class();
     }
 
