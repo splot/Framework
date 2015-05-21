@@ -1,6 +1,6 @@
 <?php
 /**
- * Route registered for a controller.
+ * Interface for a Splot compatible templating engine.
  * 
  * @package SplotFramework
  * @subpackage Templating
