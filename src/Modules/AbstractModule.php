@@ -149,7 +149,7 @@ abstract class AbstractModule
      * 
      * @param ContainerInterface $container
      */
-    final public function setContainer(ContainerInterface $container) {
+    public function setContainer(ContainerInterface $container) {
         $this->container = $container;
     }
 
@@ -158,7 +158,7 @@ abstract class AbstractModule
      * 
      * @return ContainerInterface
      */
-    final public function getContainer() {
+    public function getContainer() {
         return $this->container;
     }
 
@@ -194,7 +194,7 @@ abstract class AbstractModule
      * 
      * @return string
      */
-    final public function getClass() {
+    public function getClass() {
         if ($this->class) {
             return $this->class;
         }
@@ -208,7 +208,7 @@ abstract class AbstractModule
      * 
      * @return string
      */
-    final public function getNamespace() {
+    public function getNamespace() {
         if ($this->namespace) {
             return $this->namespace;
         }
@@ -222,7 +222,7 @@ abstract class AbstractModule
      * 
      * @return string
      */
-    final public function getModuleDir() {
+    public function getModuleDir() {
         if ($this->moduleDir) {
             return $this->moduleDir;
         }

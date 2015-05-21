@@ -190,7 +190,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * @throws NotUniqueException When module name is not unique and its already been registered.
      * @throws \RuntimeException When application has already been bootstrapped and its too late.
      */
-    final public function addModule(AbstractModule $module) {
+    public function addModule(AbstractModule $module) {
         if ($this->phase > Framework::PHASE_BOOTSTRAP) {
             throw new \RuntimeException('Application has been already bootstrapped and it is too late to add new modules.');
         }
@@ -424,7 +424,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      *
      * @throws \RuntimeException When trying to override a previously set container.
      */
-    final public function setContainer(ContainerInterface $container) {
+    public function setContainer(ContainerInterface $container) {
         if ($this->container) {
             throw new \RuntimeException('Service container already set on the application, cannot overwrite it.');
         }
@@ -520,7 +520,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * 
      * @return int
      */
-    final public function getPhase() {
+    public function getPhase() {
         return $this->phase;
     }
 
@@ -529,7 +529,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * 
      * @param int $phase One of `Framework::PHASE_*` constants.
      */
-    final public function setPhase($phase) {
+    public function setPhase($phase) {
         $this->phase = $phase;
     }
 
@@ -538,7 +538,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * 
      * @return string
      */
-    final public static function __class() {
+    public static function __class() {
         return get_called_class();
     }
 
