@@ -37,6 +37,13 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInApplication() {
         $finder = new Finder($this->_application);
@@ -52,6 +59,13 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingSingleInApplication() {
         $finder = new Finder($this->_application);
@@ -67,6 +81,13 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInModule() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
@@ -81,6 +102,13 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingOverwrittenInApplication() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
@@ -173,6 +201,13 @@ class FinderTest extends ApplicationTestCase
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInNotExistingModule() {
         $finder = new Finder($this->_application);
@@ -182,6 +217,13 @@ class FinderTest extends ApplicationTestCase
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingNotExistingFile() {
         $finder = new Finder($this->_application);
@@ -191,6 +233,29 @@ class FinderTest extends ApplicationTestCase
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
+     */
+    public function testFindingNotExistingResourceInApplicationDir() {
+        $finder = new Finder($this->_application);
+        $finder->findResource('::index.js', 'public');
+    }
+
+    /**
+     * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingNotExistingFileInModule() {
         $this->_application->addTestModule(new SplotResourcesTestModule());
@@ -200,8 +265,33 @@ class FinderTest extends ApplicationTestCase
     }
 
     /**
+     * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
+     */
+    public function testFindingNotExistingFileInModuleByCallingFindInModuleDir() {
+        $this->_application->addTestModule(new SplotResourcesTestModule());
+
+        $finder = new Finder($this->_application);
+        $finder->findinModuleDir('SplotResourcesTestModule::undefined.js', 'public');
+    }
+
+    /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
      * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -210,7 +300,14 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
      * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInApplicationInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -219,7 +316,14 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
      * @covers ::findInApplicationDir
+     * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInApplicationInvalidModule() {
         $finder = new Finder($this->_application);
@@ -228,7 +332,14 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
      * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInModuleInvalidFormat() {
         $finder = new Finder($this->_application);
@@ -237,7 +348,14 @@ class FinderTest extends ApplicationTestCase
 
     /**
      * @expectedException \Splot\Framework\Resources\Exceptions\ResourceNotFoundException
+     * @covers ::find
+     * @covers ::expand
+     * @covers ::findResource
+     * @covers ::parseResourceName
+     * @covers ::findInApplicationDir
      * @covers ::findInModuleDir
+     * @covers ::buildResourcePath
+     * @covers ::parseResourceName
      */
     public function testFindingInModuleInvalidModule() {
         $finder = new Finder($this->_application);
