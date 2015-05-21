@@ -20,6 +20,22 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::loadParameters
+     */
+    public function testLoadParameters() {
+        $application = $this->provideApplication();
+        $this->assertInternalType('array', $application->loadParameters('test', true));
+    }
+
+    /**
+     * @covers ::run
+     */
+    public function testRun() {
+        $application = $this->provideApplication();
+        $application->run();
+    }
+
+    /**
      * @covers ::addModule
      * @covers ::hasModule
      * @covers ::getModule
@@ -34,6 +50,42 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         // make sure that the module has been added
         $this->assertTrue($application->hasModule('TestModule'));
         $this->assertSame($module, $application->getModule('TestModule'));
+    }
+
+    /**
+     * @covers ::getModules
+     */
+    public function testGetModules() {
+        $application = $this->provideApplication();
+        $modules = array(
+            'TestModule' => $this->provideModule('TestModule'),
+            'LipsumModule' => $this->provideModule('LipsumModule'),
+            'WebModule' => $this->provideModule('WebModule'),
+            'CommandsModule' => $this->provideModule('CommandsModule')
+        );
+        foreach($modules as $module) {
+            $application->addModule($module);
+        }
+
+        $this->assertEquals($modules, $application->getModules());
+    }
+
+    /**
+     * @covers ::listModules
+     */
+    public function testListModules() {
+        $application = $this->provideApplication();
+        $modules = array(
+            'TestModule' => $this->provideModule('TestModule'),
+            'LipsumModule' => $this->provideModule('LipsumModule'),
+            'WebModule' => $this->provideModule('WebModule'),
+            'CommandsModule' => $this->provideModule('CommandsModule')
+        );
+        foreach($modules as $module) {
+            $application->addModule($module);
+        }
+
+        $this->assertEquals(array_keys($modules), $application->listModules());
     }
 
     /**
@@ -58,6 +110,18 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $application->setPhase(Framework::PHASE_CONFIGURE);
         $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
         $application->addModule($module);
+    }
+
+    /**
+     * @covers ::setContainer
+     * @covers ::getContainer
+     */
+    public function testSettingAndGettingContainer() {
+        $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
+        $application = $this->getMockForAbstractClass('Splot\Framework\Application\AbstractApplication');
+        $application->setContainer($container);
+
+        $this->assertSame($container, $application->getContainer());
     }
 
     /**
