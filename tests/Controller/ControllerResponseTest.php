@@ -4,9 +4,16 @@ namespace Splot\Framework\Tests\Controller;
 use Splot\Framework\Controller\ControllerResponse;
 
 
+/**
+ * @coversDefaultClass \Splot\Framework\Controller\ControllerResponse
+ */
 class ControllerResponseTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::getResponse
+     * @covers ::setResponse
+     */
     public function testControllerResponse() {
         $responseText = 'Lorem ipsum dolor sit amet';
 

@@ -12,6 +12,18 @@ use Splot\Framework\Tests\Routes\Fixtures\TestPrivateController;
 class RouteTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::__construct
+     * @covers ::getName
+     * @covers ::getControllerClass
+     * @covers ::getUrlPattern
+     * @covers ::getModuleName
+     * @covers ::getPrivate
+     * @covers ::isPrivate
+     * @covers ::getRegExp
+     * @covers ::getMethods
+     * @covers ::getControllerMethodForHttpMethod
+     */
     public function testInitialization() {
         $route = new Route(
             'test_route',
@@ -59,6 +71,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException Splot\Framework\Routes\Exceptions\InvalidControllerException
+     * @covers ::__construct
      */
     public function testInitializationWithPrivateControllerMethod() {
         $route = new Route(
@@ -76,6 +89,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException Splot\Framework\Routes\Exceptions\InvalidControllerException
+     * @covers ::__construct
      */
     public function testInitializationWithNoControllerMethod() {
         $route = new Route(

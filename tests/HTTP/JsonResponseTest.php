@@ -3,10 +3,20 @@ namespace Splot\Framework\Tests\HTTP;
 
 use Splot\Framework\HTTP\JsonResponse;
 
-
+/**
+ * @coversDefaultClass \Splot\Framework\HTTP\JsonResponse
+ */
 class JsonResponseTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::create
+     * @covers ::__construct
+     * @covers ::set
+     * @covers ::get
+     * @covers ::sendContent
+     * @covers ::getContent
+     */
     public function testResponse() {
         $data = array(
             'test' => 'value',
@@ -47,6 +57,8 @@ class JsonResponseTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::create
+     * @covers ::__construct
      */
     public function testNotArrayData() {
         $response = JsonResponse::create('data');
@@ -54,6 +66,8 @@ class JsonResponseTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\InvalidArgumentException
+     * @covers ::create
+     * @covers ::__construct
      */
     public function testInvalidHeaders() {
         $response = JsonResponse::create(array(), 200, 'invalid header');

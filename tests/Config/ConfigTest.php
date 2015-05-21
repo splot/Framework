@@ -205,6 +205,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
+     * @covers ::loadFromFile
      */
     public function testLoadingFromInexistentFile() {
         $config = $this->provideConfig();

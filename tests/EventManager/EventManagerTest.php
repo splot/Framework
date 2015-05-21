@@ -5,9 +5,16 @@ use Splot\Framework\Tests\EventManager\Fixtures\TestEvent;
 
 use Splot\Framework\EventManager\EventManager;
 
+/**
+ * @coversDefaultClass \Splot\Framework\EventManager\EventManager
+ */
 class EventManagerTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::subscribeService
+     * @covers ::trigger
+     */
     public function testSubscribingAService() {
         $event = new TestEvent();
 

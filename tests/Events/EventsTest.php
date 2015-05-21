@@ -14,6 +14,15 @@ use Splot\Framework\HTTP\Response;
 class EventsTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers \Splot\Framework\Events\ControllerDidRespond::__construct
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getControllerResponse
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getControllerName
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getController
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getMethod
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getArguments
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getRequest
+     */
     public function testControllerDidRespond() {
         $controllerResponse = new ControllerResponse('some response');
         $controller = new TestController(new Container());
@@ -31,6 +40,10 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($event->getRequest());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\ControllerDidRespond::__construct
+     * @covers \Splot\Framework\Events\ControllerDidRespond::getRequest
+     */
     public function testControllerDidRespondToRequest() {
         $controllerResponse = new ControllerResponse('some response');
         $controller = new TestController(new Container());
@@ -42,6 +55,15 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($event->getRequest(), $request);
     }
 
+    /**
+     * @covers \Splot\Framework\Events\ControllerWillRespond::__construct
+     * @covers \Splot\Framework\Events\ControllerWillRespond::getControllerName
+     * @covers \Splot\Framework\Events\ControllerWillRespond::getController
+     * @covers \Splot\Framework\Events\ControllerWillRespond::getMethod
+     * @covers \Splot\Framework\Events\ControllerWillRespond::getArguments
+     * @covers \Splot\Framework\Events\ControllerWillRespond::setArguments
+     * @covers \Splot\Framework\Events\ControllerWillRespond::setMethod
+     */
     public function testControllerWillRespond() {
         $controller = new TestController(new Container());
         $arguments = array(
@@ -64,6 +86,11 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($newArguments, $event->getArguments());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\DidFindRouteForRequest::__construct
+     * @covers \Splot\Framework\Events\DidFindRouteForRequest::getRoute
+     * @covers \Splot\Framework\Events\DidFindRouteForRequest::getRequest
+     */
     public function testDidFindRouteForRequest() {
         $route = new Route('test_route', TestController::__class(), '/test/', array(
             'get' => 'index'
@@ -76,6 +103,13 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($request, $event->getRequest());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\DidNotFindRouteForRequest::__construct
+     * @covers \Splot\Framework\Events\DidNotFindRouteForRequest::getRequest
+     * @covers \Splot\Framework\Events\DidNotFindRouteForRequest::isHandled
+     * @covers \Splot\Framework\Events\DidNotFindRouteForRequest::setResponse
+     * @covers \Splot\Framework\Events\DidNotFindRouteForRequest::getResponse
+     */
     public function testDidNotFindRouteForRequest() {
         $request = Request::create('/test/');
 
@@ -90,6 +124,10 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($event->isHandled());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\DidReceiveRequest::__construct
+     * @covers \Splot\Framework\Events\DidReceiveRequest::getRequest
+     */
     public function testDidReceiveRequest() {
         $request = Request::create('/test/');
 
@@ -98,6 +136,17 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($request, $event->getRequest());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\ErrorDidOccur::__construct
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getCode
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getMessage
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getFile
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getLine
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getContext
+     * @covers \Splot\Framework\Events\ErrorDidOccur::isHandled
+     * @covers \Splot\Framework\Events\ErrorDidOccur::getHandled
+     * @covers \Splot\Framework\Events\ErrorDidOccur::setHandled
+     */
     public function testErrorDidOccur() {
         $line = __LINE__;
         $context = array(
@@ -117,6 +166,14 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($event->getHandled());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::__construct
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::getException
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::isHandled
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::getResponse
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::getHandled
+     * @covers \Splot\Framework\Events\ExceptionDidOccur::setResponse
+     */
     public function testExceptionDidOccur() {
         $exception = new \Exception('Some exception', 500);
         $event = new Events\ExceptionDidOccur($exception);
@@ -133,6 +190,11 @@ class EventsTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($event->getHandled());
     }
 
+    /**
+     * @covers \Splot\Framework\Events\WillSendResponse::__construct
+     * @covers \Splot\Framework\Events\WillSendResponse::getRequest
+     * @covers \Splot\Framework\Events\WillSendResponse::getResponse
+     */
     public function testWillSendResponse() {
         $request = Request::create('/test/');
         $response = new Response('some response');

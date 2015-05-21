@@ -18,6 +18,12 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('Splot\Framework\Tests\Controller\Fixtures\TestController', TestController::__class());
     }
 
+    /**
+     * @covers ::__construct
+     * @covers ::getContainer
+     * @covers ::get
+     * @covers ::getParameter
+     */
     public function testUsingContainer() {
         $container = new Container();
         $controller = new TestController($container);
@@ -37,11 +43,17 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(true, $controller->getParameter('test'));
     }
 
+    /**
+     * @covers ::_getUrl
+     */
     public function testGettingUrl() {
         $this->assertEquals('/non-empty/', NonEmptyController::_getUrl());
         $this->assertEquals('/', TestController::_getUrl());
     }
 
+    /**
+     * @covers ::_getMethods
+     */
     public function testGettingAvailableResponseMethods() {
         $this->assertEquals(array(
             'get' => 'index',
@@ -85,6 +97,9 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($rendered, $controller->render($view, $data));
     }
 
+    /**
+     * @covers ::_hasMethod
+     */
     public function testCheckingIfWillRespondToMethod() {
         $this->assertTrue(TestController::_hasMethod('get'));
         $this->assertTrue(TestController::_hasMethod('POST'));
@@ -95,6 +110,9 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(NonEmptyController::_hasMethod('delete'));
     }
 
+    /**
+     * @covers ::_getMethodFunction
+     */
     public function testGettingMethodFunction() {
         $this->assertEquals('index', TestController::_getMethodFunction('get'));
         $this->assertEquals('index', TestController::_getMethodFunction('POST'));
