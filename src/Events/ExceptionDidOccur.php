@@ -80,7 +80,7 @@ class ExceptionDidOccur extends AbstractEvent
     /**
      * Returns the response with which to respond.
      * 
-     * @return Response
+     * @return Response|null
      */
     public function getResponse() {
         return $this->_response;

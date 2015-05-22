@@ -45,7 +45,7 @@ class EventErrorHandler extends Handler
         // trigger the event
         $this->eventManager->trigger($event);
 
-        if ($response = $event->getResponse() && $event->isHandled()) {
+        if (($response = $event->getResponse()) && $event->isHandled()) {
             $response->send();
         }
 

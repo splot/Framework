@@ -45,6 +45,19 @@ class PrettyPageErrorHandler extends PrettyPageHandler
             return Handler::DONE;
         }
 
+        return $this->parentHandle();
+    }
+
+    /**
+     * Calls the `::handle()` method on the parent.
+     *
+     * Enables testing of the parent call.
+     * 
+     * @return int|null
+     *
+     * @codeCoverageIgnore
+     */
+    protected function parentHandle() {
         return parent::handle();
     }
 
