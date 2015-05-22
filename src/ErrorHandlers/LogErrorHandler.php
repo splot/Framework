@@ -15,6 +15,8 @@ use Psr\Log\LoggerInterface;
 
 use Whoops\Handler\Handler;
 
+use Splot\Framework\HTTP\Exceptions\HTTPExceptionInterface;
+
 class LogErrorHandler extends Handler
 {
 
@@ -39,6 +41,19 @@ class LogErrorHandler extends Handler
      */
     public function handle() {
         $e = $this->getException();
+
+        // HTTP Exceptions should just be notices, not criticals.
+        if ($e instanceof HTTPExceptionInterface) {
+            $this->logger->notice('Got HTTP exception {code}: "{message}" from {class} in file {file} on line {line}.'. NL . 'Trace: ' . NL .'{trace}', array(
+                'code' => $e->getCode(),
+                'class' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ));
+            return Handler::DONE;
+        }
 
         $this->logger->critical('{class}: {message} in file {file} on line {line}.'. NL . 'Trace: ' . NL .'{trace}', array(
             'class' => get_class($e),
