@@ -232,6 +232,17 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException \RuntimeException
+     * @covers ::setPhase
+     */
+    public function testSettingEarlierPhase() {
+        $application = $this->provideApplication();
+        $application->setPhase(Framework::PHASE_RUN);
+        $this->assertEquals(Framework::PHASE_RUN, $application->getPhase());
+        $application->setPhase(Framework::PHASE_BOOTSTRAP);
+    }
+
+    /**
      * @covers ::__class
      */
     public function testGettingClass() {

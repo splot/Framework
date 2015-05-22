@@ -1,8 +1,10 @@
 <?php
 namespace Splot\Framework\Tests\Testing\Stubs;
 
-use Splot\Framework\Testing\Stubs\TestApplication;
 use Splot\DependencyInjection\Container;
+
+use Splot\Framework\Testing\Stubs\TestApplication;
+use Splot\Framework\Framework;
 
 /**
  * @coversDefaultClass \Splot\Framework\Testing\Stubs\TestApplication
@@ -29,6 +31,19 @@ class TestApplicationTest extends \PHPUnit_Framework_TestCase
         
         $store = $cache->getStore();
         $this->assertInstanceOf('Splot\Cache\Store\MemoryStore', $store);
+    }
+
+    /**
+     * @covers ::setPhase
+     */
+    public function testSettingEarlierPhase() {
+        $application = new TestApplication();
+
+        $application->setPhase(Framework::PHASE_RUN);
+        $this->assertEquals(Framework::PHASE_RUN, $application->getPhase());
+
+        $application->setPhase(Framework::PHASE_BOOTSTRAP);
+        $this->assertEquals(Framework::PHASE_BOOTSTRAP, $application->getPhase());
     }
 
     /**
