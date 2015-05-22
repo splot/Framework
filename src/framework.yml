@@ -101,7 +101,6 @@ services:
 
     # other helper services
     filesystem: Symfony\Component\Filesystem\Filesystem
-    process: Splot\Framework\Process\Process
 
     timer:
         class: MD\Foundation\Debug\Timer

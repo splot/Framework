@@ -21,7 +21,6 @@ class ApplicationTest extends TestCase
         $this->assertInstanceOf('Splot\EventManager\EventManager', $container->get('event_manager'));
         $this->assertInstanceOf('Splot\Framework\Routes\Router', $container->get('router'));
         $this->assertInstanceOf('Splot\Framework\Resources\Finder', $container->get('resource_finder'));
-        $this->assertInstanceOf('Splot\Framework\Process\Process', $container->get('process'));
         $this->assertInstanceOf('Splot\Framework\Console\Console', $container->get('console'));
         $this->assertInstanceOf('Symfony\Component\Filesystem\Filesystem', $container->get('filesystem'));
         $this->assertInstanceOf('Splot\Cache\CacheProvider', $container->get('cache_provider'));
