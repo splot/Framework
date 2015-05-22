@@ -46,4 +46,13 @@ class TestApplication extends AbstractApplication
         $module->run();
     }
 
+    /**
+     * Sets the application phase, but allows a previous phase to be set.
+     * 
+     * @param int $phase Phase, one of `Framework::PHASE_*` constants.
+     */
+    public function setPhase($phase) {
+        $this->phase = $phase;
+    }
+
 }
