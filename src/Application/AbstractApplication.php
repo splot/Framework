@@ -530,6 +530,9 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * @param int $phase One of `Framework::PHASE_*` constants.
      */
     public function setPhase($phase) {
+        if ($phase < $this->phase) {
+            throw new \RuntimeException('Cannot set an earlier phase than the current application phase, when trying to set "'. Framework::phaseName($phase) .'" (already on "'. Framework::phaseName($this->phase) .'").');
+        }
         $this->phase = $phase;
     }
 
