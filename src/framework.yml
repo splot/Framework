@@ -15,6 +15,11 @@ parameters:
     log_file: %root_dir%logs/debug.log
     log_level: debug
 
+    # parameters that will be overwritten by the framework anyway, but are here for clarity
+    env: dev
+    debug: true
+    mode: -1
+
 services:
     
     config:
@@ -108,8 +113,16 @@ services:
 
     # whoops for error handling
     whoops: Whoops\Run
-    whoops.handler.pretty_page: Whoops\Handler\PrettyPageHandler
+
     whoops.handler.null: Splot\Framework\ErrorHandlers\NullErrorHandler
+
+    whoops.handler.pretty_page:
+        class: Splot\Framework\ErrorHandlers\PrettyPageErrorHandler
+        arguments:
+            - %debug%
+        notify:
+            - ["@whoops", "pushHandler", ["@"]]
+            
     whoops.handler.log:
         class: Splot\Framework\ErrorHandlers\LogErrorHandler
         arguments:
