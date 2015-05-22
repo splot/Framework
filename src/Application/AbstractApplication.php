@@ -89,7 +89,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * 
      * @var int
      */
-    private $phase = Framework::PHASE_BOOTSTRAP;
+    protected $phase = Framework::PHASE_BOOTSTRAP;
 
     /**
      * Loads modules for the application.
