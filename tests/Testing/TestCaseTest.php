@@ -14,8 +14,8 @@ class TestCaseTest extends TestCase
      * @covers ::setUp
      */
     public function testApplicationStubAfterSetup() {
-        $this->assertNotNull($this->_application);
-        $this->assertTrue($this->_application instanceof AbstractApplication);
+        $this->assertNotNull($this->application);
+        $this->assertTrue($this->application instanceof AbstractApplication);
     }
 
     /**
@@ -23,7 +23,7 @@ class TestCaseTest extends TestCase
      */
     public function testTearDown() {
         $this->tearDown();
-        $this->assertNull($this->_application);
+        $this->assertNull($this->application);
     }
 
 }

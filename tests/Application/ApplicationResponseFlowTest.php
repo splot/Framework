@@ -43,19 +43,19 @@ use Splot\Framework\Events\WillSendResponse;
 class ApplicationResponseFlowTest extends ApplicationTestCase
 {
 
-    public static $_applicationClass = 'Splot\Framework\Tests\Application\Fixtures\TestApplication';
+    public static $applicationClass = 'Splot\Framework\Tests\Application\Fixtures\TestApplication';
 
     /**
      * @covers ::handleRequest
      */
     public function testHandlingRequest() {
-        $this->_application->addTestModule(new SplotResponseTestModule());
+        $this->application->addTestModule(new SplotResponseTestModule());
 
         $request = Request::create('/');
         $didReceiveRequestCalled = false;
         $didFindRouteForRequestCalled = false;
 
-        $eventManager = $this->_application->getContainer()->get('event_manager');
+        $eventManager = $this->application->getContainer()->get('event_manager');
 
         $eventManager->subscribe(DidReceiveRequest::getName(), function() use (&$didReceiveRequestCalled) {
             $didReceiveRequestCalled = true;
@@ -64,9 +64,9 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
             $didFindRouteForRequestCalled = true;
         });
 
-        $response = $this->_application->handleRequest($request);
+        $response = $this->application->handleRequest($request);
 
-        $this->assertSame($request, $this->_application->getContainer()->get('request'));
+        $this->assertSame($request, $this->application->getContainer()->get('request'));
         $this->assertTrue($response instanceof Response);
         $this->assertEquals('INDEX', $response->getContent());
         $this->assertTrue($didReceiveRequestCalled);
@@ -78,12 +78,12 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
     public function testCatchingExceptionsDuringHandlingOfRequests() {
         $exceptionDidOccurCalled = false;
         $handledResponse = new Response('Handled exception');
-        $this->_application->getContainer()->get('event_manager')->subscribe(ExceptionDidOccur::getName(), function($ev) use (&$exceptionDidOccurCalled, $handledResponse) {
+        $this->application->getContainer()->get('event_manager')->subscribe(ExceptionDidOccur::getName(), function($ev) use (&$exceptionDidOccurCalled, $handledResponse) {
             $exceptionDidOccurCalled = true;
             $ev->setResponse($handledResponse);
         });
 
-        $response = $this->_application->handleRequest(Request::create('/some/undefined/route'));
+        $response = $this->application->handleRequest(Request::create('/some/undefined/route'));
 
         $this->assertTrue($exceptionDidOccurCalled);
         $this->assertSame($handledResponse, $response);
@@ -94,7 +94,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
      * @covers ::handleRequest
      */
     public function testHandlingRequestWithNotFoundRoute() {
-        $this->_application->handleRequest(Request::create('/some/undefined/route.html'));
+        $this->application->handleRequest(Request::create('/some/undefined/route.html'));
     }
 
     /**
@@ -103,7 +103,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
     public function testHandlingNotFoundRouteEvent() {
         $didNotFoundRouteForRequestCalled = false;
         $handledResponse = new Response('Handled 404');
-        $this->_application->getContainer()->get('event_manager')->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
+        $this->application->getContainer()->get('event_manager')->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
             $didNotFoundRouteForRequestCalled = true;
 
             $ev->setResponse($handledResponse);
@@ -111,7 +111,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
             return false;
         });
 
-        $response = $this->_application->handleRequest(Request::create('/some/undefined/route.html'));
+        $response = $this->application->handleRequest(Request::create('/some/undefined/route.html'));
 
         $this->assertTrue($didNotFoundRouteForRequestCalled);
         $this->assertSame($response, $handledResponse);
@@ -122,28 +122,28 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
      * @covers ::handleRequest
      */
     public function testHandlingRequestAndPreventingRenderingOfTheFoundRoute() {
-        $this->_application->addTestModule(new SplotResponseTestModule());
+        $this->application->addTestModule(new SplotResponseTestModule());
 
-        $this->_application->getContainer()->get('event_manager')->subscribe(DidFindRouteForRequest::getName(), function($ev) {
+        $this->application->getContainer()->get('event_manager')->subscribe(DidFindRouteForRequest::getName(), function($ev) {
             return false;
         });
 
-        $response = $this->_application->handleRequest(Request::create('/'));
+        $response = $this->application->handleRequest(Request::create('/'));
     }
 
     /**
      * @covers ::handleRequest
      */
     public function testHandlingRequestAndPreventingRenderingOfTheFoundRouteAndHandlingThat() {
-        $this->_application->addTestModule(new SplotResponseTestModule());
+        $this->application->addTestModule(new SplotResponseTestModule());
 
-        $this->_application->getContainer()->get('event_manager')->subscribe(DidFindRouteForRequest::getName(), function($ev) {
+        $this->application->getContainer()->get('event_manager')->subscribe(DidFindRouteForRequest::getName(), function($ev) {
             return false;
         });
 
         $didNotFoundRouteForRequestCalled = false;
         $handledResponse = new Response('Handled 404');
-        $this->_application->getContainer()->get('event_manager')->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
+        $this->application->getContainer()->get('event_manager')->subscribe(DidNotFindRouteForRequest::getName(), function($ev) use ($handledResponse, &$didNotFoundRouteForRequestCalled) {
             $didNotFoundRouteForRequestCalled = true;
 
             $ev->setResponse($handledResponse);
@@ -151,7 +151,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
             return false;
         });
 
-        $response = $this->_application->handleRequest(Request::create('/'));
+        $response = $this->application->handleRequest(Request::create('/'));
 
         $this->assertTrue($didNotFoundRouteForRequestCalled);
         $this->assertSame($response, $handledResponse);
@@ -162,7 +162,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
      */
     public function testSendingResponse() {
         $willSendResponseCalled = false;
-        $this->_application->getContainer()->get('event_manager')->subscribe(WillSendResponse::getName(), function() use (&$willSendResponseCalled) {
+        $this->application->getContainer()->get('event_manager')->subscribe(WillSendResponse::getName(), function() use (&$willSendResponseCalled) {
             $willSendResponseCalled = true;
         });
 
@@ -170,7 +170,7 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
         $response = new Response('This is some valid response.');
 
         ob_start();
-        $this->_application->sendResponse($response, $request);
+        $this->application->sendResponse($response, $request);
         $content = ob_get_contents();
         ob_end_clean();
 
@@ -184,19 +184,19 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
      */
     public function testRenderingControllers() {
         $routesModule = new SplotRoutesTestModule();
-        $this->_application->addTestModule($routesModule);
+        $this->application->addTestModule($routesModule);
 
         $controllerWillRespondCalled = false;
         $controllerDidRespondCalled = false;
 
-        $this->_application->getContainer()->get('event_manager')->subscribe(ControllerWillRespond::getName(), function() use (&$controllerWillRespondCalled) {
+        $this->application->getContainer()->get('event_manager')->subscribe(ControllerWillRespond::getName(), function() use (&$controllerWillRespondCalled) {
             $controllerWillRespondCalled = true;
         });
-        $this->_application->getContainer()->get('event_manager')->subscribe(ControllerDidRespond::getName(), function() use (&$controllerDidRespondCalled) {
+        $this->application->getContainer()->get('event_manager')->subscribe(ControllerDidRespond::getName(), function() use (&$controllerDidRespondCalled) {
             $controllerDidRespondCalled = true;
         });
 
-        $response = $this->_application->render('SplotRoutesTestModule:Item', array(
+        $response = $this->application->render('SplotRoutesTestModule:Item', array(
             'id' => 123
         ));
         $this->assertTrue($response instanceof Response);
@@ -212,9 +212,9 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
      * @covers ::renderController
      */
     public function testRenderingControllerWithInvalidReturnValue() {
-        $this->_application->getContainer()->get('router')->addRoute('invalid', InvalidReturnValueController::__class());
+        $this->application->getContainer()->get('router')->addRoute('invalid', InvalidReturnValueController::__class());
 
-        $response = $this->_application->render('invalid');
+        $response = $this->application->render('invalid');
     }
 
 }

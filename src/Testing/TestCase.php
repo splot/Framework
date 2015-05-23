@@ -26,7 +26,7 @@ class TestCase extends \PHPUnit_Framework_TestCase
      * 
      * @var AbstractApplication
      */
-    protected $_application;
+    protected $application;
 
     /**
      * Sets up the application before every test.
@@ -34,15 +34,15 @@ class TestCase extends \PHPUnit_Framework_TestCase
      * If you're overwriting this then be sure to call parent::setUp().
      */
     public function setUp() {
-        $this->_application = new TestApplication();
-        Framework::run($this->_application, 'test', true, Framework::MODE_TEST);
+        $this->application = new TestApplication();
+        Framework::run($this->application, 'test', true, Framework::MODE_TEST);
     }
 
     /**
      * Tear down after every test.
      */
     public function tearDown() {
-        $this->_application = null;
+        $this->application = null;
     }
 
 }

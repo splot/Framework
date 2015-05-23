@@ -23,16 +23,16 @@ use Splot\Log\Provider\LogProvider;
 class FinderTest extends ApplicationTestCase
 {
 
-    public static $_applicationClass = 'Splot\Framework\Tests\Resources\Fixtures\TestApplication';
+    public static $applicationClass = 'Splot\Framework\Tests\Resources\Fixtures\TestApplication';
 
     /**
      * @covers ::__construct
      * @covers ::getApplication
      */
     public function testInitializing() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
-        $this->assertSame($this->_application, $finder->getApplication());
+        $this->assertSame($this->application, $finder->getApplication());
     }
 
     /**
@@ -46,7 +46,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInApplication() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
         $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
             $finder->find('::index.js', 'public/js'));
@@ -68,7 +68,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingSingleInApplication() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
         $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/public/js/index.js',
             $finder->findResource('::index.js', 'public/js'));
@@ -90,9 +90,9 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInModule() {
-        $this->_application->addTestModule(new SplotResourcesTestModule());
+        $this->application->addTestModule(new SplotResourcesTestModule());
 
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
         $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Modules/ResourcesTestModule/Resources/config/config.php',
             $finder->find('SplotResourcesTestModule::config.php', 'config'));
@@ -111,9 +111,9 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingOverwrittenInApplication() {
-        $this->_application->addTestModule(new SplotResourcesTestModule());
+        $this->application->addTestModule(new SplotResourcesTestModule());
 
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
         $this->assertEquals(realpath(dirname(__FILE__)) .'/Fixtures/Resources/SplotResourcesTestModule/public/js/overwrite.js',
             $finder->find('SplotResourcesTestModule::overwrite.js', 'public/js'));
@@ -130,9 +130,9 @@ class FinderTest extends ApplicationTestCase
      * @covers ::expand
      */
     public function testExpandingGlobPatterns($pattern, array $result) {
-        $this->_application->addTestModule(new SplotResourcesTestModule());
+        $this->application->addTestModule(new SplotResourcesTestModule());
 
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
 
         $this->assertEquals($result, $finder->expand($pattern, 'public'), 'Failed to return valid glob results when finding resources.');
     }
@@ -210,7 +210,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInNotExistingModule() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->find('NotExistingModule::index.css', 'public/css');
     }
 
@@ -226,7 +226,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingNotExistingFile() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->find('::index.js', 'public');
     }
 
@@ -242,7 +242,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingNotExistingResourceInApplicationDir() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findResource('::index.js', 'public');
     }
 
@@ -258,9 +258,9 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingNotExistingFileInModule() {
-        $this->_application->addTestModule(new SplotResourcesTestModule());
+        $this->application->addTestModule(new SplotResourcesTestModule());
 
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->find('SplotResourcesTestModule::undefined.js', 'public');
     }
 
@@ -276,9 +276,9 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingNotExistingFileInModuleByCallingFindInModuleDir() {
-        $this->_application->addTestModule(new SplotResourcesTestModule());
+        $this->application->addTestModule(new SplotResourcesTestModule());
 
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findinModuleDir('SplotResourcesTestModule::undefined.js', 'public');
     }
 
@@ -294,7 +294,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInvalidFormat() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->find('some.lorem.ipsum_file.js', 'public/js');
     }
 
@@ -310,7 +310,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInApplicationInvalidFormat() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findInApplicationDir('some.lorem.ipsum_file.js', 'public/js');
     }
 
@@ -326,7 +326,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInApplicationInvalidModule() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findInApplicationDir('RandomModule::index.js', 'public/js');
     }
 
@@ -342,7 +342,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInModuleInvalidFormat() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findInModuleDir('::some.lorem.ipsum_file.js', 'public/js');
     }
 
@@ -358,7 +358,7 @@ class FinderTest extends ApplicationTestCase
      * @covers ::parseResourceName
      */
     public function testFindingInModuleInvalidModule() {
-        $finder = new Finder($this->_application);
+        $finder = new Finder($this->application);
         $finder->findInModuleDir('RandomModule::index.js', 'public/js');
     }
 

@@ -13,7 +13,7 @@ class ApplicationTest extends TestCase
      * @covers ::configure
      */
     public function testConfigure() {
-        $container = $this->_application->getContainer();
+        $container = $this->application->getContainer();
 
         $this->assertInstanceOf('Splot\Framework\Log\Clog', $container->get('clog'));
         $this->assertInstanceOf('Splot\Framework\Log\LoggerProviderInterface', $container->get('logger_provider'));

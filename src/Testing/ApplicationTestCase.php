@@ -25,7 +25,7 @@ class ApplicationTestCase extends TestCase
      * 
      * @var string
      */
-    public static $_applicationClass = 'Splot\Framework\Testing\Stubs\TestApplication';
+    public static $applicationClass = 'Splot\Framework\Testing\Stubs\TestApplication';
 
     /**
      * Sets up the application before every test.
@@ -33,13 +33,13 @@ class ApplicationTestCase extends TestCase
      * If you're overwriting this then be sure to call parent::setUp().
      */
     public function setUp() {
-        if (!class_exists(static::$_applicationClass)) {
-            throw new \RuntimeException('Application class "'. static::$_applicationClass .'" does not exist. Has it been properly loaded?');
+        if (!class_exists(static::$applicationClass)) {
+            throw new \RuntimeException('Application class "'. static::$applicationClass .'" does not exist. Has it been properly loaded?');
         }
 
-        $appClass = static::$_applicationClass;
-        $this->_application = new $appClass();
-        Framework::run($this->_application, 'test', true, Framework::MODE_TEST);
+        $appClass = static::$applicationClass;
+        $this->application = new $appClass();
+        Framework::run($this->application, 'test', true, Framework::MODE_TEST);
     }
 
     /**
@@ -49,8 +49,9 @@ class ApplicationTestCase extends TestCase
      * @return AbstractController
      */
     public function getController($name) {
-        $class = $this->_application->getContainer()->get('router')->getRoute($name)->getControllerClass();
-        return new $class($this->_application->getContainer());
+        $container = $this->application->getContainer();
+        $class = $container->get('router')->getRoute($name)->getControllerClass();
+        return new $class($container);
     }
 
 }
