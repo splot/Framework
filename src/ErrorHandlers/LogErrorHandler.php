@@ -60,7 +60,8 @@ class LogErrorHandler extends Handler
             'message' => $e->getMessage(),
             'file' => $e->getFile(),
             'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
+            '@stat' => 'splot.exception'
         ));
 
         return Handler::DONE;
