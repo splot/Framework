@@ -136,7 +136,7 @@ class FrameworkTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::configureApplication
      * @covers ::doConfigureApplication
-     * @covers ::doConfigureModule
+     * @covers ::configureModule
      */
     public function testConfigureApplication($debug = true) {
         $application = $this->getMockBuilder('Splot\Framework\Application\AbstractApplication')

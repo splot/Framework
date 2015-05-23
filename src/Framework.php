@@ -288,7 +288,7 @@ class Framework
 
         // configure modules one by one
         foreach($application->getModules() as $module) {
-            $this->doConfigureModule($module, $application, $env, $debug);
+            $this->configureModule($module, $application, $env, $debug);
         }
 
         // configure the application
@@ -303,7 +303,7 @@ class Framework
      * @param  string              $env         [optional] Environment in which the application is running. Default: `dev`.
      * @param  boolean             $debug       [optional] Debug mode status for the application. Default: `true`.
      */
-    protected function doConfigureModule(AbstractModule $module, AbstractApplication $application, $env = 'dev', $debug = true) {
+    public function configureModule(AbstractModule $module, AbstractApplication $application, $env = 'dev', $debug = true) {
         $container = $application->getContainer();
         $config = $application->getConfig();
 
