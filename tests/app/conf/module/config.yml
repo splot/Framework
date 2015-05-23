@@ -1,0 +1,3 @@
+module_enabled: true
+module_hooked: false
+connection: keep-alive

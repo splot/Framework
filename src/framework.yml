@@ -1,18 +1,18 @@
 parameters:
     # directories
-    framework_dir: ./ # this is overwritten in code
-    application_dir: ./ # this is overwritten in code
-    config_dir: %application_dir%config/
-    cache_dir: %application_dir%cache/
-    root_dir: %application_dir%../
-    web_dir: %root_dir%web/
+    framework_dir: . # this is overwritten in code
+    application_dir: . # this is overwritten in code
+    config_dir: %application_dir%/config
+    cache_dir: %application_dir%/cache
+    root_dir: %application_dir%/..
+    web_dir: %root_dir%/web
 
     # router parameters
     router.host: localhost
     router.protocol: "http://"
     router.port: 80
 
-    log_file: %root_dir%logs/debug.log
+    log_file: %root_dir%/logs/debug.log
     log_level: debug
 
     # parameters that will be overwritten by the framework anyway, but are here for clarity

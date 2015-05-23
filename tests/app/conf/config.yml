@@ -1,0 +1,8 @@
+secret: issafe
+access: denied
+
+log_file: %application_dir%/log.%env%.txt
+
+ModuleTwo:
+    module_hooked: true
+    additional_data: agent_smith

@@ -30,6 +30,7 @@ use Splot\Framework\Application\CommandApplication;
 use Splot\Framework\Config\Config;
 use Splot\Framework\Composer\AbstractScriptHandler;
 use Splot\Framework\HTTP\Request;
+use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Log\LoggerProviderInterface;
 
 class Framework
@@ -64,6 +65,8 @@ class Framework
      * @param  int                 $mode        [optional] Mode in which the application should be ran.
      *                                          This is one of the `Framework::MODE_*` constants. Default: `Framework::MODE_WEB`.
      * @return mixed
+     *
+     * @codeCoverageIgnore
      */
     public static function run(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
         $framework = new static();
@@ -180,7 +183,8 @@ class Framework
 
         $timer = new Timer();
 
-        $container = new CachedContainer($application->provideContainerCache($env, $debug));
+        $containerCache = $application->provideContainerCache($env, $debug);
+        $container = new CachedContainer($containerCache);
 
         // inject the container to the app and all modules
         $application->setContainer($container);
@@ -207,6 +211,7 @@ class Framework
         // after reading from cache / writing to cache 
         // set some additional services that can't be cached
         $container->set('application', $application);
+        $container->set('container.cache', $containerCache);
 
         // set the application's logger
         $application->setLogger($container->get('logger'));
@@ -260,12 +265,16 @@ class Framework
         ));
 
         // we're gonna stick to the config dir defined at this point
-        $configDir = rtrim($container->getParameter('config_dir'), DS) . DS;
+        $configDir = rtrim($container->getParameter('config_dir'), DS);
 
         // prepare the config, but make it reusable in the cached container as well
         // so we're gonna modify the definition to include existing files when needed
         $configDefinition = $container->getDefinition('config');
-        $configFiles = FilesystemUtils::glob($configDir .'config{,.'. $env .'}.{yml,yaml,php}', GLOB_BRACE);
+        // doing it like this to make sure that env config file is loaded after the base
+        $configFiles = array_merge(
+            FilesystemUtils::glob($configDir .'/config.{yml,yaml,php}', GLOB_BRACE),
+            FilesystemUtils::glob($configDir .'/config.'. $env .'.{yml,yaml,php}', GLOB_BRACE)
+        );
         foreach($configFiles as $file) {
             $configDefinition->addMethodCall('loadFromFile', array($file));
         }
@@ -279,7 +288,7 @@ class Framework
 
         // configure modules one by one
         foreach($application->getModules() as $module) {
-            $this->doConfigureModule($module, $application);
+            $this->doConfigureModule($module, $application, $env, $debug);
         }
 
         // configure the application
@@ -304,14 +313,18 @@ class Framework
         ));
 
         // add method calls to load appropriate config files to the definition
-        $moduleConfigDefinition = $container->getDefinition('config.'. $module->getName());
-        $moduleConfigFiles = FilesystemUtils::glob($module->getConfigDir() .'config{,.'. $env .'}.{yml,yaml,php}', GLOB_BRACE);
-        foreach($moduleConfigFiles as $file) {
-            $moduleConfigDefinition->addMethodCall('loadFromFile', array($file));
+        $configDefinition = $container->getDefinition('config.'. $module->getName());
+        $configDir = rtrim($module->getConfigDir(), DS);
+        $configFiles = array_merge(
+            FilesystemUtils::glob($configDir .'/config.{yml,yaml,php}', GLOB_BRACE),
+            FilesystemUtils::glob($configDir .'/config.'. $env .'.{yml,yaml,php}', GLOB_BRACE)
+        );
+        foreach($configFiles as $file) {
+            $configDefinition->addMethodCall('loadFromFile', array($file));
         }
 
         // add method call to apply the config from the application config
-        $moduleConfigDefinition->addMethodCall('apply', array($config->getNamespace($module->getName())));
+        $configDefinition->addMethodCall('apply', array($config->getNamespace($module->getName())));
 
         // let it configure itself
         $module->configure();
@@ -331,10 +344,6 @@ class Framework
      * @return Response
      */
     public function runWebRequest(AbstractApplication $application, Request $request) {
-        if (!$application->isDebug()) {
-            // @todo register a http response code error handler (is it needed?)
-        }
-
         return $this->doRunApplication($application, self::MODE_WEB, function() use ($application, $request) {
             $response = $application->handleRequest($request);
             $application->sendResponse($response, $request);
@@ -389,9 +398,7 @@ class Framework
      * @return null
      */
     public function runTest(AbstractApplication $application) {
-        return $this->doRunApplication($application, self::MODE_TEST, function() {
-            return null;
-        });
+        return $this->doRunApplication($application, self::MODE_TEST, function() {});
     }
 
     /**
@@ -411,10 +418,6 @@ class Framework
      */
     protected function doRunApplication(AbstractApplication $application, $mode, $runner) {
         $timer = new Timer();
-
-        if (!is_callable($runner)) {
-            throw new InvalidArgumentException('callable', $runner, 3);
-        }
 
         $container = $application->getContainer();
         // container can now know in what mode its running

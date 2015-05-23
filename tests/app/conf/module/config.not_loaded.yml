@@ -1,0 +1,3 @@
+module_enabled: true
+module_hooked: true
+connection: disconnect
