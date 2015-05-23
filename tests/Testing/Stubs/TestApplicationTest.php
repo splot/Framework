@@ -50,8 +50,9 @@ class TestApplicationTest extends \PHPUnit_Framework_TestCase
      * @covers ::addTestModule
      */
     public function testAddingTestModule() {
+        $framework = new Framework();
         $application = new TestApplication();
-        $application->setContainer(new Container());
+        $framework->configureApplication($application);
 
         $module = $this->getMockBuilder('Splot\Framework\Modules\AbstractModule')
             ->setMethods(array('getName', 'configure', 'run', 'setContainer'))

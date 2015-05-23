@@ -1,4 +1,14 @@
 <?php
+/**
+ * Test application stub.
+ * 
+ * @package SplotFramework
+ * @subpackage Testing
+ * @author Michał Dudek <michal@michaldudek.pl>
+ * 
+ * @copyright Copyright (c) 2015, Michał Pałys-Dudek
+ * @license MIT
+ */
 namespace Splot\Framework\Testing\Stubs;
 
 use Splot\Cache\Store\MemoryStore;
@@ -15,33 +25,54 @@ class TestApplication extends AbstractApplication
     protected $name = 'TestApplication';
     protected $version = 'test';
 
+    /**
+     * Doesn't load any modules.
+     *
+     * @return array
+     */
     public function loadModules() {
         return array();
     }
 
+    /**
+     * Provides container cache that uses memory for storage.
+     * 
+     * @param  string $env    Application's env.
+     * @param  boolean $debug Debug mode on or off.
+     * @return ContainerCache
+     */
     public function provideContainerCache($env, $debug) {
         return new ContainerCache(new MemoryStore());
     }
 
     /**
-     * Helper function for quickly adding a test module from the outside.
+     * Adds a module to the application for testing.
+     *
+     * The application should be already configured in order to be able to add
+     * a test module to it.
+     *
+     * The module will be configured and ran.
      * 
      * @param AbstractModule $module Module to be added.
      * @param array $config [optional] Module config you may want to pass?
      */
     public function addTestModule(AbstractModule $module, array $config = array()) {
+        // apply the passed config through the application config
+        $this->getConfig()->apply(array(
+            $module->getName() => $config
+        ));
+
         $this->setPhase(Framework::PHASE_BOOTSTRAP);
         $this->addModule($module);
-        $module->setContainer($this->getContainer());
+        $container = $this->getContainer();
+        $module->setContainer($container);
 
-        // set the module config
-        $moduleConfig = new Config();
-        $moduleConfig->apply($config);
-        $this->getContainer()->set('config.'. $module->getName(), $moduleConfig);
-
+        // configure the module
         $this->setPhase(Framework::PHASE_CONFIGURE);
-        $module->configure();
+        $framework = new Framework();
+        $framework->configureModule($module, $this, $container->getParameter('env'), $container->getParameter('debug'));
 
+        // run the module
         $this->setPhase(Framework::PHASE_RUN);
         $module->run();
     }
