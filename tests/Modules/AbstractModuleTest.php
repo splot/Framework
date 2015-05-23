@@ -141,7 +141,7 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetConfigDir() {
         $module = new TestModule();
-        $configDir = realpath(dirname(__FILE__) .'/Fixtures') .'/Resources/config/';
+        $configDir = realpath(dirname(__FILE__) .'/Fixtures') .'/Resources/config';
         $this->assertEquals($configDir, $module->getConfigDir());
     }
 
@@ -150,7 +150,7 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetModuleDir() {
         $module = new TestModule();
-        $moduleDir = realpath(dirname(__FILE__) .'/Fixtures') .'/';
+        $moduleDir = realpath(dirname(__FILE__) .'/Fixtures');
         $this->assertEquals($moduleDir, $module->getModuleDir());
         $this->assertEquals($moduleDir, $module->getModuleDir());
     }

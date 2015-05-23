@@ -186,7 +186,7 @@ abstract class AbstractModule
      * @return string
      */
     public function getConfigDir() {
-        return $this->getModuleDir() .'Resources'. DS .'config'. DS;
+        return $this->getModuleDir() .'/Resources/config';
     }
 
     /**
@@ -227,7 +227,7 @@ abstract class AbstractModule
             return $this->moduleDir;
         }
 
-        $this->moduleDir = dirname(Debugger::getClassFile($this)) . DS;
+        $this->moduleDir = dirname(Debugger::getClassFile($this));
         return $this->moduleDir;
     }
 

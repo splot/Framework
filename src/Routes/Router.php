@@ -72,7 +72,7 @@ class Router
      */
     public function readModuleRoutes(AbstractModule $module) {
         $name = $module->getName();
-        $routesDir = $module->getModuleDir() .'Controllers';
+        $routesDir = $module->getModuleDir() .'/Controllers';
         if (!is_dir($routesDir)) {
             return;
         }
