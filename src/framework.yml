@@ -20,6 +20,26 @@ parameters:
     debug: true
     mode: -1
 
+    # convenience event names
+    event.controller_did_respond: Splot\Framework\Events\ControllerDidRespond
+    event.controller_will_respond: Splot\Framework\Events\ControllerWillRespond
+    event.did_find_route_for_request: Splot\Framework\Events\DidFindRouteForRequest
+    event.did_not_find_route_for_request: Splot\Framework\Events\DidNotFindRouteForRequest
+    event.did_receive_request: Splot\Framework\Events\DidReceiveRequest
+    event.error_did_occur: Splot\Framework\Events\ErrorDidOccur
+    event.exception_did_occur: Splot\Framework\Events\ExceptionDidOccur
+    event.fatal_error_did_occur: Splot\Framework\Events\FatalErrorDidOccur
+    event.will_send_response: Splot\Framework\Events\WillSendResponse
+    # aliases
+    event.controller_response: %event.controller_did_respond%
+    event.route: %event.did_find_route_for_request%
+    event.no_route: %event.did_not_find_route_for_request%
+    event.request: %event.did_receive_request%
+    event.error: %event.error_did_occur%
+    event.exception: %event.exception_did_occur%
+    event.fatal_error: %event.fatal_error_did_occur%
+    event.response: %event.will_send_response%
+
 services:
     
     config:
