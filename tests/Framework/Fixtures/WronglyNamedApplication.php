@@ -12,7 +12,7 @@ class WronglyNamedApplication extends AbstractApplication
 
     }
 
-    public function loadModules() {
+    public function loadModules($env, $debug) {
         return array();
     }
 

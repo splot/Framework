@@ -74,10 +74,12 @@ abstract class AbstractModule
      * If the module depends on other modules then return those dependencies from this method.
      *
      * It works exactly the same as application's ::loadModules().
-     * 
+     *
+     * @param  string  $env   Environment in which the application is running.
+     * @param  boolean $debug Is debug mode on or off?
      * @return array
      */
-    public function loadModules() {
+    public function loadModules($env, $debug) {
         return array();
     }
 

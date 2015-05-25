@@ -11,7 +11,7 @@ class DevApplication extends AbstractApplication
 
     protected $name = 'DevApplication';
 
-    public function loadModules() {
+    public function loadModules($env, $debug) {
         return array(
             new DevModule()
         );

@@ -97,9 +97,11 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * You must implement this method and it should return an array of module objects that you want
      * loaded in your application.
      *
+     * @param  string  $env   Environment in which the application is running.
+     * @param  boolean $debug Is debug mode on or off?
      * @return array
      */
-    abstract public function loadModules();
+    abstract public function loadModules($env, $debug);
 
     /**
      * Configures and provides the cache object that should be used for container cache.

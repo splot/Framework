@@ -9,7 +9,7 @@ class TestApplication extends Base_TestApplication
     protected $name = 'TestApplication';
     protected $version = 'test';
 
-    public function loadModules() {
+    public function loadModules($env, $debug) {
         return array();
     }
 

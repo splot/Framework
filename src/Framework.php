@@ -120,7 +120,7 @@ class Framework
             throw new \RuntimeException('Application name must conform to variable naming rules and therefore can only start with a letter and only contain letters, numbers and _, "'. $applicationName .'" given.');
         }
 
-        $this->bootstrapApplication($application);
+        $this->bootstrapApplication($application, $env, $debug);
 
         $container = $this->configureApplication($application, $env, $debug);
         $container->set('splot.timer', $timer);
@@ -136,12 +136,14 @@ class Framework
      * Bootstraps the application by loading all its modules.
      * 
      * @param  AbstractApplication $application Application to be bootstrapped.
+     * @param  string              $env         [optional] Environment in which the application should be ran. Default: `dev`.
+     * @param  boolean             $debug       [optional] Should application be ran in debug mode? Default: `true`.
      */
-    public function bootstrapApplication(AbstractApplication $application) {
+    public function bootstrapApplication(AbstractApplication $application, $env = 'dev', $debug = true) {
         $application->setPhase(self::PHASE_BOOTSTRAP);
 
         $loadingModules = array();
-        $moduleLoader = function(array $loadedModules, $self, array $allModules = array()) use (&$loadingModules) {
+        $moduleLoader = function(array $loadedModules, $self, array $allModules = array()) use (&$loadingModules, $env, $debug) {
             foreach($loadedModules as $module) {
                 if (in_array($module->getName(), $loadingModules)) {
                     continue;
@@ -149,12 +151,12 @@ class Framework
 
                 $loadingModules[] = $module->getName();
 
-                $allModules = $self($module->loadModules(), $self, $allModules);
+                $allModules = $self($module->loadModules($env, $debug), $self, $allModules);
                 $allModules[] = $module;
             }
             return $allModules;
         };
-        $modules = $moduleLoader($application->loadModules(), $moduleLoader);
+        $modules = $moduleLoader($application->loadModules($env, $debug), $moduleLoader);
 
         foreach($modules as $module) {
             $application->addModule($module);

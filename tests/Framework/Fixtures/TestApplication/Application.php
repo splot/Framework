@@ -16,7 +16,7 @@ class Application extends AbstractApplication
         $this->options = $options;
     }
 
-    public function loadModules() {
+    public function loadModules($env, $debug) {
         return array(
             new SplotTestModule()
         );

@@ -17,7 +17,7 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      */
     public function testLoadModules() {
         $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
-        $this->assertInternalType('array', $module->loadModules());
+        $this->assertInternalType('array', $module->loadModules('dev', true));
     }
 
     /**

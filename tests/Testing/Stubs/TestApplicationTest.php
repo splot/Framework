@@ -17,7 +17,7 @@ class TestApplicationTest extends \PHPUnit_Framework_TestCase
      */
     public function testLoadModules() {
         $application = new TestApplication();
-        $this->assertInternalType('array', $application->loadModules());
+        $this->assertInternalType('array', $application->loadModules('test', true));
     }
 
     /**
