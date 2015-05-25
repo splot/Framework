@@ -25,8 +25,13 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
      */
     public function testConfigure() {
         $container = $this->getMock('Splot\DependencyInjection\ContainerInterface');
-        $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
+        $module = new TestModule();
         $module->setContainer($container);
+
+        // test that configure() attempts to load a services.yml file from appropriate dir
+        $container->expects($this->once())
+            ->method('loadFromFile')
+            ->with($this->equalTo(__DIR__ .'/Fixtures/Resources/config/services.yml'));
 
         $module->configure();
     }

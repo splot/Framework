@@ -99,7 +99,7 @@ abstract class AbstractModule
      */
     public function configure() {
         try {
-            $this->container->loadFromFile($this->getConfigDir() .'services.yml');
+            $this->container->loadFromFile($this->getConfigDir() .'/services.yml');
         } catch(NotFoundException $e) {}
     }
 
