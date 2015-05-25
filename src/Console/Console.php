@@ -254,7 +254,7 @@ class Console
      */
     protected function readModuleCommands(AbstractModule $module) {
         $name = $module->getName();
-        $commandsDir = $module->getModuleDir() .'Commands';
+        $commandsDir = $module->getModuleDir() .'/Commands';
         if (!is_dir($commandsDir)) {
             return;
         }
