@@ -12,6 +12,7 @@ parameters:
     router.protocol: "http://"
     router.port: 80
 
+    # logging parameters
     log_file: %root_dir%/logs/debug.log
     log_level: debug
 
@@ -19,6 +20,9 @@ parameters:
     env: dev
     debug: true
     mode: -1
+
+    # whether or not should show a pretty page on errors
+    whoops.pretty_page: %debug%
 
     # convenience event names
     event.controller_did_respond: Splot\Framework\Events\ControllerDidRespond
@@ -139,7 +143,7 @@ services:
     whoops.handler.pretty_page:
         class: Splot\Framework\ErrorHandlers\PrettyPageErrorHandler
         arguments:
-            - %debug%
+            - %whoops.pretty_page%
         notify:
             - ["@whoops", "pushHandler", ["@"]]
             
