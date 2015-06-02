@@ -258,13 +258,13 @@ class Framework
         $container->setParameter('env', $env);
         $container->setParameter('debug', $debug);
 
-        // already register Whoops to handle errors, so it also works during config
-        $container->get('whoops')->register();
-
         // maybe application wants to provide some high-priority parameters as well?
         $container->loadFromArray(array(
             'parameters' => $application->loadParameters($env, $debug)
         ));
+
+        // already register Whoops to handle errors, so it also works during config
+        $container->get('whoops')->register();
 
         // we're gonna stick to the config dir defined at this point
         $configDir = rtrim($container->getParameter('config_dir'), DS);
