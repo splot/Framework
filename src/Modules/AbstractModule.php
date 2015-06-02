@@ -38,7 +38,7 @@ abstract class AbstractModule
     /**
      * Dependency injection service container.
      * 
-     * @var ServiceContainer
+     * @var ContainerInterface
      */
     protected $container;
 

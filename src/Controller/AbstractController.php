@@ -58,7 +58,7 @@ abstract class AbstractController
     /**
      * Constructor.
      * 
-     * @param ServiceContainer $container Dependency injection service container.
+     * @param ContainerInterface $container Dependency injection service container.
      */
     public function __construct(ContainerInterface $container) {
         $this->container = $container;
