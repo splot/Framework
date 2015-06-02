@@ -159,7 +159,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      * unless you are perfectly sure what you are doing.
      */
     public function configure() {
-        $configDir = $this->container->getParameter('config_dir');
+        $configDir = rtrim($this->container->getParameter('config_dir'), '/') .'/';
         foreach(array(
             'parameters.yml',
             'parameters.'. $this->container->getParameter('env') . '.yml',
