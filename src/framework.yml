@@ -136,7 +136,12 @@ services:
         singleton: false
 
     # whoops for error handling
-    whoops: Whoops\Run
+    whoops: 
+        class: Whoops\Run
+        call:
+            - ["pushHandler", ["@whoops.handler.pretty_page"]]
+            - ["pushHandler", ["@whoops.handler.log"]]
+            - ["pushHandler", ["@whoops.handler.event"]]
 
     whoops.handler.null: Splot\Framework\ErrorHandlers\NullErrorHandler
 
@@ -144,19 +149,13 @@ services:
         class: Splot\Framework\ErrorHandlers\PrettyPageErrorHandler
         arguments:
             - %whoops.pretty_page%
-        notify:
-            - ["@whoops", "pushHandler", ["@"]]
             
     whoops.handler.log:
         class: Splot\Framework\ErrorHandlers\LogErrorHandler
         arguments:
             - @logger
-        notify:
-            - ["@whoops", "pushHandler", ["@"]]
 
     whoops.handler.event:
         class: Splot\Framework\ErrorHandlers\EventErrorHandler
         arguments:
             - @event_manager
-        notify:
-            - ["@whoops", "pushHandler", ["@"]]
