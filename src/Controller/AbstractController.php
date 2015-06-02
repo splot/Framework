@@ -13,7 +13,7 @@
  */
 namespace Splot\Framework\Controller;
 
-use Splot\DependencyInjection\ContainerInterface;
+use Interop\Container\ContainerInterface;
 
 abstract class AbstractController
 {
