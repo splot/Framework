@@ -195,16 +195,11 @@ class Framework
         }
 
         // just try to read the configuration from cache, but if it fails, configure and cache the container
-        // unless we're in the debug mode
-        if ($debug) {
+        try {
+            $container->loadFromCache($debug);
+        } catch(CacheDataNotFoundException $e) {
             $this->doConfigureApplication($application, $env, $debug);
-        } else {
-            try {
-                $container->loadFromCache();
-            } catch(CacheDataNotFoundException $e) {
-                $this->doConfigureApplication($application, $env, $debug);
-                $container->cacheCurrentState();
-            }
+            $container->cacheCurrentState();
         }
 
         // make sure that Whoops is handling errors
