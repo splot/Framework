@@ -20,6 +20,8 @@ use MD\Foundation\Utils\FilesystemUtils;
 use MD\Foundation\Utils\StringUtils;
 
 use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Input\InputDefinition;
+use Symfony\Component\Console\Input\InputOption;
 
 use Splot\DependencyInjection\Exceptions\CacheDataNotFoundException;
 use Splot\DependencyInjection\CachedContainer;
@@ -70,6 +72,11 @@ class Framework
      */
     public static function run(AbstractApplication $application, $env = 'dev', $debug = true, $mode = self::MODE_WEB) {
         $framework = new static();
+
+        // console and command modes should attempt to read env and debug from argv
+        if ($mode === self::MODE_CONSOLE || $mode === self::MODE_COMMAND) {
+            list($env, $debug) = static::getEnvDebugFromArgv($_SERVER['argv'], $env, $debug);
+        }
 
         $framework->warmup($application, $env, $debug);
 
@@ -449,6 +456,42 @@ class Framework
     /*****************************************************
      * HELPERS
      *****************************************************/
+
+    /**
+     * Parses the given argv tokens and attempts to read env and debug params from them.
+     *
+     * Returns an array where `0 => $env, 1 => $debug`.
+     * 
+     * @param  array  $argv         Array of argv tokens, usually coming from `$_SERVER['argv']`.
+     * @param  string $defaultEnv   Default env value.
+     * @param  boolean $defaultDebug Default debug value.
+     * @return array
+     */
+    public static function getEnvDebugFromArgv(array $argv, $defaultEnv, $defaultDebug) {
+        $env = $defaultEnv;
+        $debug = $defaultDebug;
+
+        foreach($argv as $token) {
+            if (substr($token, 0, 2) !== '--') {
+                continue;
+            }
+
+            $token = strtolower($token);
+
+            if ($token === '--no-debug') {
+                $debug = false;
+                continue;
+            }
+
+            if (substr($token, 0, 5) === '--env') {
+                $env = trim(trim(substr($token, 6), '"'));
+                $env = !empty($env) ? $env : $defaultEnv;
+                continue;
+            }
+        }
+
+        return array($env, $debug);
+    }
 
     /**
      * Resolves a phase constant to a string.

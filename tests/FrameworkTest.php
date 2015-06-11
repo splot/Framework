@@ -365,6 +365,23 @@ class FrameworkTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider provideArgvEnvDebugInput
+     */
+    public function testGetEnvDebugFromArgv($input, array $result) {
+        $this->assertEquals($result, Framework::getEnvDebugFromArgv(explode(' ', $input), 'dev', true));
+    }
+
+    public function provideArgvEnvDebugInput() {
+        return array(
+            array('', array('dev', true)),
+            array('app/console cache:clear --env="prod"', array('prod', true)),
+            array('app/console cache:clear --env="live" --no-debug', array('live', false)),
+            array('app/console cache:clear --no-debug', array('dev', false)),
+            array('app/console cache:clear', array('dev', true))
+        );
+    }
+
+    /**
      * @covers ::phaseName
      */
     public function testPhaseName() {

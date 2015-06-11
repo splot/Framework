@@ -75,6 +75,10 @@ class Console
         // initialize Symfony Console component
         $this->consoleApplication = new ConsoleApplication($application->getName() .' (Splot Console)', $application->getVersion());
 
+        $definition = $this->consoleApplication->getDefinition();
+        $definition->addOption(new InputOption('env', null, InputOption::VALUE_REQUIRED, 'Environment in which to run.'));
+        $definition->addOption(new InputOption('no-debug', null, InputOption::VALUE_NONE, 'Turn off debug mode.'));
+
         // now gather all commands from the application
         foreach($this->application->getModules() as $module) {
             $this->readModuleCommands($module);       
