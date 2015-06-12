@@ -22,7 +22,9 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::__construct
      * @covers ::addRoute
+     * @covers ::getRoute
      * @covers ::getRoutes
      */
     public function testAddingRoutes() {
@@ -92,6 +94,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::getRouteForRequest
+     * @covers ::getRoute
      */
     public function testGettingRouteForRequest() {
         $router = $this->provideRouter();
@@ -126,6 +129,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::generate
+     * @covers ::getRoute
      */
     public function testGenerate() {
         $router = $this->provideRouter();
