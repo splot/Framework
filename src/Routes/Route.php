@@ -25,49 +25,49 @@ class Route
      * 
      * @var string
      */
-    private $_name;
+    protected $name;
 
     /**
      * Associated controller class name.
      * 
      * @var string
      */
-    private $_controllerClass;
+    protected $controllerClass;
 
     /**
      * URL pattern for the route.
      * 
      * @var string
      */
-    private $_urlPattern;
+    protected $urlPattern;
 
     /**
      * URL pattern parsed into RegEx for the route.
      * 
      * @var string
      */
-    private $_regexp;
+    protected $regexp;
 
     /**
      * Map of HTTP methods translated to the controller class methods and their arguments.
      * 
      * @var array
      */
-    private $_methods = array();
+    protected $methods = array();
 
     /**
      * Module name to which this route belongs.
      * 
      * @var string
      */
-    private $_moduleName;
+    protected $moduleName;
 
     /**
      * Is this route private? Ie. non reachable via URL?
      * 
      * @var bool
      */
-    private $_private = false;
+    protected $private = false;
 
     /**
      * Constructor.
@@ -81,15 +81,15 @@ class Route
      *                      via URL, only using application render() method. Default: false.
      */
     public function __construct($name, $controllerClass, $urlPattern, $methods, $moduleName = null, $private = false) {
-        $this->_name = $name;
-        $this->_controllerClass = $controllerClass;
-        $this->_urlPattern = $urlPattern;
-        $this->_moduleName = $moduleName;
-        $this->_private = $private;
+        $this->name = $name;
+        $this->controllerClass = $controllerClass;
+        $this->urlPattern = $urlPattern;
+        $this->moduleName = $moduleName;
+        $this->private = $private;
 
         // prepare regexp for this route
-        $this->_regexp = $this->regexpFromUrlPattern($urlPattern);
-        $this->_methods = $this->prepareMethodsInfo($methods);
+        $this->regexp = $this->regexpFromUrlPattern($urlPattern);
+        $this->methods = $this->prepareMethodsInfo($methods);
     }
 
     /**
@@ -135,11 +135,11 @@ class Route
 
     public function getControllerMethodArgumentsFromArray($httpMethod = 'get', array $params = array()) {
         $httpMethod = strtolower($httpMethod);
-        if (!isset($this->_methods[$httpMethod])) {
+        if (!isset($this->methods[$httpMethod])) {
             throw new NotFoundException();
         }
 
-        $method = $this->_methods[$httpMethod];
+        $method = $this->methods[$httpMethod];
         $arguments = array();
 
         foreach($method['params'] as $i => $param) {
@@ -356,7 +356,7 @@ class Route
      * @return string
      */
     public function getName() {
-        return $this->_name;
+        return $this->name;
     }
 
     /**
@@ -365,7 +365,7 @@ class Route
      * @return string
      */
     public function getControllerClass() {
-        return $this->_controllerClass;
+        return $this->controllerClass;
     }
 
     /**
@@ -374,7 +374,7 @@ class Route
      * @return string
      */
     public function getUrlPattern() {
-        return $this->_urlPattern;
+        return $this->urlPattern;
     }
 
     /**
@@ -383,7 +383,7 @@ class Route
      * @return string
      */
     public function getRegExp() {
-        return $this->_regexp;
+        return $this->regexp;
     }
 
     /**
@@ -392,7 +392,7 @@ class Route
      * @return array
      */
     public function getMethods() {
-        return $this->_methods;
+        return $this->methods;
     }
 
     /**
@@ -401,7 +401,7 @@ class Route
      * @return string
      */
     public function getModuleName() {
-        return $this->_moduleName;
+        return $this->moduleName;
     }
 
     /**
@@ -421,7 +421,7 @@ class Route
      * @return bool
      */
     public function getPrivate() {
-        return $this->_private;
+        return $this->private;
     }
 
     /**

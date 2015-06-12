@@ -31,28 +31,28 @@ class Router
      * 
      * @var array
      */
-    private $_routes = array();
+    protected $routes = array();
 
     /**
      * Protocol to use when generating full URL's.
      * 
      * @var string
      */
-    private $_protocol = 'http://';
+    protected $protocol = 'http://';
 
     /**
      * Host to use when generating full URL's.
      * 
      * @var string
      */
-    private $_host = 'localhost';
+    protected $host = 'localhost';
 
     /**
      * Port to use when generating full URL's.
      * 
      * @var int
      */
-    private $_port = 80;
+    protected $port = 80;
 
     /**
      * Constructor.
@@ -154,7 +154,7 @@ class Router
 
         // register this as a route
         $route = new Route($name, $controllerClass, $urlPattern, $methods, $moduleName, $private);
-        $this->_routes[$name] = $route;
+        $this->routes[$name] = $route;
 
         return $route;
     }
@@ -231,7 +231,7 @@ class Router
      * @return array
      */
     public function getRoutes() {
-        return $this->_routes;
+        return $this->routes;
     }
 
     /**
@@ -242,11 +242,11 @@ class Router
      * @throws RouteNotFoundException When there is no route with the given name.
      */
     public function getRoute($name) {
-        if (!isset($this->_routes[$name])) {
+        if (!isset($this->routes[$name])) {
             throw new RouteNotFoundException('There is no route called "'. $name .'" registered.');
         }
 
-        return $this->_routes[$name];
+        return $this->routes[$name];
     }
 
     /**
@@ -255,7 +255,7 @@ class Router
      * @param string $protocol Protocol to use. E.g. 'http://' or 'https://'.
      */
     public function setProtocol($protocol) {
-        $this->_protocol = rtrim($protocol, ':/') .'://';
+        $this->protocol = rtrim($protocol, ':/') .'://';
     }
 
     /**
@@ -264,7 +264,7 @@ class Router
      * @return string
      */
     public function getProtocol() {
-        return $this->_protocol;
+        return $this->protocol;
     }
 
     /**
@@ -273,7 +273,7 @@ class Router
      * @param string $host Host name to use.
      */
     public function setHost($host) {
-        $this->_host = trim($host, '/');
+        $this->host = trim($host, '/');
     }
 
     /**
@@ -282,7 +282,7 @@ class Router
      * @return string
      */
     public function getHost() {
-        return $this->_host;
+        return $this->host;
     }
 
     /**
@@ -291,7 +291,7 @@ class Router
      * @param int $port Port number.
      */
     public function setPort($port) {
-        $this->_port = intval($port);
+        $this->port = intval($port);
     }
 
     /**
@@ -300,7 +300,7 @@ class Router
      * @return int
      */
     public function getPort() {
-        return $this->_port;
+        return $this->port;
     }
 
     /**
