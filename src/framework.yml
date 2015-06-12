@@ -138,6 +138,7 @@ services:
         class: Whoops\Run
         call:
             - ["pushHandler", ["@whoops.handler.pretty_page"]]
+            - ["pushHandler", ["@whoops.handler.http_status"]]
             - ["pushHandler", ["@whoops.handler.log"]]
             - ["pushHandler", ["@whoops.handler.event"]]
 
@@ -147,6 +148,9 @@ services:
         class: Splot\Framework\ErrorHandlers\PrettyPageErrorHandler
         arguments:
             - %whoops.pretty_page%
+
+    whoops.handler.http_status:
+        class: Splot\Framework\ErrorHandlers\HTTPStatusErrorHandler
             
     whoops.handler.log:
         class: Splot\Framework\ErrorHandlers\LogErrorHandler
