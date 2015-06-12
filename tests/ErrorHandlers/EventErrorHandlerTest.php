@@ -91,13 +91,18 @@ class EventErrorHandlerTest extends \PHPUnit_Framework_TestCase
     protected function provideMocks() {
         $mocks = array();
         $mocks['event_manager'] = $this->getMock('Splot\EventManager\EventManager');
+        $mocks['container'] = $this->getMock('Splot\DependencyInjection\ContainerInterface');
+        $mocks['container']->expects($this->any())
+            ->method('getParameter')
+            ->with('mode')
+            ->will($this->returnValue('web'));
         return $mocks;
     }
 
     protected function provideHandler(array $mocks = array()) {
         $mocks = $mocks ? $mocks : $this->provideMocks();
         $handler = $this->getMockBuilder('Splot\Framework\ErrorHandlers\EventErrorHandler')
-            ->setConstructorArgs(array($mocks['event_manager']))
+            ->setConstructorArgs(array($mocks['event_manager'], $mocks['container']))
             ->setMethods(array('getException'))
             ->getMock();
         $handler->expects($this->any())

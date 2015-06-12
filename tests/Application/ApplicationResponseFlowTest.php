@@ -73,23 +73,6 @@ class ApplicationResponseFlowTest extends ApplicationTestCase
     }
 
     /**
-     * @covers ::handleRequest
-     */
-    public function testCatchingExceptionsDuringHandlingOfRequests() {
-        $exceptionDidOccurCalled = false;
-        $handledResponse = new Response('Handled exception');
-        $this->application->getContainer()->get('event_manager')->subscribe(ExceptionDidOccur::getName(), function($ev) use (&$exceptionDidOccurCalled, $handledResponse) {
-            $exceptionDidOccurCalled = true;
-            $ev->setResponse($handledResponse);
-        });
-
-        $response = $this->application->handleRequest(Request::create('/some/undefined/route'));
-
-        $this->assertTrue($exceptionDidOccurCalled);
-        $this->assertSame($handledResponse, $response);
-    }
-
-    /**
      * @expectedException \MD\Foundation\Exceptions\NotFoundException
      * @covers ::handleRequest
      */
