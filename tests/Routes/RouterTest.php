@@ -233,7 +233,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         $router->readModuleRoutes($module);
 
         $foundRoutes = $router->getRoutes();
-        $this->assertEquals(8, count($foundRoutes));
+        $this->assertCount(8, $foundRoutes);
 
         foreach(array(
             'SplotRouterTestModule:Footer',

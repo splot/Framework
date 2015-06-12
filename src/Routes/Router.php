@@ -13,6 +13,8 @@ namespace Splot\Framework\Routes;
 
 use ReflectionClass;
 
+use MD\Foundation\Utils\FilesystemUtils;
+
 use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
@@ -71,52 +73,44 @@ class Router
      * @param AbstractModule $module Module object.
      */
     public function readModuleRoutes(AbstractModule $module) {
-        $name = $module->getName();
-        $routesDir = $module->getModuleDir() .'/Controllers';
+        $moduleName = $module->getName();
+        $routesDir = rtrim($module->getModuleDir(), '/') .'/Controllers';
         if (!is_dir($routesDir)) {
             return;
         }
 
         $moduleNamespace = $module->getNamespace() . NS .'Controllers'. NS;
-        $router = $this;
+        $routesDirLength = strlen($routesDir .'/');
 
-        // register a closure so we can recursively scan the routes directory
-        // @todo refactor to use glob()
-        $scan = function($dir, $namespace, $self) use ($name, $moduleNamespace, $module, $router) {
-            $namespace = ($namespace) ? trim($namespace, NS) . NS : '';
-            
-            $files = scandir($dir);
-            foreach($files as $file) {
-                // ignore . and ..
-                if (in_array($file, array('.', '..'))) continue;
+        $files = FilesystemUtils::glob($routesDir .'/{,**/}*.php', GLOB_BRACE);
+        foreach ($files as $file) {
+            // remove full path to the routes dir, so we're left only with relative path
+            $file = substr($file, $routesDirLength);
+            // also remove extension
+            $file = substr($file, 0, -4);
 
-                // if directory then go recursively
-                if (is_dir($dir . DS . $file)) {
-                    $self($dir . DS . $file, $namespace . $file, $self);
-                    continue;
-                }
+            // build full class name
+            $subNamespace = str_replace('/', NS, $file);
+            $class = $moduleNamespace . $subNamespace;
 
-                $file = explode('.', $file);
-                $rawClass = $file[0];
-                $class = $moduleNamespace . $namespace . $rawClass;
-
-                // class_exists autoloads a file
-                if (!class_exists($class)) {
-                    continue;
-                }
-
-                // check if this class can be instantiated, if not, omit it
-                $reflection = new ReflectionClass($class);
-                if (!$reflection->isInstantiable()) {
-                    continue;
-                }
-
-                $router->addRoute($name .':'. $namespace . $rawClass, $class, $module->getName(), $module->getUrlPrefix() . $class::_getUrl());
+            // class_exists autoloads the file
+            if (!class_exists($class)) {
+                continue;
             }
-        };
 
-        // scan the module
-        $scan($routesDir, '', $scan);
+            // check if this class can be instantiated, if not, skip it
+            $reflection = new ReflectionClass($class);
+            if (!$reflection->isInstantiable()) {
+                continue;
+            }
+
+            $this->addRoute(
+                $moduleName .':'. $subNamespace,
+                $class,
+                $moduleName,
+                $module->getUrlPrefix() . $class::_getUrl()
+            );
+        }
     }
 
     /**
