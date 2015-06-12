@@ -22,6 +22,8 @@ class RouteTest extends \PHPUnit_Framework_TestCase
      * @covers ::isPrivate
      * @covers ::getRegExp
      * @covers ::getMethods
+     * @covers ::regexpFromUrlPattern
+     * @covers ::prepareMethodsInfo
      * @covers ::getControllerMethodForHttpMethod
      */
     public function testInitialization() {
@@ -71,7 +73,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException Splot\Framework\Routes\Exceptions\InvalidControllerException
+     * 
      * @covers ::__construct
+     * @covers ::prepareMethodsInfo
      */
     public function testInitializationWithPrivateControllerMethod() {
         $route = new Route(
@@ -89,7 +93,9 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException Splot\Framework\Routes\Exceptions\InvalidControllerException
+     * 
      * @covers ::__construct
+     * @covers ::prepareMethodsInfo
      */
     public function testInitializationWithNoControllerMethod() {
         $route = new Route(

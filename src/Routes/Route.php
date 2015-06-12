@@ -104,13 +104,13 @@ class Route
             return false;
         }
 
-        $matched = preg_match($this->getRegExp(), $url, $matches);
-
-        // found matching controller for this URL that also accepts this HTTP method
-        if ($matched === 1) {
-            if ($this->getControllerMethodForHttpMethod($httpMethod)) {
-                return true;
-            }
+        if (
+            // URL must match
+            preg_match($this->getRegExp(), $url, $matches) === 1
+            // but the controller must also respond to the HTTP method
+            && $this->getControllerMethodForHttpMethod($httpMethod)
+        ) {
+            return true;
         }
 
         return false;
@@ -303,35 +303,44 @@ class Route
         // this way we also make sure that inherited methods don't count toward this, each route has to specifically implement it itself!
         $controllerReflection = new \ReflectionClass($this->getControllerClass());
 
-        foreach(array_keys($methods) as $method) {
-            // if responds to this method than should implement it appropriately
-            if ($methods[$method]['method']) {
+        foreach($methods as $method => $info) {
+            // if not responding then just continue
+            if (!$info['method']) {
+                continue;
+            }
 
-                try {
-                    $methodReflection = $controllerReflection->getMethod($methods[$method]['method']);
+            try {
+                $methodReflection = $controllerReflection->getMethod($info['method']);
 
-                    if (!$methodReflection->isPublic() || $methodReflection->isStatic()) {
-                        throw new InvalidControllerException('Controller "'. $this->getControllerClass() .'" does not have a public non-static method called "'. $methods[$method]['method'] .'" for '. strtoupper($method) .' requests.');
-                    }
-
-                    // also, while we're at it, create parameters map
-                    $parametersReflection = $methodReflection->getParameters();
-
-                    foreach($parametersReflection as $param) {
-                        $paramClass = $param->getClass();
-                        $optional = $param->isDefaultValueAvailable();
-
-                        $methods[$method]['params'][] = array(
-                            'name' => $param->getName(),
-                            'class' => ($paramClass !== null) ? $paramClass->getName() : null,
-                            'optional' => $optional,
-                            'default' => ($optional) ? $param->getDefaultValue() : null
-                        );
-                    }
-                } catch(\ReflectionException $e) {
-                    // reroute the exception to more understandable
-                    throw new InvalidControllerException('Controller "'. $this->getControllerClass() .'" does not have a method called "'. $methods[$method]['method'] .'" for '. strtoupper($method) .' requests.', $e->getCode(), $e);
+                if (!$methodReflection->isPublic() || $methodReflection->isStatic()) {
+                    throw new InvalidControllerException(
+                        'Controller "'. $this->getControllerClass() .'" does not have a public non-static method '
+                        .'"'. $info['method'] .'" for '. strtoupper($method) .' requests.'
+                    );
                 }
+
+                // also, while we're at it, create parameters map
+                $parametersReflection = $methodReflection->getParameters();
+
+                foreach($parametersReflection as $param) {
+                    $paramClass = $param->getClass();
+                    $optional = $param->isDefaultValueAvailable();
+
+                    $methods[$method]['params'][] = array(
+                        'name' => $param->getName(),
+                        'class' => ($paramClass !== null) ? $paramClass->getName() : null,
+                        'optional' => $optional,
+                        'default' => ($optional) ? $param->getDefaultValue() : null
+                    );
+                }
+            } catch(\ReflectionException $e) {
+                // reroute the exception to be more understandable
+                throw new InvalidControllerException(
+                    'Controller "'. $this->getControllerClass() .'" does not have a method '
+                        .' "'. $methods[$method]['method'] .'" for '. strtoupper($method) .' requests.',
+                    $e->getCode(),
+                    $e
+                );
             }
         }
 
