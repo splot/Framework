@@ -157,3 +157,4 @@ services:
         class: Splot\Framework\ErrorHandlers\EventErrorHandler
         arguments:
             - @event_manager
+            - @container
