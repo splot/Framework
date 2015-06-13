@@ -72,6 +72,8 @@ class TestApplication extends AbstractApplication
         $framework = new Framework();
         $framework->configureModule($module, $this, $container->getParameter('env'), $container->getParameter('debug'));
 
+        $container->get('router')->readModuleRoutes($module);
+
         // run the module
         $this->setPhase(Framework::PHASE_RUN);
         $module->run();

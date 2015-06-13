@@ -44,18 +44,6 @@ class AbstractModuleTest extends \PHPUnit_Framework_TestCase
         $module = $this->getMockForAbstractClass('Splot\Framework\Modules\AbstractModule');
         $module->setContainer($container);
 
-        $router = $this->getMockBuilder('Splot\Framework\Routes\Router')
-            ->disableOriginalConstructor()
-            ->getMock();
-        $router->expects($this->once())
-            ->method('readModuleRoutes')
-            ->with($this->equalTo($module));
-
-        $container->expects($this->atLeastOnce())
-            ->method('get')
-            ->with($this->equalTo('router'))
-            ->will($this->returnValue($router));
-
         $module->run();
     }
 

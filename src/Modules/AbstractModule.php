@@ -112,12 +112,8 @@ abstract class AbstractModule
      *
      * This is a good place to perform any additional configuration that can only be done at
      * runtime or cannot be cached.
-     *
-     * By default, this method will call the `router` service and make it load any routes
-     * contained in this module (note: this behavior will change in future releases of Splot).
      */
     public function run() {
-        $this->container->get('router')->readModuleRoutes($this);
     }
 
     /*****************************************
