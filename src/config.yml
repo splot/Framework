@@ -3,3 +3,4 @@ log_level: debug
 
 cache:
     enabled: %not_debug%
+    default_store: @cache.store.file

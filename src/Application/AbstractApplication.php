@@ -160,10 +160,11 @@ abstract class AbstractApplication implements LoggerAwareInterface
      */
     public function configure() {
         // copy config values to the container
-        $config = $this->container->get('config');
+        $config = $this->getConfig();
         $this->container->setParameter('log_file', $config->get('log_file'));
         $this->container->setParameter('log_level', $config->get('log_level'));
         $this->container->setParameter('cache.enabled', $config->get('cache.enabled'));
+        $this->container->setParameter('cache.default_store', '@'. ltrim($config->get('cache.default_store'), '@'));
 
         $configDir = rtrim($this->container->getParameter('config_dir'), '/') .'/';
         foreach(array(

@@ -9,6 +9,7 @@ parameters:
 
     # caching
     cache.enabled: %not_debug%
+    cache.default_store: @cache.store.file
 
     # router parameters
     router.cache_enabled: %cache.enabled%
@@ -93,7 +94,7 @@ services:
     cache_provider:
         class: Splot\Cache\CacheProvider
         arguments:
-            - @cache.store.file
+            - %cache.default_store%
             - global_namespace: %env%
 
     # cache stores
