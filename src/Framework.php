@@ -259,6 +259,7 @@ class Framework
         $container->setParameter('application_dir', dirname(Debugger::getClassFile($application)));
         $container->setParameter('env', $env);
         $container->setParameter('debug', $debug);
+        $container->setParameter('not_debug', !$debug);
 
         // maybe application wants to provide some high-priority parameters as well?
         $container->loadFromArray(array(

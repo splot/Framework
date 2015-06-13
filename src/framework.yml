@@ -7,6 +7,9 @@ parameters:
     root_dir: %application_dir%/..
     web_dir: %root_dir%/web
 
+    # caching
+    cache.enabled: %not_debug%
+
     # router parameters
     router.host: localhost
     router.protocol: "http://"
@@ -19,6 +22,7 @@ parameters:
     # parameters that will be overwritten by the framework anyway, but are here for clarity
     env: dev
     debug: true
+    not_debug: false
     mode: -1
 
     # whether or not should show a pretty page on errors

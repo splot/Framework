@@ -1,5 +1,5 @@
-log_file: false
+log_file: %root_dir%/logs/debug.log
 log_level: debug
 
 cache:
-    enabled: true
+    enabled: %not_debug%
