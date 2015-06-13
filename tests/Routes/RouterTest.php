@@ -50,14 +50,16 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testReadingRoutesFromDisabledCache() {
         $mocks = $this->provideMocks();
 
+        $phpunit = $this;
+
         $mocks['cache']->expects($this->once())
             ->method('get')
             ->with($this->equalTo('routes'), $this->equalTo(0), $this->callback(function($callback) {
                 return is_callable($callback);
             }))
-            ->will($this->returnCallback(function($key, $ttl, $callback) {
+            ->will($this->returnCallback(function($key, $ttl, $callback) use ($phpunit) {
                 $routes = call_user_func($callback);
-                $this->assertInternalType('array', $routes);
+                $phpunit->assertInternalType('array', $routes);
                 return $routes;
             }));
 
