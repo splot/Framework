@@ -17,8 +17,53 @@ use Splot\Framework\Tests\Modules\Fixtures\TestModule;
 class RouterTest extends \PHPUnit_Framework_TestCase
 {
 
-    protected function provideRouter() {
-        return new Router();
+    protected function provideMocks() {
+        $mocks = array();
+        $mocks['application'] = $this->getMockBuilder('Splot\Framework\Application\AbstractApplication')
+            ->setMethods(array('getModules', 'loadModules'))
+            ->disableOriginalConstructor()
+            ->getMock();
+        $mocks['application']->expects($this->any())
+            ->method('getModules')
+            ->will($this->returnValue(array(
+                new TestModule(),
+                new SplotRouterTestModule()
+            )));
+        $mocks['application']->expects($this->any())
+            ->method('loadModules')
+            ->will($this->returnValue(array()));
+        $mocks['cache'] = $this->getMock('Splot\Cache\CacheInterface');
+        $mocks['cache']->expects($this->any())
+            ->method('get')
+            ->will($this->returnValue(array()));
+        return $mocks;
+    }
+
+    protected function provideRouter(array $mocks = array()) {
+        $mocks = array_merge($this->provideMocks(), $mocks);
+        return new Router($mocks['application'], $mocks['cache']);
+    }
+
+    /**
+     * @covers ::__construct
+     */
+    public function testReadingRoutesFromDisabledCache() {
+        $mocks = $this->provideMocks();
+
+        $mocks['cache']->expects($this->once())
+            ->method('get')
+            ->with($this->equalTo('routes'), $this->equalTo(0), $this->callback(function($callback) {
+                return is_callable($callback);
+            }))
+            ->will($this->returnCallback(function($key, $ttl, $callback) {
+                $routes = call_user_func($callback);
+                $this->assertInternalType('array', $routes);
+                return $routes;
+            }));
+
+        $router = $this->provideRouter($mocks);
+
+        $this->assertInternalType('array', $router->getRoutes());
     }
 
     /**

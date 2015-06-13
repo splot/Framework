@@ -11,6 +11,7 @@ parameters:
     cache.enabled: %not_debug%
 
     # router parameters
+    router.cache_enabled: %cache.enabled%
     router.host: localhost
     router.protocol: "http://"
     router.port: 80
@@ -119,9 +120,15 @@ services:
     router:
         class: Splot\Framework\Routes\Router
         arguments:
+            - @application
+            - @router.cache
+            - %router.cache_enabled%
             - %router.host%
             - %router.protocol%
             - %router.port%
+
+    router.cache:
+        factory: ["@cache_provider", "provide", ["router"]]
 
     # console
     console:

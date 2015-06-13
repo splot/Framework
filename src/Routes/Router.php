@@ -15,6 +15,9 @@ use ReflectionClass;
 
 use MD\Foundation\Utils\FilesystemUtils;
 
+use Splot\Cache\CacheInterface;
+
+use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Controller\AbstractController;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
@@ -25,6 +28,13 @@ use Splot\Framework\Routes\Exceptions\InvalidRouteException;
 
 class Router
 {
+
+    /**
+     * Cache.
+     * 
+     * @var CacheInterface
+     */
+    protected $cache;
 
     /**
      * Routes container.
@@ -57,14 +67,35 @@ class Router
     /**
      * Constructor.
      *
+     * @param Application $application Application for this router.
+     * @param CacheInterface $cache Cache in which routes definitions will be stored.
+     * @param boolean $cacheEnabled [optional] Whether or not the cache is enabled. Default: `true`.
      * @param string $host [optional] Host to use when generating full URL's. Default: `localhost`.
      * @param string $protocol [optional] Protocol to use when generating full URL's. Default: `http://`.
      * @param int $port [optional] Port to use when generating full URL's. Default: `80`.
      */
-    public function __construct($host = 'localhost', $protocol = 'http://', $port = 80) {
+    public function __construct(
+        AbstractApplication $application,
+        CacheInterface $cache,
+        $cacheEnabled = true,
+        $host = 'localhost',
+        $protocol = 'http://',
+        $port = 80
+    ) {
+        $this->cache = $cache;
+        $this->cache->setEnabled($cacheEnabled);
         $this->setHost($host);
         $this->setProtocol($protocol);
         $this->setPort($port);
+
+        // read all routes from cache and if there aren't any then read them from application modules and write to cache
+        $router = $this;
+        $this->routes = $this->cache->get('routes', 0, function() use ($router, $application) {
+            foreach ($application->getModules() as $module) {
+                $router->readModuleRoutes($module);
+            }
+            return $router->getRoutes();
+        });
     }
 
     /**
