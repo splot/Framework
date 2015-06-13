@@ -30,7 +30,6 @@ use Splot\DependencyInjection\ContainerInterface;
 use Splot\Framework\Application\AbstractApplication;
 use Splot\Framework\Application\CommandApplication;
 use Splot\Framework\Config\Config;
-use Splot\Framework\Composer\AbstractScriptHandler;
 use Splot\Framework\HTTP\Request;
 use Splot\Framework\Modules\AbstractModule;
 use Splot\Framework\Log\LoggerProviderInterface;
@@ -368,9 +367,6 @@ class Framework
         set_time_limit(0);
 
         return $this->doRunApplication($application, self::MODE_CONSOLE, function() use ($application) {
-            // in case we're gonna run Composer script, inject the application there
-            AbstractScriptHandler::setApplication($application);
-
             return $application->getContainer()->get('console')->run();
         });
     }
