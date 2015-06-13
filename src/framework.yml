@@ -87,6 +87,8 @@ services:
     # cache
     cache:
         factory: ["@cache_provider", "provide", ["application"]]
+        notify:
+            - ["@cache_provider", "addCache", ["application", "@"]]
 
     cache_provider:
         class: Splot\Cache\CacheProvider
@@ -129,6 +131,8 @@ services:
 
     router.cache:
         factory: ["@cache_provider", "provide", ["router"]]
+        notify:
+            - ["@cache_provider", "addCache", ["router", "@"]]
 
     # console
     console:
