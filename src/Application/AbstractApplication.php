@@ -115,7 +115,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
      */
     public function provideContainerCache($env, $debug) {
         $containerCacheDir = dirname(Debugger::getClassFile($this)) .'/cache/'. $env .'/container';
-        return new ContainerCache(new FileStore($containerCacheDir));
+        return new ContainerCache(new FileStore($containerCacheDir), $this->name .'__'. $env);
     }
 
     /**
