@@ -4,14 +4,10 @@
 <phpunit
     backupGlobals               = "false"
     backupStaticAttributes      = "false"
-    colors                      = "true"
-    convertErrorsToExceptions   = "true"
-    convertNoticesToExceptions  = "true"
-    convertWarningsToExceptions = "true"
-    processIsolation            = "false"
     stopOnFailure               = "false"
     syntaxCheck                 = "false"
-    bootstrap                   = "vendor/autoload.php" >
+    bootstrap                   = "vendor/autoload.php"
+>
 
     <testsuites>
         <testsuite name="Splot Framework Test Suite">
@@ -24,10 +20,5 @@
             <directory>src</directory>
         </whitelist>
     </filter>
-
-    <logging>
-        <log type="coverage-text" target="php://stdout" showUncoveredFiles="true"/>
-        <log type="coverage-html" target="tests/coverage" charset="UTF-8" highlight="false" />
-    </logging>
 
 </phpunit>
