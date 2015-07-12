@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=5.5",
         "psr/log": ">=1.0,<2.0",
         "symfony/http-foundation": ">=2.1,<3.0",
         "symfony/filesystem": ">=2.1,<3.0",
@@ -29,7 +29,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.9.x-dev"
+            "dev-master": "0.10.x-dev"
         }
     },
     "minimum-stability": "dev",
