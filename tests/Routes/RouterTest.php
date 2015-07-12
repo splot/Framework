@@ -77,10 +77,10 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testAddingRoutes() {
         $router = $this->provideRouter();
 
-        $testRoute = $router->addRoute('test', TestController::__class());
+        $testRoute = $router->addRoute('test', TestController::class);
         $this->assertTrue($testRoute instanceof Route);
 
-        $testMethodsRoute = $router->addRoute('test.methods', TestController::__class(), null, null, array(
+        $testMethodsRoute = $router->addRoute('test.methods', TestController::class, null, null, array(
             'get' => 'index',
             'pUt' => false,
             'POST' => 'save'
@@ -111,7 +111,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
      */
     public function testAddingPublicRouteWithNoUrlPattern() {
         $router = $this->provideRouter();
-        $router->addRoute('empty', EmptyController::__class());
+        $router->addRoute('empty', EmptyController::class);
     }
 
     /**
@@ -120,10 +120,10 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testGettingRouteForUrl() {
         $router = $this->provideRouter();
 
-        $indexRoute = $router->addRoute('test.index', TestController::__class(), null, '/test/');
-        $listRoute = $router->addRoute('test.list', TestController::__class(), null, '/test/{page:int}/{limit:int}?');
-        $itemRoute = $router->addRoute('test.item', TestController::__class(), null, '/test/{id:int}/{slug}.html');
-        $itemAdminRoute = $router->addRoute('test.item_admin', TestController::__class(), null, '/test/admin/{id:int}/', array(
+        $indexRoute = $router->addRoute('test.index', TestController::class, null, '/test/');
+        $listRoute = $router->addRoute('test.list', TestController::class, null, '/test/{page:int}/{limit:int}?');
+        $itemRoute = $router->addRoute('test.item', TestController::class, null, '/test/{id:int}/{slug}.html');
+        $itemAdminRoute = $router->addRoute('test.item_admin', TestController::class, null, '/test/admin/{id:int}/', array(
             'get' => 'index',
             'put' => false,
             'post' => 'index',
@@ -146,10 +146,10 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testGettingRouteForRequest() {
         $router = $this->provideRouter();
 
-        $indexRoute = $router->addRoute('test.index', TestController::__class(), null, '/test/');
-        $listRoute = $router->addRoute('test.list', TestController::__class(), null, '/test/{page:int}/{limit:int}?');
-        $itemRoute = $router->addRoute('test.item', TestController::__class(), null, '/test/{id:int}/{slug}.html');
-        $itemAdminRoute = $router->addRoute('test.item_admin', TestController::__class(), null, '/test/admin/{id:int}/', array(
+        $indexRoute = $router->addRoute('test.index', TestController::class, null, '/test/');
+        $listRoute = $router->addRoute('test.list', TestController::class, null, '/test/{page:int}/{limit:int}?');
+        $itemRoute = $router->addRoute('test.item', TestController::class, null, '/test/{id:int}/{slug}.html');
+        $itemAdminRoute = $router->addRoute('test.item_admin', TestController::class, null, '/test/admin/{id:int}/', array(
             'get' => 'index',
             'put' => false,
             'post' => 'index',
@@ -181,7 +181,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testGenerate() {
         $router = $this->provideRouter();
 
-        $router->addRoute('test', TestController::__class(), null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
+        $router->addRoute('test', TestController::class, null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
 
         // all params
         $this->assertEquals(
@@ -212,7 +212,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
             ))
         );
 
-        $router->addRoute('test.optional', TestController::__class(), null, '/test/{id:int}/{slug}?');
+        $router->addRoute('test.optional', TestController::class, null, '/test/{id:int}/{slug}?');
 
         $this->assertEquals('/test/123/', $router->generate('test.optional', array(
             'id' => 123
@@ -230,7 +230,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
         $router = $this->provideRouter();
         $router->setHost('www.host.com');
 
-        $router->addRoute('test', TestController::__class(), null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
+        $router->addRoute('test', TestController::class, null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
 
         $this->assertEquals(
             'http://www.host.com/test/123/13/jul/2013/lipsum/1.html',
@@ -252,7 +252,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testGenerateInsufficientParams() {
         $router = $this->provideRouter();
 
-        $router->addRoute('test.insufficient', TestController::__class(), null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
+        $router->addRoute('test.insufficient', TestController::class, null, '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html');
         $this->assertEquals('/test/123/13/jul/2013/lipsum/1.html', $router->generate('test.insufficient', array(
             'id' => 123,
             'slug' => 'lipsum',
@@ -266,7 +266,7 @@ class RouterTest extends \PHPUnit_Framework_TestCase
     public function testExpose() {
         $router = $this->provideRouter();
 
-        $router->addRoute('test', TestController::__class(), null, '/test/{id:int}/{data:int}/{month}/{year:int}/{slug}/{page:int}.html');
+        $router->addRoute('test', TestController::class, null, '/test/{id:int}/{data:int}/{month}/{year:int}/{slug}/{page:int}.html');
 
         $this->assertEquals('/test/{id}/{data}/{month}/{year}/{slug}/{page}.html', $router->expose('test'));
     }

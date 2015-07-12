@@ -92,7 +92,7 @@ class EventsTest extends \PHPUnit_Framework_TestCase
      * @covers \Splot\Framework\Events\DidFindRouteForRequest::getRequest
      */
     public function testDidFindRouteForRequest() {
-        $route = new Route('test_route', TestController::__class(), '/test/', array(
+        $route = new Route('test_route', TestController::class, '/test/', array(
             'get' => 'index'
         ));
         $request = Request::create('/test/');

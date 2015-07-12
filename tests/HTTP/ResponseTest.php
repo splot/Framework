@@ -27,11 +27,4 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
         $response->alterPart('', 'Lipsum');
     }
 
-    /**
-     * @covers ::__class
-     */
-    public function testGettingClassName() {
-        $this->assertEquals('Splot\Framework\HTTP\Response', Response::__class());
-    }
-
 }

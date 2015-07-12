@@ -15,7 +15,7 @@ class AbstractControllerTest extends \PHPUnit_Framework_TestCase
 {
 
     public function testGettingClassName() {
-        $this->assertEquals('Splot\Framework\Tests\Controller\Fixtures\TestController', TestController::__class());
+        $this->assertEquals('Splot\Framework\Tests\Controller\Fixtures\TestController', TestController::class);
     }
 
     /**

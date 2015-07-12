@@ -34,14 +34,4 @@ class Request extends Base_Request
             }
         }
     }
-
-    /**
-     * Returns class name.
-     * 
-     * @return string
-     */
-    public static function __class() {
-        return get_called_class();
-    }
-
 }

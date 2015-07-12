@@ -35,14 +35,4 @@ class Response extends Base_Response
 
         $this->content = str_replace($part, $replace, $this->content);
     }
-
-    /**
-     * Returns class name.
-     * 
-     * @return string
-     */
-    public static function __class() {
-        return get_called_class();
-    }
-
 }

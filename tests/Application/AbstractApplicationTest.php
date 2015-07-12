@@ -242,13 +242,6 @@ class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
         $application->setPhase(Framework::PHASE_BOOTSTRAP);
     }
 
-    /**
-     * @covers ::__class
-     */
-    public function testGettingClass() {
-        $this->assertEquals('Splot\\Framework\\Tests\\Application\\Fixtures\\TestApplication', TestApplication::__class());
-    }
-
     protected function provideMocks() {
         $mocks = array();
         $mocks['container'] = $this->getMock('Splot\DependencyInjection\ContainerInterface');

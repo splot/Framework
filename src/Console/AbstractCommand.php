@@ -321,7 +321,7 @@ abstract class AbstractCommand
      */
     final public function getOption($name) {
         if (!isset($this->_options[$name])) {
-            throw new NotFoundException('Option "'. $name .'" was not found for command "'. static::getName() .' ('. static::__class() .')".');
+            throw new NotFoundException('Option "'. $name .'" was not found for command "'. static::getName() .' ('. static::class .')".');
         }
 
         return $this->_options[$name];
@@ -379,15 +379,6 @@ abstract class AbstractCommand
      */
     final public static function getOptions() {
         return static::$options;
-    }
-
-    /**
-     * Returns class name of the controller.
-     * 
-     * @return string
-     */
-    final public static function __class() {
-        return get_called_class();
     }
 
 }

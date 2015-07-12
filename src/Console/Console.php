@@ -120,7 +120,7 @@ class Console
      */
     public function addCommand($name, $commandClass) {
         // must extend AbstractCommand
-        $abstractCommandClass = AbstractCommand::__class();
+        $abstractCommandClass = AbstractCommand::class;
         if (!Debugger::isExtending($commandClass, $abstractCommandClass)) {
             throw new InvalidCommandException('Command "'. $commandClass .'" must extend "'. $abstractCommandClass .'".');
         }

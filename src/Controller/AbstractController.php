@@ -164,14 +164,4 @@ abstract class AbstractController
     final public function getContainer() {
         return $this->container;
     }
-
-    /**
-     * Returns class name of the controller.
-     * 
-     * @return string
-     */
-    final public static function __class() {
-        return get_called_class();
-    }
-
 }

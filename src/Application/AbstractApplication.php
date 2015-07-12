@@ -364,7 +364,7 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
 
         if (!is_object($response) || !($response instanceof Response)) {
-            throw new InvalidReturnValueException('Executed controller method must return '. Response::__class() .' instance or a string, "'. Debugger::getType($response) .'" given.');
+            throw new InvalidReturnValueException('Executed controller method must return '. Response::class .' instance or a string, "'. Debugger::getType($response) .'" given.');
         }
 
         return $response;
@@ -527,14 +527,4 @@ abstract class AbstractApplication implements LoggerAwareInterface
         }
         $this->phase = $phase;
     }
-
-    /**
-     * Returns class name of the application.
-     * 
-     * @return string
-     */
-    public static function __class() {
-        return get_called_class();
-    }
-
 }

@@ -29,7 +29,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testInitialization() {
         $route = new Route(
             'test_route',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}',
             array(
                 'GET' => 'index',
@@ -42,7 +42,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertEquals('test_route', $route->getName());
-        $this->assertEquals(TestController::__class(), $route->getControllerClass());
+        $this->assertEquals(TestController::class, $route->getControllerClass());
         $this->assertEquals('/test/{id:int}', $route->getUrlPattern());
         $this->assertEquals('RoutesTesting', $route->getModuleName());
         $this->assertFalse($route->getPrivate());
@@ -80,7 +80,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testInitializationWithPrivateControllerMethod() {
         $route = new Route(
             'test_invalid_route',
-            TestPrivateController::__class(),
+            TestPrivateController::class,
             '/test/',
             array(
                 'get' => 'index',
@@ -100,7 +100,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testInitializationWithNoControllerMethod() {
         $route = new Route(
             'test_invalid_route_2',
-            TestController::__class(),
+            TestController::class,
             '/test/',
             array(
                 'get' => 'list',
@@ -116,7 +116,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testWillRespondToRequest() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}',
             array(
                 'get' => 'index',
@@ -134,7 +134,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
         $routePrivate = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}',
             array(
                 'get' => 'index',
@@ -155,7 +155,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
         $routeEncoded = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}/',
             array(
                 'get' => 'index',
@@ -173,7 +173,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
      * @covers ::regexpFromUrlPattern
      */
     public function testCatchAllConstraint() {
-        $route = new Route('lipsum', TestController::__class(), '/test/{url:all}', array(
+        $route = new Route('lipsum', TestController::class, '/test/{url:all}', array(
             'get' => 'index',
             'post' => 'save',
             'put' => 'newItem',
@@ -185,7 +185,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($route->willRespondToRequest('/not-test/lorem/test', 'get'));
 
         // with optional url param
-        $routeOptional = new Route('lipsum', TestController::__class(), '/test/{url:all}?', array(
+        $routeOptional = new Route('lipsum', TestController::class, '/test/{url:all}?', array(
             'get' => 'index',
             'post' => 'save',
             'put' => 'newItem',
@@ -194,7 +194,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($routeOptional->willRespondToRequest('/test/', 'get'));
 
 
-        $routeWithParams = new Route('lipsum', TestController::__class(), '/test/{id:int}/{slug:all}', array(
+        $routeWithParams = new Route('lipsum', TestController::class, '/test/{id:int}/{slug:all}', array(
             'get' => 'index',
             'post' => 'save',
             'put' => 'newItem',
@@ -210,7 +210,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testControllerMethodArgumentsFromArray() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}/',
             array(
                 'get' => 'index',
@@ -227,7 +227,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
         $route2 = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{slug}/{id:int}',
             array(
                 'get' => 'index',
@@ -255,7 +255,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testControllerMethodArgumentsFromArrayInvalid() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}/',
             array(
                 'get' => 'index',
@@ -277,7 +277,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testControllerMethodArgumentsForUrl() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}/',
             array(
                 'get' => 'index',
@@ -292,7 +292,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
 
         $route2 = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             // inverted order of parameters
             '/test/{slug}/{id:int}/',
             array(
@@ -313,7 +313,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testControllerMethodArgumentsForUrlInvalid() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}/',
             array(
                 'get' => 'index',
@@ -332,7 +332,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrl() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html',
             array(
                 'get' => 'index',
@@ -379,7 +379,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrlWithOptionalParam() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}?',
             array(
                 'get' => 'index',
@@ -405,7 +405,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrlWithHost() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{slug}?',
             array(
                 'get' => 'index',
@@ -428,7 +428,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testgenerateUrlInsufficientParams() {
         $route = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}/{day:int}/{month}/{year:int}/{slug}/{page:int}.html',
             array(
                 'get' => 'index',
@@ -452,7 +452,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testGenerateUrlPrivate() {
         $routePrivate = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}',
             array(
                 'get' => 'index',
@@ -475,7 +475,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testExpose() {
         $route = new Route(
             'lipsum',
-            TestController::__class(), 
+            TestController::class, 
             '/test/{id:int}/{data:int}/{month}/{year:int}/{slug}/{page:int}.html',
             array(
                 'get' => 'index',
@@ -495,7 +495,7 @@ class RouteTest extends \PHPUnit_Framework_TestCase
     public function testExposePrivate() {
         $routePrivate = new Route(
             'lipsum',
-            TestController::__class(),
+            TestController::class,
             '/test/{id:int}',
             array(
                 'get' => 'index',
