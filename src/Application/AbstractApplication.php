@@ -223,50 +223,67 @@ abstract class AbstractApplication implements LoggerAwareInterface
     public function handleRequest(Request $request) {
         $eventManager = $this->container->get('event_manager');
 
-        $this->container->set('request', $request);
+        try {
+            $this->container->set('request', $request);
 
-        $this->logger->debug('Received request for {method} {uri}', array(
-            'uri' => $request->getRequestUri(),
-            'method' => $request->getMethod(),
-            'request' => $request,
-            '@stat' => 'splot.request'
-        ));
+            $this->logger->debug('Received request for {method} {uri}', array(
+                'uri' => $request->getRequestUri(),
+                'method' => $request->getMethod(),
+                'request' => $request,
+                '@stat' => 'splot.request'
+            ));
 
-        // trigger DidReceiveRequest event
-        $eventManager->trigger(new DidReceiveRequest($request));
+            // trigger DidReceiveRequest event
+            $eventManager->trigger(new DidReceiveRequest($request));
 
-        /** @var Route Meta information about the found route. */
-        $route = $this->container->get('router')->getRouteForRequest($request);
-        if (!$route) {
-            $notFoundEvent = new DidNotFindRouteForRequest($request);
-            $eventManager->trigger($notFoundEvent);
+            /** @var Route Meta information about the found route. */
+            $route = $this->container->get('router')->getRouteForRequest($request);
+            if (!$route) {
+                $notFoundEvent = new DidNotFindRouteForRequest($request);
+                $eventManager->trigger($notFoundEvent);
 
-            if ($notFoundEvent->isHandled()) {
-                return $notFoundEvent->getResponse();
-            } else {
-                throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
+                if ($notFoundEvent->isHandled()) {
+                    return $notFoundEvent->getResponse();
+                } else {
+                    throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'".');
+                }
             }
-        }
 
-        // trigger DidFindRouteForRequest event
-        if (!$eventManager->trigger(new DidFindRouteForRequest($route, $request))) {
-            $notFoundEvent = new DidNotFindRouteForRequest($request);
-            $eventManager->trigger($notFoundEvent);
+            // trigger DidFindRouteForRequest event
+            if (!$eventManager->trigger(new DidFindRouteForRequest($route, $request))) {
+                $notFoundEvent = new DidNotFindRouteForRequest($request);
+                $eventManager->trigger($notFoundEvent);
 
-            if ($notFoundEvent->isHandled()) {
-                return $notFoundEvent->getResponse();
-            } else {
-                throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'" (rendering prevented).');
+                if ($notFoundEvent->isHandled()) {
+                    return $notFoundEvent->getResponse();
+                } else {
+                    throw new RouteNotFoundException('Could not find route for "'. $request->getPathInfo() .'" (rendering prevented).');
+                }
             }
-        }
 
-        $response = $this->renderController(
-            $route->getName(),
-            $route->getControllerClass(),
-            $route->getControllerMethodForHttpMethod($request->getMethod()),
-            $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod()),
-            $request
-        );
+            $response = $this->renderController(
+                $route->getName(),
+                $route->getControllerClass(),
+                $route->getControllerMethodForHttpMethod($request->getMethod()),
+                $route->getControllerMethodArgumentsForUrl($request->getPathInfo(), $request->getMethod()),
+                $request
+            );
+
+        } catch(\Exception $e) {
+            // catch any exceptions that might have occurred during handling of the request
+            // and trigger ExceptionDidOccur event to potentially handle them with custom response
+            $exceptionEvent = new ExceptionDidOccur($e);
+            $eventManager->trigger($exceptionEvent);
+
+            // was the exception handled?
+            if ($exceptionEvent->isHandled()) {
+                // if so then it should have a response set, so return it
+                return $exceptionEvent->getResponse();
+            }
+
+            // if it hasn't been handled then rethrow the exception
+            throw $e;
+        }
 
         return $response;
     }
