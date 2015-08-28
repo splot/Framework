@@ -136,10 +136,10 @@ class ConsoleErrorHandler extends Handler
      */
     private function printExceptionHeader(Exception $exception)
     {
-        $lines = [
+        $lines = array(
             '',
             Debugger::getClass($exception) .' :',
-        ];
+        );
         $lines = array_merge($lines, explode("\n", wordwrap($exception->getMessage(), self::LINE_WIDTH)));
         $lines[] = '';
 
@@ -191,7 +191,7 @@ class ConsoleErrorHandler extends Handler
      */
     private function parseCallArguments(array $arguments)
     {
-        $args = [];
+        $args = array();
 
         foreach ($arguments as $argument) {
             if (is_object($argument)) {
