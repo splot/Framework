@@ -7,6 +7,9 @@ parameters:
     root_dir: %application_dir%/..
     web_dir: %root_dir%/web
 
+    # additional config
+    config: []
+
     # caching
     cache.enabled: %not_debug%
     cache.default_store: @cache.store.file
@@ -56,6 +59,7 @@ services:
         class: Splot\Framework\Config\Config
         call:
             - [loadFromFile, ["%framework_dir%/config.yml"]]
+            - [apply, ["%config%"]]
 
     config_module.abstract:
         class: Splot\Framework\Config\Config
