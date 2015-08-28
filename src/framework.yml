@@ -142,6 +142,9 @@ services:
             - @application
             - @logger.console
 
+    console.output: Symfony\Component\Console\Output\ConsoleOutput
+    console.output.error: ['@console.output', 'getErrorOutput']
+
     # other helper services
     filesystem: Symfony\Component\Filesystem\Filesystem
 
@@ -156,6 +159,7 @@ services:
             - ["pushHandler", ["@whoops.handler.pretty_page"]]
             - ["pushHandler", ["@whoops.handler.http_status"]]
             - ["pushHandler", ["@whoops.handler.log"]]
+            - ["pushHandler", ["@whoops.handler.console"]]
             - ["pushHandler", ["@whoops.handler.event"]]
 
     whoops.handler.null: Splot\Framework\ErrorHandlers\NullErrorHandler
@@ -178,3 +182,10 @@ services:
         arguments:
             - @event_manager
             - @container
+
+    whoops.handler.console:
+        class: Splot\Framework\ErrorHandlers\ConsoleErrorHandler
+        arguments:
+            - @console.output.error
+            - @filesystem
+            - 1
