@@ -49,9 +49,9 @@ class ExceptionDidOccur extends AbstractEvent
     /**
      * Constructor.
      * 
-     * @param Exception $exception The exception that occurred.
+     * @param mixed $exception The exception that occurred.
      */
-    public function __construct(Exception $exception) {
+    public function __construct($exception) {
         $this->_exception = $exception;
     }
 
