@@ -8,6 +8,7 @@ use Splot\Framework\HTTP\Response;
  */
 class ResponseTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::alterPart

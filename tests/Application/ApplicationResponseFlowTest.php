@@ -37,11 +37,14 @@ use Splot\Framework\Events\DidNotFindRouteForRequest;
 use Splot\Framework\Events\ExceptionDidOccur;
 use Splot\Framework\Events\WillSendResponse;
 
+use Splot\Framework\Tests\MockTrait;
+
 /**
  * @coversDefaultClass Splot\Framework\Application\AbstractApplication
  */
 class ApplicationResponseFlowTest extends ApplicationTestCase
 {
+    use MockTrait;
 
     public static $applicationClass = 'Splot\Framework\Tests\Application\Fixtures\TestApplication';
 

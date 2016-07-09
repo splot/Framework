@@ -8,7 +8,6 @@ use Splot\Framework\Testing\TestCase;
  */
 class ApplicationTest extends TestCase
 {
-
     /**
      * @covers ::configure
      */

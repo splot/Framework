@@ -25,14 +25,13 @@
         "splot/cache": "0.9.*"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.0"
+        "phpunit/phpunit": "~5.0"
     },
     "extra": {
         "branch-alias": {
             "dev-master": "0.10.x-dev"
         }
     },
-    "minimum-stability": "dev",
     "autoload": {
     	"psr-4": {
             "Splot\\Framework\\": "src/"

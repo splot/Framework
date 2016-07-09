@@ -10,6 +10,7 @@ use Splot\Framework\ErrorHandlers\NullErrorHandler;
  */
 class NullErrorHandlerTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::handle

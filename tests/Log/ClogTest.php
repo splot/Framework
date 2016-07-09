@@ -8,6 +8,7 @@ use Splot\Framework\Log\Clog;
  */
 class ClogTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     public function testInterface() {
         $log = new Clog();

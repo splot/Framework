@@ -9,6 +9,7 @@ use Splot\Framework\Testing\TestCase;
  */
 class TestCaseTest extends TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::setUp

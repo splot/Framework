@@ -8,6 +8,7 @@ use Splot\Framework\HTTP\Request;
  */
 class RequestTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct

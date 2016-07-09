@@ -11,6 +11,7 @@ use Splot\Framework\Tests\Modules\Fixtures\NamedModule;
  */
 class AbstractModuleTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::loadModules

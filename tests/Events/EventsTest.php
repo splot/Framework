@@ -13,6 +13,7 @@ use Splot\Framework\HTTP\Response;
 
 class EventsTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers \Splot\Framework\Events\ControllerDidRespond::__construct

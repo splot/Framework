@@ -10,6 +10,7 @@ use Splot\Framework\EventManager\EventManager;
  */
 class EventManagerTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct
@@ -19,7 +20,7 @@ class EventManagerTest extends \PHPUnit_Framework_TestCase
     public function testSubscribingAService() {
         $event = new TestEvent();
 
-        $subscriber = $this->getMock('stdClass', array('on'));
+        $subscriber = $this->getMock('Splot\Framework\Tests\EventManager\Fixtures\Subscriber', array('on'));
         $subscriber->expects($this->once())
             ->method('on')
             ->with($this->equalTo($event));

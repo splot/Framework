@@ -16,6 +16,7 @@ use Splot\Framework\Tests\Modules\Fixtures\TestModule;
  */
 class RouterTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     protected function provideMocks() {
         $mocks = array();

@@ -13,6 +13,7 @@ use Splot\Framework\Controller\AbstractController;
  */
 class AbstractControllerTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     public function testGettingClassName() {
         $this->assertEquals('Splot\Framework\Tests\Controller\Fixtures\TestController', TestController::class);

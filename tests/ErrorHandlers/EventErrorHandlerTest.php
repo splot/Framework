@@ -11,6 +11,7 @@ use Splot\Framework\Events\ExceptionDidOccur;
  */
 class EventErrorHandlerTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct

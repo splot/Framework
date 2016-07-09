@@ -10,6 +10,7 @@ use MD\Foundation\Exceptions\NotFoundException;
  */
 class ConfigTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     protected $configFixturesDir;
 

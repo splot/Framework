@@ -11,6 +11,7 @@ use Splot\Framework\HTTP\Exceptions\BadRequestException;
  */
 class LogErrorHandlerTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct
