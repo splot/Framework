@@ -9,6 +9,7 @@ use Splot\Framework\Controller\ControllerResponse;
  */
 class ControllerResponseTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct

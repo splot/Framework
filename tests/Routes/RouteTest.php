@@ -11,6 +11,7 @@ use Splot\Framework\Tests\Routes\Fixtures\TestPrivateController;
  */
 class RouteTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::__construct

@@ -8,6 +8,7 @@ use Splot\Framework\DependencyInjection\ContainerCache;
  */
 class ContainerCacheTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     public function testInterface() {
         $mocks = $this->provideMocks();

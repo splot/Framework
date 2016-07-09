@@ -4,11 +4,14 @@ namespace Splot\Framework\Tests\Application;
 use Splot\Framework\Tests\Application\Fixtures\TestApplication;
 use Splot\Framework\Framework;
 
+use Splot\Framework\Tests\MockTrait;
+
 /**
  * @coversDefaultClass Splot\Framework\Application\AbstractApplication
  */
 class AbstractApplicationTest extends \PHPUnit_Framework_TestCase
 {
+    use MockTrait;
 
     /**
      * @covers ::provideContainerCache

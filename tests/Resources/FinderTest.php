@@ -22,6 +22,7 @@ use Splot\Log\Provider\LogProvider;
  */
 class FinderTest extends ApplicationTestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     public static $applicationClass = 'Splot\Framework\Tests\Resources\Fixtures\TestApplication';
 

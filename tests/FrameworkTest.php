@@ -10,6 +10,7 @@ use Splot\Framework\Framework;
  */
 class FrameworkTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::warmup

@@ -11,6 +11,7 @@ use Splot\Framework\Tests\Testing\Stubs\StubController;
  */
 class ApplicationTestCaseTest extends ApplicationTestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     public static $applicationClass = 'Splot\Framework\Testing\Stubs\TestApplication';
 

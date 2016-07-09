@@ -8,6 +8,7 @@ use Splot\Framework\HTTP\JsonResponse;
  */
 class JsonResponseTest extends \PHPUnit_Framework_TestCase
 {
+    use \Splot\Framework\Tests\MockTrait;
 
     /**
      * @covers ::create
