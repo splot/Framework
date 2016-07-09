@@ -97,9 +97,9 @@ class ConsoleErrorHandler extends Handler
     /**
      * Prints details about an exeption.
      *
-     * @param  Exception $exception The exception to be printed out.
+     * @param Throwable $exception The exception to be printed out.
      */
-    private function printException(Exception $exception)
+    private function printException($exception)
     {
         // add top padding
         $this->output->writeln('');
@@ -132,9 +132,9 @@ class ConsoleErrorHandler extends Handler
     /**
      * Prints the "header" block with general info about the exception (type and message).
      *
-     * @param  Exception $exception The exception.
+     * @param Throwable $exception The exception.
      */
-    private function printExceptionHeader(Exception $exception)
+    private function printExceptionHeader($exception)
     {
         $lines = array(
             '',
