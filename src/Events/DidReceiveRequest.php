@@ -14,6 +14,7 @@ namespace Splot\Framework\Events;
 use Splot\EventManager\AbstractEvent;
 
 use Splot\Framework\HTTP\Request;
+use Splot\Framework\HTTP\Response;
 
 class DidReceiveRequest extends AbstractEvent
 {
@@ -24,6 +25,13 @@ class DidReceiveRequest extends AbstractEvent
      * @var Request
      */
     private $_request;
+
+    /**
+     * Response to the request.
+     *
+     * @var Response|null
+     */
+    private $_response = null;
 
     /**
      * Constructor.
@@ -43,4 +51,21 @@ class DidReceiveRequest extends AbstractEvent
         return $this->_request;
     }
 
+    /**
+     * Set potential response to the request.
+     *
+     * @param Response $response Response to the request.
+     */
+    public function setResponse(Response $response) {
+        $this->_response = $response;
+    }
+
+    /**
+     * Get potential response to the requet.
+     *
+     * @return Response
+     */
+    public function getResponse() {
+        return $this->_response;
+    }
 }

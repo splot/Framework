@@ -234,7 +234,12 @@ abstract class AbstractApplication implements LoggerAwareInterface
             ));
 
             // trigger DidReceiveRequest event
-            $eventManager->trigger(new DidReceiveRequest($request));
+            $didReceiveRequest = new DidReceiveRequest($request);
+            $eventManager->trigger($didReceiveRequest);
+
+            if ($didReceiveRequest->getResponse()) {
+                return $didReceiveRequest->getResponse();
+            }
 
             /** @var Route Meta information about the found route. */
             $route = $this->container->get('router')->getRouteForRequest($request);
