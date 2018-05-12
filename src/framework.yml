@@ -52,10 +52,14 @@ services:
     cache.store.file:
         class: Splot\Cache\Store\FileStore
         arguments:
-            - dir: %cache_dir%
+            - %cache_dir%
         notify:
-            - ["@cache_provider", "registerStore", ["file", "@"]]     
+            - ["@cache_provider", "registerStore", ["file", "@"]]
 
+    cache.store.memory:
+        class: Splot\Cache\Store\MemoryStore
+        notify:
+            - ["@cache_provider", "registerStore", ["memory", "@"]]
 
     # event manager
     event_manager:
