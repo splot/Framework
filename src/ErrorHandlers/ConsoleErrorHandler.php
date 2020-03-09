@@ -116,7 +116,8 @@ class ConsoleErrorHandler extends Handler
 
         $this->output->writeln('');
 
-        $this->printExceptionTrace($exception->getTrace());
+        $this->output->writeln('Call Stack:');
+        $this->output->writeln($exception->getTraceAsString());
 
         // add bottom padding
         $this->output->writeln('');
@@ -153,31 +154,6 @@ class ConsoleErrorHandler extends Handler
             $this->output->writeln(sprintf(
                 '    <error> %s </error>',
                 str_pad($line, $maxWidth)
-            ));
-        }
-    }
-
-    /**
-     * Prints trace / call stack / backtrace of an exception.
-     *
-     * @param  array  $trace The back trace to print out.
-     */
-    private function printExceptionTrace(array $trace)
-    {
-        $trace = array_reverse($trace);
-        
-        $this->output->writeln('Call Stack:');
-
-        foreach ($trace as $i => $call) {
-            $this->output->writeln(sprintf(
-                '    %d. <info>%s%s%s(</info>%s<info>)</info> in <comment>%s</comment>:%d',
-                $i + 1,
-                $call['class'],
-                $call['type'],
-                $call['function'],
-                $this->parseCallArguments($call['args']),
-                $this->filesystem->makePathRelative($call['file'], $this->cwd),
-                $call['line']
             ));
         }
     }
